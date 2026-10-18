@@ -24,7 +24,7 @@ jobs:
             runner: windows-11-arm
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
@@ -42,7 +42,7 @@ jobs:
           Copy-Item target\${{ matrix.target }}\release\traydex.exe dist\Traydex.exe
           .\notices.ps1 -Target ${{ matrix.target }}
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.arch }}
           path: dist/
@@ -51,7 +51,7 @@ jobs:
     needs: build
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Read the version from Cargo.toml
         id: version
@@ -67,7 +67,7 @@ jobs:
           "version=$version" >> $env:GITHUB_OUTPUT
           "tag=$tag" >> $env:GITHUB_OUTPUT
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           path: build
 
@@ -102,7 +102,7 @@ jobs:
             Set-Content -Encoding ascii SHA256SUMS.txt
           Pop-Location
 
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.version.outputs.tag }}
           name: Traydex ${{ steps.version.outputs.tag }}
