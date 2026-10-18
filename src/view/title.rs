@@ -52,7 +52,7 @@ impl Shelf {
                     .flex_shrink_0()
                     .flex()
                     .items_center()
-                    .gap(rem(space::S))
+                    .gap(rem(space::LABEL))
                     .cursor_pointer()
                     .on_click(cx.safe_listener(|shelf, _, _, cx| shelf.toggle_page(Page::Shelf, cx)))
                     .child(tiles::probe(move |bounds| {

@@ -262,17 +262,14 @@ impl TextSystem {
         self.read_metrics(font_id, |metrics| metrics.descent(font_size))
     }
 
-    /// Get the recommended baseline offset for the given font and line height.
+    /// Get the baseline offset that centers capital letters of the given font in a line.
     pub fn baseline_offset(
         &self,
         font_id: FontId,
         font_size: Pixels,
         line_height: Pixels,
     ) -> Pixels {
-        let ascent = self.ascent(font_id, font_size);
-        let descent = self.descent(font_id, font_size).abs();
-        let padding_top = (line_height - ascent - descent) / 2.;
-        padding_top + ascent
+        (line_height + self.cap_height(font_id, font_size)) / 2.
     }
 
     fn read_metrics<T>(&self, font_id: FontId, read: impl FnOnce(&FontMetrics) -> T) -> T {
