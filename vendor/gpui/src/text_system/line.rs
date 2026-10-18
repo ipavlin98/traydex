@@ -204,15 +204,19 @@ fn paint_line(
         ),
     );
     window.paint_layer(line_bounds, |window| {
-        let padding_top = (line_height - layout.ascent - layout.descent) / 2.;
-        let baseline_offset = point(px(0.), padding_top + layout.ascent);
+        let text_system = cx.text_system().clone();
+        let baseline_offset = point(
+            px(0.),
+            layout.runs.first().map_or(line_height / 2., |run| {
+                text_system.baseline_offset(run.font_id, layout.font_size, line_height)
+            }),
+        );
         let mut decoration_runs = decoration_runs.iter();
         let mut wraps = wrap_boundaries.iter().peekable();
         let mut run_end = 0;
         let mut color = black();
         let mut current_underline: Option<(Point<Pixels>, UnderlineStyle)> = None;
         let mut current_strikethrough: Option<(Point<Pixels>, StrikethroughStyle)> = None;
-        let text_system = cx.text_system().clone();
         let mut glyph_origin = point(
             aligned_origin_x(
                 origin,

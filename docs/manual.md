@@ -240,7 +240,7 @@ statically. Dependency versions are pinned in `Cargo.lock`. More on building and
 
 ### Patches in `vendor/gpui`
 
-GPUI 0.2.2 lives in `vendor/gpui` with seven patches, wired in through `[patch.crates-io]` in `Cargo.toml`.
+GPUI 0.2.2 lives in `vendor/gpui` with eight patches, wired in through `[patch.crates-io]` in `Cargo.toml`.
 
 1. **Pixel snapping.** All layout sizes are rounded to whole physical pixels, border widths to a whole number of
    pixels and at least one, and content offsets (scrolling, for example) to whole pixels. Identical elements are
@@ -282,6 +282,12 @@ GPUI 0.2.2 lives in `vendor/gpui` with seven patches, wired in through `[patch.c
    line. The patch is `vendor/gpui/src/text_system/line_breaks.rs`, `compute_wrap_boundaries` in `line_layout.rs`
    and `wrap_line` in `line_wrapper.rs`; the regression test is `text_wraps_at_grammatical_line_breaks` in
    `src/gpui_tests.rs`.
+8. **Text centering.** A line of text is placed so that its capital letters sit in the middle of the line height
+   (like `TextLineBounds="TrimToCapHeight"` in WinUI or `text-box-trim` in CSS). Upstream GPUI centered the whole
+   ascent-to-descent box, and since Segoe UI has a much taller ascent than descent, letters sat about a pixel low in
+   buttons, key caps and fields. The patch is `baseline_offset` in `vendor/gpui/src/text_system.rs`, which
+   `paint_line` in `vendor/gpui/src/text_system/line.rs` now uses; the regression test is
+   `baseline_offset_leaves_equal_room_above_capitals_and_below_baseline` in `src/gpui_tests.rs`.
 
 ### Patch in `vendor/unrar`
 

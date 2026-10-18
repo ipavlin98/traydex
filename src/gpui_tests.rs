@@ -710,15 +710,14 @@ fn children_split_inside_a_fractionally_placed_parent_keep_equal_padding(cx: &mu
 }
 
 #[gpui::test]
-fn baseline_offset_leaves_equal_room_above_ascent_and_below_descent(cx: &mut TestAppContext) {
+fn baseline_offset_leaves_equal_room_above_capitals_and_below_baseline(cx: &mut TestAppContext) {
     cx.update(|cx| {
         let text = cx.text_system();
         let id = text.resolve_font(&font("Segoe UI"));
         let (size, line) = (px(13.), px(18.));
-        let ascent = text.ascent(id, size);
-        let descent = text.descent(id, size).abs();
+        let cap_height = text.cap_height(id, size);
         let baseline = text.baseline_offset(id, size, line);
-        let (above, below) = (f32::from(baseline - ascent), f32::from(line - baseline - descent));
-        assert!((above - below).abs() < 1e-3, "{above} above the ascent, {below} below the descent");
+        let (above, below) = (f32::from(baseline - cap_height), f32::from(line - baseline));
+        assert!((above - below).abs() < 1e-3, "{above} above the capitals, {below} below the baseline");
     });
 }

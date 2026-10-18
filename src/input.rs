@@ -52,15 +52,7 @@ struct Frame {
     selection: Option<Bounds<Pixels>>,
     cursor: Option<Bounds<Pixels>>,
     scroll: Pixels,
-    lift: Pixels,
     fades: (bool, bool),
-}
-
-fn lift(line: &ShapedLine, style: &TextStyle, font_size: Pixels, height: Pixels, window: &Window) -> Pixels {
-    let font = window.text_system().resolve_font(&style.font());
-    let cap_height = window.text_system().cap_height(font, font_size);
-    let baseline = (height - line.ascent - line.descent) / 2. + line.ascent;
-    baseline - cap_height / 2. - height / 2.
 }
 
 fn overdrawn(bounds: Bounds<Pixels>) -> Bounds<Pixels> {
@@ -84,7 +76,7 @@ fn paint_fades(area: Bounds<Pixels>, (left, right): (bool, bool), color: Rgba, w
 pub fn label(text: SharedString, backdrop: Rgba) -> impl IntoElement {
     div().w_full().h(rem(HEIGHT)).flex().items_center().child(
         canvas(
-            move |bounds, window, _| {
+            move |_, window, _| {
                 let style = window.text_style();
                 let font_size = style.font_size.to_pixels(window.rem_size());
                 let run = TextRun {
@@ -95,14 +87,12 @@ pub fn label(text: SharedString, backdrop: Rgba) -> impl IntoElement {
                     underline: None,
                     strikethrough: None,
                 };
-                let line = window.text_system().shape_line(text, font_size, &[run], None);
-                let lift = lift(&line, &style, font_size, bounds.size.height, window);
-                (line, lift)
+                window.text_system().shape_line(text, font_size, &[run], None)
             },
-            move |bounds, (line, lift), window, cx| {
+            move |bounds, line, window, cx| {
                 let area = overdrawn(bounds);
                 window.with_content_mask(Some(ContentMask { bounds: area }), |window| {
-                    let _ = line.paint(point(bounds.left(), bounds.top() - lift), bounds.size.height, window, cx);
+                    let _ = line.paint(bounds.origin, bounds.size.height, window, cx);
                     paint_fades(area, (false, line.width > bounds.size.width), backdrop, window);
                 });
             },
@@ -323,7 +313,6 @@ impl TextInput {
         };
         let line = window.text_system().shape_line(text, font_size, &runs, None);
         let scale = window.scale_factor();
-        let lift = px(design::snap(lift(&line, &style, font_size, bounds.size.height, window).into(), scale));
         let x = |offset: usize| {
             if empty { px(0.) } else { line.x_for_index(self.display(offset)) }
         };
@@ -346,8 +335,8 @@ impl TextInput {
         let selected = self.edit.selected();
         let selection = (focused && !selected.is_empty()).then(|| {
             let corners = Bounds::from_corners(
-                point(left + x(selected.start), bounds.top() - lift),
-                point(left + x(selected.end), bounds.bottom() - lift),
+                point(left + x(selected.start), bounds.top()),
+                point(left + x(selected.end), bounds.bottom()),
             );
             pixel_bounds(corners, scale)
         });
@@ -356,7 +345,7 @@ impl TextInput {
             let top = bounds.top() + (bounds.size.height - caret_height) / 2.;
             caret_bounds(point(left + caret, top), caret_height, scale)
         });
-        Frame { line, selection, cursor, scroll, lift, fades }
+        Frame { line, selection, cursor, scroll, fades }
     }
 }
 
@@ -469,7 +458,7 @@ impl Render for TextInput {
                             if let Some(selection) = frame.selection {
                                 window.paint_quad(fill(selection, t.selection));
                             }
-                            let origin = point(bounds.left() - frame.scroll, bounds.top() - frame.lift);
+                            let origin = point(bounds.left() - frame.scroll, bounds.top());
                             let _ = frame.line.paint(origin, bounds.size.height, window, cx);
                             if let Some(backdrop) = backdrop {
                                 paint_fades(area, frame.fades, backdrop(&t), window);

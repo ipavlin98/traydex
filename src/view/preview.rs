@@ -270,8 +270,16 @@ impl Shelf {
         strip(t)
             .marked("preview-header")
             .gap(rem(BAR_GAP))
-            .child(leading_icon(item.icon(), t.muted, BAR_ICON))
-            .child(self.preview_title(t, item, preview))
+            .child(
+                div()
+                    .flex_1()
+                    .min_w_0()
+                    .flex()
+                    .items_center()
+                    .gap(rem(space::LABEL))
+                    .child(leading_icon(item.icon(), t.muted, BAR_ICON))
+                    .child(self.preview_title(t, item, preview)),
+            )
             .child(
                 div()
                     .flex()
