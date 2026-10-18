@@ -1,0 +1,70 @@
+[package]
+name = "traydex"
+version = "0.1.0-alpha"
+edition = "2024"
+build = "build.rs"
+
+[dependencies]
+anyhow = "1"
+futures = "0.3"
+gpui = { version = "=0.2.2", default-features = false, features = ["windows-manifest"] }
+windows = { version = "0.61", features = ["Win32_Foundation", "Win32_System_Com", "Win32_System_Ole", "Win32_System_Memory", "Win32_System_DataExchange", "Win32_System_LibraryLoader", "Win32_System_Threading", "Win32_System_JobObjects", "Win32_UI_Shell", "Win32_UI_Shell_PropertiesSystem", "Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse", "Win32_Graphics_Gdi", "Win32_Graphics_Dwm", "Win32_UI_HiDpi", "Win32_Globalization", "Win32_NetworkManagement_IpHelper", "Win32_NetworkManagement_Ndis", "Win32_Networking_WinSock", "Win32_System_Registry", "Win32_System_Rpc", "Win32_System_SystemServices", "Win32_System_Com_StructuredStorage", "Win32_System_WindowsProgramming", "Win32_Storage_FileSystem", "Win32_UI_Shell_Common", "Foundation", "Foundation_Collections", "Media_Ocr", "Graphics_Imaging", "Storage_Streams", "Data_Pdf", "Globalization"] }
+raw-window-handle = "0.6"
+windows-core = "0.61"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "webp", "bmp", "ico"] }
+zip = { version = "9", default-features = false, features = ["deflate-flate2", "deflate64", "aes-crypto", "bzip2", "lzma", "xz", "ppmd", "zstd"] }
+sevenz-rust2 = { version = "0.23", default-features = false, features = ["aes256", "bzip2", "deflate", "ppmd"] }
+unrar = "0.5"
+tar = "0.4"
+bzip2 = "0.6"
+lzma-rust2 = { version = "0.21", default-features = false, features = ["std", "xz"] }
+zstd = "0.13"
+usvg = { version = "0.45", default-features = false }
+log = "0.4"
+flexi_logger = { version = "0.31", default-features = false }
+qrcodegen = "1.8"
+flate2 = "1"
+sha2 = "0.10"
+md-5 = "0.10"
+ttf-parser = "0.25"
+mozjpeg = { version = "0.10", default-features = false }
+webp = { version = "0.3", default-features = false }
+
+[dev-dependencies]
+gpui = { version = "=0.2.2", default-features = false, features = ["windows-manifest", "test-support"] }
+sevenz-rust2 = { version = "0.23", default-features = false, features = ["aes256", "compress"] }
+
+[build-dependencies]
+winresource = "0.1"
+
+[lints.clippy]
+unwrap_used = "warn"
+expect_used = "warn"
+panic = "warn"
+todo = "warn"
+unimplemented = "warn"
+unreachable = "warn"
+dbg_macro = "warn"
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 2
+
+[profile.dev.package.gpui]
+opt-level = 2
+
+[profile.release]
+opt-level = 2
+strip = true
+
+[workspace]
+members = ["e2e"]
+
+[patch.crates-io]
+gpui = { path = "vendor/gpui" }
+unrar = { path = "vendor/unrar" }
+unrar_sys = { path = "vendor/unrar_sys" }

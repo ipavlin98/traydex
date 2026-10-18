@@ -1,0 +1,181 @@
+use super::buffer::utf8_offset;
+use super::words::{word_end, word_start};
+use super::{TextArea, clean, word_around};
+use crate::input::Changed;
+use gpui::{
+    ClipboardItem, Context, Entity, EntityInputHandler, IntoElement, Modifiers, MouseButton, Render, TestAppContext,
+    VisualTestContext, Window, div, point, prelude::*, px,
+};
+use std::cell::Cell;
+use std::rc::Rc;
+
+#[test]
+fn utf16_offsets_map_to_char_boundaries() {
+    let text = "aб😀c";
+    assert_eq!(utf8_offset(text, 0), 0);
+    assert_eq!(utf8_offset(text, 1), 1);
+    assert_eq!(utf8_offset(text, 2), 3);
+    assert_eq!(utf8_offset(text, 3), 7);
+    assert_eq!(utf8_offset(text, 4), 7);
+    assert_eq!(utf8_offset(text, 5), 8);
+    assert_eq!(utf8_offset(text, 99), text.len());
+    assert_eq!(utf8_offset("", 3), 0);
+}
+
+struct Host {
+    area: Entity<TextArea>,
+}
+
+impl Render for Host {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        div().w(px(300.)).h(px(120.)).child(self.area.clone())
+    }
+}
+
+fn open<'a>(cx: &'a mut TestAppContext, text: &str) -> (Entity<TextArea>, &'a mut VisualTestContext) {
+    let text = text.to_string();
+    let (host, cx) =
+        cx.add_window_view(move |_, cx| Host { area: cx.new(|cx| TextArea::new(&text, "Пусто", cx)) });
+    let area = cx.update(|_, cx| host.read(cx).area.clone());
+    cx.update(|window, cx| area.read(cx).focus(window));
+    cx.run_until_parked();
+    (area, cx)
+}
+
+fn text(area: &Entity<TextArea>, cx: &mut VisualTestContext) -> String {
+    cx.update(|_, cx| area.read(cx).text().to_string())
+}
+
+fn selected(area: &Entity<TextArea>, cx: &mut VisualTestContext) -> String {
+    area.update_in(cx, |area, window, cx| {
+        let range = area.selected_text_range(false, window, cx).expect("selection").range;
+        let mut adjusted = None;
+        area.text_for_range(range, &mut adjusted, window, cx).expect("text")
+    })
+}
+
+#[test]
+fn words_stop_at_spaces_punctuation_and_line_breaks() {
+    let text = "Съешь ещё,  этих\nбулок";
+    assert_eq!(word_start(text, text.len()), text.find("булок").expect("word"));
+    assert_eq!(word_start(text, text.find("булок").expect("word")), text.find('\n').expect("break"));
+    assert_eq!(word_start(text, text.find("  этих").expect("gap") + 2), text.find(',').expect("comma"));
+    assert_eq!(word_end(text, 0), "Съешь".len());
+    assert_eq!(word_end(text, "Съешь".len()), "Съешь ещё".len());
+    assert_eq!(word_end(text, text.find("этих").expect("word") + "этих".len()), text.find('\n').expect("break") + 1);
+    assert_eq!(word_start("", 0), 0);
+    assert_eq!(word_end("", 0), 0);
+    assert_eq!(&text[word_around(text, 2)], "Съешь");
+    assert_eq!(&text[word_around(text, text.find(',').expect("comma"))], ",");
+}
+
+#[test]
+fn pasted_text_keeps_lines_but_drops_carriage_returns_and_controls() {
+    assert_eq!(clean("a\r\nb\rc\u{7}\td"), "a\nb\nc\td");
+}
+
+#[gpui::test]
+fn typing_and_enter_build_multiline_text(cx: &mut TestAppContext) {
+    let (area, cx) = open(cx, "");
+    let changes = Rc::new(Cell::new(0));
+    let counter = changes.clone();
+    cx.update(|_, cx| cx.subscribe(&area, move |_, _: &Changed, _| counter.set(counter.get() + 1)).detach());
+    cx.simulate_input("Привет");
+    cx.simulate_keystrokes("enter");
+    cx.simulate_input("мир");
+    assert_eq!(text(&area, cx), "Привет\nмир");
+    assert_eq!(changes.get(), 10);
+}
+
+#[gpui::test]
+fn backspace_and_delete_remove_whole_characters_and_words(cx: &mut TestAppContext) {
+    let (area, cx) = open(cx, "Съешь ещё этих");
+    cx.simulate_keystrokes("ctrl-end backspace");
+    assert_eq!(text(&area, cx), "Съешь ещё эти");
+    cx.simulate_keystrokes("ctrl-backspace");
+    assert_eq!(text(&area, cx), "Съешь ещё ");
+    cx.simulate_keystrokes("ctrl-home delete");
+    assert_eq!(text(&area, cx), "ъешь ещё ");
+    cx.simulate_keystrokes("ctrl-delete");
+    assert_eq!(text(&area, cx), " ещё ");
+}
+
+#[gpui::test]
+fn undo_and_redo_step_through_words(cx: &mut TestAppContext) {
+    let (area, cx) = open(cx, "");
+    cx.simulate_input("один два");
+    cx.simulate_keystrokes("ctrl-z");
+    assert_eq!(text(&area, cx), "один ");
+    cx.simulate_keystrokes("ctrl-z ctrl-z");
+    assert_eq!(text(&area, cx), "");
+    cx.simulate_keystrokes("ctrl-z");
+    assert_eq!(text(&area, cx), "");
+    cx.simulate_keystrokes("ctrl-y");
+    assert_eq!(text(&area, cx), "один");
+    cx.simulate_keystrokes("ctrl-shift-z ctrl-shift-z");
+    assert_eq!(text(&area, cx), "один два");
+    cx.simulate_keystrokes("ctrl-z");
+    cx.simulate_input("!");
+    cx.simulate_keystrokes("ctrl-y");
+    assert_eq!(text(&area, cx), "один !");
+}
+
+#[gpui::test]
+fn arrows_move_between_lines_and_keep_the_column(cx: &mut TestAppContext) {
+    let (area, cx) = open(cx, "abcdef\nab\nabcdef");
+    cx.simulate_keystrokes("right right right right down");
+    cx.simulate_input("X");
+    assert_eq!(text(&area, cx), "abcdef\nabX\nabcdef");
+    cx.simulate_keystrokes("left down");
+    cx.simulate_input("Y");
+    assert_eq!(text(&area, cx), "abcdef\nabX\nabYcdef");
+    cx.simulate_keystrokes("down");
+    cx.simulate_input("Z");
+    assert_eq!(text(&area, cx), "abcdef\nabX\nabYcdefZ");
+    cx.simulate_keystrokes("ctrl-home up");
+    cx.simulate_input("W");
+    assert_eq!(text(&area, cx), "Wabcdef\nabX\nabYcdefZ");
+    cx.simulate_keystrokes("ctrl-home right right right right down down");
+    cx.simulate_input("Q");
+    assert_eq!(text(&area, cx), "Wabcdef\nabX\nabYcQdefZ");
+}
+
+#[gpui::test]
+fn shift_selection_is_copied_cut_and_replaced_by_paste(cx: &mut TestAppContext) {
+    let (area, cx) = open(cx, "первая\nвторая");
+    cx.simulate_keystrokes("shift-end");
+    assert_eq!(selected(&area, cx), "первая");
+    cx.simulate_keystrokes("shift-down ctrl-c");
+    assert_eq!(cx.read_from_clipboard().and_then(|item| item.text()).as_deref(), Some("первая\nвторая"));
+    cx.simulate_keystrokes("ctrl-x");
+    assert_eq!(text(&area, cx), "");
+    cx.write_to_clipboard(ClipboardItem::new_string("раз\r\nдва".into()));
+    cx.simulate_keystrokes("ctrl-v");
+    assert_eq!(text(&area, cx), "раз\nдва");
+    cx.simulate_keystrokes("ctrl-a");
+    cx.simulate_input("всё");
+    assert_eq!(text(&area, cx), "всё");
+}
+
+#[gpui::test]
+fn clicks_place_the_cursor_and_double_click_selects_a_word(cx: &mut TestAppContext) {
+    let (area, cx) = open(cx, "один два\nтри");
+    cx.simulate_click(point(px(200.), px(60.)), Modifiers::default());
+    cx.simulate_input("!");
+    assert_eq!(text(&area, cx), "один два\nтри!");
+    let word = point(px(16.), px(17.));
+    cx.simulate_event(gpui::MouseDownEvent {
+        button: MouseButton::Left,
+        position: word,
+        modifiers: Modifiers::default(),
+        click_count: 2,
+        first_mouse: false,
+    });
+    cx.simulate_event(gpui::MouseUpEvent {
+        button: MouseButton::Left,
+        position: word,
+        modifiers: Modifiers::default(),
+        click_count: 2,
+    });
+    assert_eq!(selected(&area, cx), "один");
+}

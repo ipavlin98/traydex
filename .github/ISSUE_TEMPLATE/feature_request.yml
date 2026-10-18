@@ -1,0 +1,19 @@
+name: Feature request
+description: Suggest an idea or a new quick action
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: Describe the task, not the solution. "I often send screenshots to a chat and have to…"
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: How could Traydex help?
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: How do you do it today?

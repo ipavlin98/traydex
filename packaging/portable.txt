@@ -1,0 +1,8 @@
+Traydex portable
+
+While this file sits next to Traydex.exe, Traydex keeps the shelf, notes, settings and logs
+in the "data" folder here instead of %LOCALAPPDATA%\Traydex. Move the whole folder to take
+everything with you. Delete this file to switch back to the usual location.
+
+Start with Windows and the Explorer menu item are off until you turn them on in Settings;
+they point to this copy of Traydex.exe.

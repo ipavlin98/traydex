@@ -1,0 +1,111 @@
+name: Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - arch: x64
+            target: x86_64-pc-windows-msvc
+            runner: windows-latest
+          - arch: x86
+            target: i686-pc-windows-msvc
+            runner: windows-latest
+          - arch: arm64
+            target: aarch64-pc-windows-msvc
+            runner: windows-11-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Build
+        run: cargo build --release --locked --target ${{ matrix.target }}
+
+      - name: Collect
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item target\${{ matrix.target }}\release\traydex.exe dist\Traydex.exe
+          .\notices.ps1 -Target ${{ matrix.target }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.arch }}
+          path: dist/
+
+  release:
+    needs: build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read the version from Cargo.toml
+        id: version
+        shell: pwsh
+        run: |
+          $version = (cargo metadata --no-deps --format-version 1 | ConvertFrom-Json).packages |
+            Where-Object name -eq 'traydex' | Select-Object -ExpandProperty version
+          $tag = "v$version"
+          if ('${{ github.ref_type }}' -eq 'tag' -and '${{ github.ref_name }}' -ne $tag) {
+            Write-Error "Tag ${{ github.ref_name }} doesn't match version $version in Cargo.toml"
+            exit 1
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: build
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          if (!(Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) {
+            choco install innosetup --no-progress -y
+          }
+
+      - name: Package
+        shell: pwsh
+        run: |
+          $version = '${{ steps.version.outputs.version }}'
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          New-Item -ItemType Directory -Force out | Out-Null
+          foreach ($arch in 'x64', 'x86', 'arm64') {
+            $source = Resolve-Path "build\$arch"
+
+            $portable = "portable\$arch\Traydex"
+            New-Item -ItemType Directory -Force $portable | Out-Null
+            Copy-Item "$source\Traydex.exe", "$source\THIRD-PARTY-NOTICES.txt", packaging\portable.txt $portable
+            Copy-Item LICENSE "$portable\LICENSE.txt"
+            Compress-Archive -Path $portable -DestinationPath "out\Traydex-$version-$arch-portable.zip"
+
+            & $iscc /Q "/DVersion=$version" "/DArch=$arch" "/DSource=$source" "/DOutput=$(Resolve-Path out)" packaging\traydex.iss
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          Push-Location out
+          Get-ChildItem -File | Get-FileHash -Algorithm SHA256 |
+            ForEach-Object { "$($_.Hash.ToLower())  $(Split-Path $_.Path -Leaf)" } |
+            Set-Content -Encoding ascii SHA256SUMS.txt
+          Pop-Location
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Traydex ${{ steps.version.outputs.tag }}
+          prerelease: ${{ contains(steps.version.outputs.tag, '-') }}
+          generate_release_notes: true
+          files: out/*

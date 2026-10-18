@@ -1,0 +1,17 @@
+{
+  "id": "resize-images",
+  "name": "Resize images",
+  "description": "Shrinks photos to a given long side and puts the copies on the shelf",
+  "icon": "icon.svg",
+  "entry": "main.ps1",
+  "accepts": {
+    "extensions": ["jpg", "jpeg", "png", "bmp", "gif", "tif", "tiff"]
+  },
+  "settings": [
+    { "key": "size", "label": "Long side, px", "type": "text", "default": "1600", "placeholder": "1600", "required": true },
+    { "key": "jpeg", "label": "Save as JPEG", "type": "toggle", "default": true },
+    { "key": "quality", "label": "JPEG quality, 1–100", "type": "text", "default": "85", "placeholder": "85" },
+    { "key": "folder", "label": "Folder for copies", "type": "folder", "placeholder": "Traydex storage" }
+  ],
+  "timeout": 600
+}

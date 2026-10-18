@@ -1,0 +1,42 @@
+name: Bug report
+description: Something doesn't work as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+      placeholder: |
+        1. Dragged a PDF from Outlook onto the shelf
+        2. Expected a card to appear
+        3. Got the error "…"
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Traydex version
+      description: Right-click Traydex.exe → Properties → Details → Product version
+      placeholder: 0.1.0-alpha
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      description: Press Win+R, type `winver`
+      placeholder: Windows 11 23H2
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Log
+      description: Settings → Logging → Log folder. Attach `traydex_rCURRENT.log` or paste the relevant lines. Check it for private paths first.
+      render: text
+  - type: textarea
+    id: media
+    attributes:
+      label: Screenshots or video
+      description: Drag files here if they help to show the problem.

@@ -1,0 +1,18 @@
+{
+  "id": "telegram-send",
+  "name": "Send to Telegram",
+  "description": "Sends files to a chat or a channel through your bot",
+  "icon": "icon.svg",
+  "entry": "main.py",
+  "accepts": {
+    "files": true,
+    "folders": false
+  },
+  "settings": [
+    { "key": "token", "label": "Bot token from @BotFather", "type": "secret", "placeholder": "123456789:AA…", "required": true },
+    { "key": "chat", "label": "Chat: @channel or numeric ID", "type": "text", "placeholder": "@my_channel", "required": true },
+    { "key": "caption", "label": "Caption for the first file", "type": "text" },
+    { "key": "documents", "label": "Send photos uncompressed, as files", "type": "toggle" }
+  ],
+  "timeout": 900
+}
