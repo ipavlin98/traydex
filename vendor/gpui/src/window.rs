@@ -3001,12 +3001,7 @@ impl Window {
 
         let element_opacity = self.element_opacity();
         let scale_factor = self.scale_factor();
-        let glyph_origin = origin.scale(scale_factor);
-
-        let subpixel_variant = Point {
-            x: (glyph_origin.x.0.fract() * SUBPIXEL_VARIANTS_X as f32).floor() as u8,
-            y: (glyph_origin.y.0.fract() * SUBPIXEL_VARIANTS_Y as f32).floor() as u8,
-        };
+        let (glyph_pixel, subpixel_variant) = glyph_placement(origin, scale_factor);
         let params = RenderGlyphParams {
             font_id,
             glyph_id,
@@ -3026,7 +3021,7 @@ impl Window {
                 })?
                 .expect("Callback above only errors or returns Some");
             let bounds = Bounds {
-                origin: glyph_origin.map(|px| px.floor()) + raster_bounds.origin.map(Into::into),
+                origin: glyph_pixel + raster_bounds.origin.map(Into::into),
                 size: tile.bounds.size.map(Into::into),
             };
             let content_mask = self.content_mask().scale(scale_factor);
@@ -3061,7 +3056,7 @@ impl Window {
         self.invalidator.debug_assert_paint();
 
         let scale_factor = self.scale_factor();
-        let glyph_origin = origin.scale(scale_factor);
+        let (glyph_pixel, _) = glyph_placement(origin, scale_factor);
         let params = RenderGlyphParams {
             font_id,
             glyph_id,
@@ -3083,7 +3078,7 @@ impl Window {
                 .expect("Callback above only errors or returns Some");
 
             let bounds = Bounds {
-                origin: glyph_origin.map(|px| px.floor()) + raster_bounds.origin.map(Into::into),
+                origin: glyph_pixel + raster_bounds.origin.map(Into::into),
                 size: tile.bounds.size.map(Into::into),
             };
             let content_mask = self.content_mask().scale(scale_factor);
@@ -5183,6 +5178,24 @@ fn snap_border(widths: Edges<ScaledPixels>) -> Edges<ScaledPixels> {
         bottom: snap(widths.bottom),
         left: snap(widths.left),
     }
+}
+
+/// Places a glyph whose baseline starts at `origin`: returns the device pixel its bitmap is drawn
+/// from and the subpixel variant to rasterize. A fraction below the variant step can't be drawn,
+/// so without vertical variants the baseline goes to the nearest pixel row instead of the one
+/// above, which would lift text by up to a pixel.
+pub fn glyph_placement(origin: Point<Pixels>, scale_factor: f32) -> (Point<ScaledPixels>, Point<u8>) {
+    let origin = origin.scale(scale_factor);
+    let y = if SUBPIXEL_VARIANTS_Y == 1 {
+        origin.y.round()
+    } else {
+        origin.y
+    };
+    let variant = Point {
+        x: (origin.x.0.fract() * SUBPIXEL_VARIANTS_X as f32).floor() as u8,
+        y: (y.0.fract() * SUBPIXEL_VARIANTS_Y as f32).floor() as u8,
+    };
+    (point(origin.x.floor(), y.floor()), variant)
 }
 
 /// Cuts an image whose whole lands at `full` down to the part inside `shown`. Returns where to

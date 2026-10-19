@@ -287,7 +287,11 @@ GPUI 0.2.2 lives in `vendor/gpui` with eight patches, wired in through `[patch.c
    ascent-to-descent box, and since Segoe UI has a much taller ascent than descent, letters sat about a pixel low in
    buttons, key caps and fields. The patch is `baseline_offset` in `vendor/gpui/src/text_system.rs`, which
    `paint_line` in `vendor/gpui/src/text_system/line.rs` now uses; the regression test is
-   `baseline_offset_leaves_equal_room_above_capitals_and_below_baseline` in `src/gpui_tests.rs`.
+   `baseline_offset_leaves_equal_room_above_capitals_and_below_baseline` in `src/gpui_tests.rs`. On Windows glyphs
+   have no vertical subpixel variants, and upstream dropped the fraction of the baseline, lifting text by up to a
+   device pixel; `glyph_placement` in `vendor/gpui/src/window.rs` puts the baseline on the nearest pixel row
+   instead, so capitals stay within half a pixel of the middle. Its test is
+   `glyph_baseline_goes_to_the_nearest_pixel_row`.
 
 ### Patch in `vendor/unrar`
 
