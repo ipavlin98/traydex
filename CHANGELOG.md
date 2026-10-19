@@ -9,9 +9,6 @@ Notable changes in each release. Versions follow [Semantic Versioning](https://s
   restarts Traydex. Alpha builds get alpha and stable releases, stable builds only stable ones.
 - A button next to the version at the bottom of Settings checks for updates right away; automatic checks can be
   turned off in Settings.
-
-## [0.1.1-alpha] — 2026-10-19
-
 - Text no longer sits up to a pixel above the middle of buttons, fields and rows: letters land on the nearest pixel
   row to where they belong instead of the one above.
 
@@ -31,5 +28,4 @@ First public release.
 - Light and dark themes, transparency and blur, six languages.
 
 [0.2.0-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.2.0-alpha
-[0.1.1-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.1.1-alpha
 [0.1.0-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.1.0-alpha
