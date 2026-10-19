@@ -2,6 +2,7 @@ use super::{JobId, Preview, Shelf};
 use crate::actions::{Batch, Digest, Fetch, Field, Media, Pending, Rule, TileId};
 use crate::input::TextInput;
 use crate::system::Server;
+use crate::update::Release;
 use gpui::*;
 use qrcodegen::QrCode;
 use std::path::PathBuf;
@@ -11,6 +12,7 @@ pub enum Confirm {
     Clear,
     Reset,
     Uninstall(String),
+    Update(Release),
 }
 
 #[derive(Clone, Copy, PartialEq, Debug)]

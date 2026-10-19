@@ -54,6 +54,11 @@ If you're not sure, choose **x64**. Your system type is shown in *Settings → S
 
 After launch Traydex runs in the tray. Start dragging any file to open the shelf.
 
+Traydex checks GitHub for a new version at startup and once a day and offers it at the bottom of the window. **Update**
+downloads the file for your system (installer or portable, x64, ARM64 or x86), verifies its SHA-256 checksum, installs
+it and restarts Traydex. Alpha builds are offered alpha and stable releases; stable builds only stable ones. Check by
+hand with the button next to the version at the bottom of Settings, or turn automatic checks off there.
+
 Requirements: Windows 10 (1803 or newer) or Windows 11.
 
 The app isn't code-signed yet, so Windows may show "Windows protected your PC" on the first launch. Click
@@ -194,8 +199,8 @@ Explorer's context menu also gets a *Send to Traydex shelf* item (on Windows 11,
 ## Data and privacy
 
 All data is stored locally: in `%LOCALAPPDATA%\Traydex`, or in the `data` folder of the portable version. There are
-no accounts and no telemetry. Traydex connects to the internet only for tiles that need it: uploads, web search,
-VirusTotal and downloading ffmpeg. Files from Explorer aren't copied; the shelf stores a link to the original. Logs
+no accounts and no telemetry. Traydex connects to the internet only for tiles that need it (uploads, web search,
+VirusTotal and downloading ffmpeg) and to check GitHub for updates, which can be turned off in Settings. Files from Explorer aren't copied; the shelf stores a link to the original. Logs
 are in the `logs` subfolder.
 
 ## FAQ

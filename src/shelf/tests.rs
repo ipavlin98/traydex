@@ -304,5 +304,6 @@ mod session;
 mod settings;
 mod tiles;
 mod unpack;
+mod updates;
 mod visual;
 mod window;

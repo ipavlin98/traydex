@@ -2,6 +2,7 @@ use super::Shelf;
 use crate::i18n::{fill, tr};
 use crate::store::{Snapshot, Unsaved};
 use gpui::*;
+use std::process::Command;
 use std::time::Duration;
 
 const TYPING_PAUSE: Duration = Duration::from_millis(500);
@@ -12,6 +13,7 @@ pub(super) struct Saving {
     queued: Option<Snapshot>,
     later: Option<Task<()>>,
     quitting: bool,
+    then: Option<Command>,
 }
 
 fn merged(older: Option<Snapshot>, newer: Snapshot) -> Snapshot {
@@ -80,8 +82,19 @@ impl Shelf {
         self.leave_when_saved(cx);
     }
 
-    fn leave_when_saved(&self, cx: &mut Context<Self>) {
+    pub(super) fn quit_then(&mut self, command: Command, cx: &mut Context<Self>) {
+        self.saving.then = Some(command);
+        self.quit(cx);
+    }
+
+    fn leave_when_saved(&mut self, cx: &mut Context<Self>) {
         if self.saving.quitting && !self.saving.writing {
+            if let Some(mut command) = self.saving.then.take()
+                && let Err(error) = self.services.launch(&mut command)
+            {
+                self.saving.quitting = false;
+                return self.fail(fill(tr().update_failed, &error), cx);
+            }
             self.desktop.flush_clipboard();
             self.desktop.stop_watch();
             cx.quit();

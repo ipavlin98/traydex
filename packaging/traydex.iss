@@ -80,6 +80,7 @@ Root: HKCU; Subkey: "Software\Classes\Directory\shell\Traydex"; Flags: dontcreat
 
 [Run]
 Filename: "{app}\Traydex.exe"; Description: "{cm:LaunchProgram,Traydex}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\Traydex.exe"; Flags: nowait; Check: Relaunch
 
 [Code]
 procedure StopTraydex();
@@ -90,6 +91,11 @@ begin
     '-NoProfile -Command "Get-Process Traydex -ErrorAction SilentlyContinue | Where-Object Path -eq ''' +
     ExpandConstant('{app}\Traydex.exe') + ''' | Stop-Process -Force"',
     '', SW_HIDE, ewWaitUntilTerminated, Code);
+end;
+
+function Relaunch(): Boolean;
+begin
+  Result := WizardSilent and (ExpandConstant('{param:relaunch|0}') = '1');
 end;
 
 function PrepareToInstall(var NeedsRestart: Boolean): String;

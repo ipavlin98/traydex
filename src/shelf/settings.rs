@@ -83,6 +83,9 @@ impl Shelf {
         if differs(old, &new, |s| s.tray_icon) {
             self.desktop.set_tray(new.tray_icon);
         }
+        if differs(old, &new, |s| s.check_updates) {
+            self.updates.update(cx, |updates, cx| updates.schedule(new.check_updates, cx));
+        }
         if differs(old, &new, |s| s.theme) {
             self.apply_theme(cx);
         }
@@ -185,6 +188,10 @@ impl Shelf {
 
     pub fn toggle_tray_icon(&mut self, cx: &mut Context<Self>) {
         self.update_settings(|settings| settings.tray_icon = !settings.tray_icon, cx);
+    }
+
+    pub fn toggle_check_updates(&mut self, cx: &mut Context<Self>) {
+        self.update_settings(|settings| settings.check_updates = !settings.check_updates, cx);
     }
 
     pub fn toggle_separate_notes(&mut self, cx: &mut Context<Self>) {
