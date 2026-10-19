@@ -2,8 +2,8 @@ use gpui::{
     AbsoluteLength, AnyView, AppContext, Bounds, Context, DevicePixels, Entity, Hitbox, HitboxBehavior, HoverFade,
     HoverTransition, Hsla, InteractiveElement, IntoElement, Modifiers, MouseButton, MouseExitEvent, ParentElement,
     Pixels, Point, Render, SharedString, StatefulInteractiveElement, Style, Styled, TestAppContext, TextRun,
-    Visibility, VisualTestContext, Window, blend_hover, canvas, crop_image, div, font, point, prelude::FluentBuilder,
-    px, relative, size,
+    Visibility, VisualTestContext, Window, blend_hover, canvas, crop_image, div, font, glyph_placement, point,
+    prelude::FluentBuilder, px, relative, size,
 };
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -720,4 +720,15 @@ fn baseline_offset_leaves_equal_room_above_capitals_and_below_baseline(cx: &mut 
         let (above, below) = (f32::from(baseline - cap_height), f32::from(line - baseline));
         assert!((above - below).abs() < 1e-3, "{above} above the capitals, {below} below the baseline");
     });
+}
+
+#[test]
+fn glyph_baseline_goes_to_the_nearest_pixel_row() {
+    let row = |y: f32| f64::from(glyph_placement(point(px(0.), px(y)), 1.25).0.y);
+    assert_eq!(row(638.35), 798., "797.94 device pixels");
+    assert_eq!(row(638.1), 798., "797.63 device pixels");
+    assert_eq!(row(638.), 798., "797.5 device pixels");
+    assert_eq!(row(637.9), 797., "797.38 device pixels");
+    let (pixel, variant) = glyph_placement(point(px(10.3), px(20.)), 1.25);
+    assert_eq!((f64::from(pixel.x), variant.x, variant.y), (12., 3, 0), "12.875 keeps its horizontal subpixel variant");
 }

@@ -1,6 +1,6 @@
 [package]
 name = "traydex"
-version = "0.1.0-alpha"
+version = "0.1.1-alpha"
 edition = "2024"
 build = "build.rs"
 

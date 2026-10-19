@@ -2,6 +2,11 @@
 
 Notable changes in each release. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.1.1-alpha] — 2026-10-19
+
+- Text no longer sits up to a pixel above the middle of buttons, fields and rows: letters land on the nearest pixel
+  row to where they belong instead of the one above.
+
 ## [0.1.0-alpha] — 2026-10-18
 
 First public release.
@@ -17,4 +22,5 @@ First public release.
 - Preview, notes, search with typo and keyboard-layout tolerance, list and grid views.
 - Light and dark themes, transparency and blur, six languages.
 
+[0.1.1-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.1.1-alpha
 [0.1.0-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.1.0-alpha
