@@ -490,5 +490,6 @@ impl Shelf {
             .text_color(t.faint)
             .child(crate::PRODUCT)
             .child(check.marked("check-updates"))
+            .marked("version")
     }
 }

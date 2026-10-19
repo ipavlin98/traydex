@@ -23,6 +23,7 @@ const LANGUAGES: [(&str, &str); 2] = [("ru", "Russian"), ("en", "English")];
 const SCREEN_STEP: f32 = 0.85;
 const MAX_SCREENS: usize = 12;
 const SCROLL_SETTLE: Duration = Duration::from_millis(600);
+const MASKED: [&str; 1] = ["version"];
 
 fn id(state: &str, theme: &str, language: &str) -> String {
     format!("{state}-{theme}-{language}")
@@ -91,13 +92,44 @@ fn shift(before: &Diag, after: &Diag, view: [f32; 4]) -> f32 {
         .fold(0., f32::max)
 }
 
+fn shot(ctx: &Ctx, panel: HWND, scroll: Option<&str>) -> Result<RgbaImage> {
+    let mut image = snap::stable(panel)?;
+    let app = ctx.app()?;
+    let diag = app.diag().context("no diagnostics")?;
+    let window = win::rect(panel);
+    let (width, height) = image.dimensions();
+    let to_image = |[left, top, right, bottom]: [i32; 4]| {
+        let x = |v: i32| (v - window.left).clamp(0, width as i32) as u32;
+        let y = |v: i32| (v - window.top).clamp(0, height as i32) as u32;
+        [x(left), y(top), x(right), y(bottom)]
+    };
+    let clip = match scroll {
+        Some(mark) => to_image(app.rect(&diag, mark)?),
+        None => [0, 0, width, height],
+    };
+    for mark in MASKED.iter().filter(|mark| diag.has(mark)) {
+        let [left, top, right, bottom] = to_image(app.rect(&diag, mark)?);
+        let (left, top, right, bottom) = (left.max(clip[0]), top.max(clip[1]), right.min(clip[2]), bottom.min(clip[3]));
+        if left >= right || top >= bottom {
+            continue;
+        }
+        let fill = *image.get_pixel(right - 1, top);
+        for x in left..right {
+            for y in top..bottom {
+                image.put_pixel(x, y, fill);
+            }
+        }
+    }
+    Ok(image)
+}
+
 fn scrolled(ctx: &Ctx, panel: HWND, mark: &str, notches: i32) -> Result<(RgbaImage, f32)> {
     let app = ctx.app()?;
     let before = app.diag().context("no diagnostics")?;
     let view = *before.marks.get(mark).with_context(|| format!("the panel has no scroll area \"{mark}\""))?;
     win::post_wheel(panel, app.point(&before, mark)?, notches);
     app.post_leave();
-    let image = snap::stable(panel)?;
+    let image = shot(ctx, panel, Some(mark))?;
     let started = Instant::now();
     let mut moved = 0.;
     while started.elapsed() < SCROLL_SETTLE {
@@ -141,7 +173,7 @@ fn capture(ctx: &Ctx, name: &str, scroll: Option<&str>) -> Result<()> {
         input::move_to(super::dnd::center(ctx.layout.helper));
     }
     app.post_leave();
-    let first = snap::stable(panel)?;
+    let first = shot(ctx, panel, scroll)?;
     let parts = match scroll {
         Some(mark) => screens(ctx, panel, mark, first)?,
         None => vec![first],
