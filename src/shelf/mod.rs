@@ -20,6 +20,7 @@ mod settings;
 mod tasks;
 mod tiles;
 mod unpack;
+mod updates;
 
 use crate::actions::{TileId, Tiles, Tool};
 use crate::i18n::{fill, tr};
@@ -54,6 +55,7 @@ pub use settings::Dropdown;
 pub(crate) use settings::{Menu, Recorder};
 pub use tasks::SafeListener;
 pub use tiles::{Edge, Lane};
+use updates::{Check, Due, Updates};
 
 pub const SHARE_COPY: &str = "share-copy";
 pub const COPY_SELECTED: &str = "copy-selected";
@@ -93,6 +95,7 @@ pub struct Shelf {
     regions: Regions,
     notices: Entity<Notices>,
     jobs: Entity<Jobs>,
+    updates: Entity<Updates>,
     fade: Entity<Fade>,
     confirming: Option<Confirm>,
     menu: Menu,
@@ -134,6 +137,7 @@ impl Shelf {
         let find = cx.new(|cx| TextInput::new(String::new(), tr().search_placeholder, false, cx).bare());
         let notices = cx.new(|_| Notices::default());
         let jobs = cx.new(|_| Jobs::default());
+        let updates = cx.new(|_| Updates::default());
         let fade = cx.new(|_| if store.settings().window_animations { Fade::out() } else { Fade::default() });
         let subscriptions = vec![
             cx.observe_window_appearance(window, |shelf, window, cx| {
@@ -167,6 +171,8 @@ impl Shelf {
             cx.subscribe(&find, |shelf, _, _: &Changed, cx| shelf.page_searched(cx)),
             cx.observe(&notices, |_, _, cx| cx.notify()),
             cx.observe(&jobs, |_, _, cx| cx.notify()),
+            cx.observe(&updates, |_, _, cx| cx.notify()),
+            cx.subscribe(&updates, |shelf, _, _: &Due, cx| shelf.guarded(cx, |shelf, cx| shelf.check(Check::Auto, cx))),
             cx.observe_in(&fade, window, |shelf, _, window, cx| shelf.follow_fade(window, cx)),
             cx.subscribe(&fade, |shelf, _, _: &FadedOut, cx| shelf.guarded(cx, |shelf, cx| shelf.hidden(cx))),
         ];
@@ -187,6 +193,7 @@ impl Shelf {
             regions: Regions::default(),
             notices,
             jobs,
+            updates,
             fade,
             confirming: None,
             menu: Menu::default(),
@@ -330,6 +337,7 @@ impl Shelf {
             Some(Confirm::Clear) => self.clear(cx),
             Some(Confirm::Reset) => self.reset_settings(cx),
             Some(Confirm::Uninstall(id)) => self.uninstall_plugin(&id, cx),
+            Some(Confirm::Update(release)) => self.install_update(release, cx),
             None => {}
         }
     }
@@ -347,7 +355,9 @@ impl Shelf {
     }
 
     pub fn cancel_confirm(&mut self, cx: &mut Context<Self>) {
-        self.confirming = None;
+        if let Some(Confirm::Update(release)) = self.confirming.take() {
+            self.decline_update(release, cx);
+        }
         cx.notify();
     }
 

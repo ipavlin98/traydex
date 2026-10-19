@@ -7,7 +7,7 @@ const SIZES: [(f32, f32); 2] = [NARROW_SIZE, store::DEFAULT_SIZE];
 const EPS: f32 = 0.5;
 const TITLE_ITEMS: [&str; 9] =
     ["home", "pin", "actions", "settings", "hide", "alert", "toast-icon", "jobs-stop", "jobs"];
-const SWITCHES: [&str; 9] = [
+const SWITCHES: [&str; 10] = [
     "blur",
     "window-animations",
     // "interface-animations",
@@ -18,6 +18,7 @@ const SWITCHES: [&str; 9] = [
     "context-menu",
     "double-click-preview",
     "separate-notes",
+    "check-updates-auto",
 ];
 const SEGMENTS: [&str; 5] = ["theme", "transparency", "font-size", "shake", "corner"];
 const CHIPS: [&str; 20] = [
@@ -656,7 +657,7 @@ fn verify(check: &mut Check, scene: Scene, ids: &[ItemId]) {
             let controls: Vec<String> = names(SWITCHES, "switch:")
                 .into_iter()
                 .chain(names(SEGMENTS, "segmented:"))
-                .chain(["language".to_string(), "tile-input".to_string()])
+                .chain(["language".to_string(), "tile-input".to_string(), "check-updates".to_string()])
                 .collect();
             for control in &controls {
                 check.in_window(control, false);

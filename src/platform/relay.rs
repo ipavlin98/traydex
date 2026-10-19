@@ -38,6 +38,8 @@ const FORWARD_RETRY: Duration = Duration::from_millis(100);
 const FORWARD_TIMEOUT_MS: u32 = 5000;
 const END_SESSION_WAIT: Duration = Duration::from_secs(5);
 const END_SESSION_POLL: Duration = Duration::from_millis(20);
+const PREVIOUS_EXIT_WAIT: Duration = Duration::from_secs(15);
+const PREVIOUS_EXIT_POLL: Duration = Duration::from_millis(100);
 
 thread_local! {
     static TRAY: RefCell<Option<NOTIFYICONDATAW>> = const { RefCell::new(None) };
@@ -50,14 +52,22 @@ pub(super) fn window() -> HWND {
     HWND(RELAY.load(Ordering::Relaxed) as _)
 }
 
-pub fn single_instance(paths: &[PathBuf]) -> bool {
-    unsafe {
-        if CreateMutexW(None, false, &HSTRING::from(profile::current().mutex())).is_err() {
-            return true;
+pub fn single_instance(paths: &[PathBuf], after_previous: bool) -> bool {
+    let deadline = Instant::now() + if after_previous { PREVIOUS_EXIT_WAIT } else { Duration::ZERO };
+    loop {
+        unsafe {
+            let Ok(mutex) = CreateMutexW(None, false, &HSTRING::from(profile::current().mutex())) else {
+                return true;
+            };
+            if GetLastError() != ERROR_ALREADY_EXISTS {
+                return true;
+            }
+            if Instant::now() >= deadline {
+                break;
+            }
+            let _ = CloseHandle(mutex);
         }
-        if GetLastError() != ERROR_ALREADY_EXISTS {
-            return true;
-        }
+        std::thread::sleep(PREVIOUS_EXIT_POLL);
     }
     forward(paths);
     false

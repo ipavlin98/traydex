@@ -558,6 +558,18 @@ pub struct Strings {
     pub plugins_hint: &'static str,
     pub tile_refused: &'static str,
     pub tile_failed: &'static str,
+    pub update_check: &'static str,
+    pub update_auto: &'static str,
+    pub update_auto_hint: &'static str,
+    pub update_available: &'static str,
+    pub update_install: &'static str,
+    pub later: &'static str,
+    pub update_none: &'static str,
+    pub update_check_failed: &'static str,
+    pub job_update: &'static str,
+    pub update_failed: &'static str,
+    pub update_corrupted: &'static str,
+    pub update_notify: &'static str,
 }
 
 #[cfg(test)]

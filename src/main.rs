@@ -24,6 +24,7 @@ mod system;
 mod testing;
 mod textarea;
 mod theme;
+mod update;
 mod view;
 
 use futures::channel::mpsc;
@@ -53,11 +54,14 @@ fn main() {
     }
     let sent: Vec<PathBuf> =
         std::env::args_os().skip_while(|arg| arg != platform::SEND_FLAG).skip(1).map(PathBuf::from).collect();
-    if !platform::single_instance(&sent) {
+    let flag = |name: &str| std::env::args().any(|arg| arg == name);
+    if !platform::single_instance(&sent, flag(update::WAIT_FLAG)) {
         return;
     }
     let _logger = logging::start();
-    let flag = |name: &str| std::env::args().any(|arg| arg == name);
+    if let Ok(exe) = std::env::current_exe() {
+        update::sweep(&profile::current().temp_dir(), &exe);
+    }
     let launch = if flag(platform::AUTOSTART_FLAG) {
         Launch::Hidden
     } else if profile::current().testing() && flag(profile::INACTIVE_FLAG) {

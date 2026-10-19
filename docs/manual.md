@@ -22,6 +22,30 @@ Traydex stays in the tray after the panel hides; quit it with a right click on t
 icon can be hidden in Settings (*Tray icon*); then the panel opens with the shortcut, the hot corner or by launching
 Traydex again, and tray notifications aren't shown.
 
+### Updates
+
+With *Check for updates automatically* on (the default; off in the `--test-profile` profile), Traydex asks the
+GitHub API for the repository's releases a minute after startup and then every 24 hours while it runs. The button
+next to the version at the bottom of Settings checks right away and also reports when the version is current or the
+check failed; automatic checks only write failures to the log.
+
+- **What fits this copy.** The architecture is the one Traydex was built for (x64, x86 or ARM64), the form is
+  portable when `portable.txt` sits next to the exe and the installer otherwise, and the channel follows the running
+  version: a pre-release (`0.2.0-alpha`) is offered pre-releases and stable releases, a stable version only stable
+  ones. Versions are compared by Semantic Versioning, so `1.0.0` replaces `1.0.0-alpha`, and from then on that copy
+  stays on stable releases. Drafts and releases without this copy's file or `SHA256SUMS.txt` are skipped; the newest
+  remaining release wins.
+- **Offer.** A newer version appears at the bottom of the window: *Version X is available* with *Later* and
+  *Update*. If the window is hidden when an automatic check finds it, a tray notification says so too. *Later* hides
+  that version from automatic checks until Traydex restarts; a manual check always shows it.
+- **Update.** The file and `SHA256SUMS.txt` go to `%TEMP%\Traydex-update` (a job with progress that can be stopped);
+  a file whose SHA-256 differs from the published one is refused. The installer then runs with
+  `/SILENT /SUPPRESSMSGBOXES /NORESTART /relaunch=1` in the interface language, after Traydex has saved the shelf and
+  quit; `/relaunch=1` makes it start Traydex again when it's done. The portable zip is unpacked next to the exe: every
+  file except `portable.txt` is replaced (the exe keeps its own name, the previous files stay as `*.update-old`), and
+  the new exe starts with `--after-update`, which waits up to 15 seconds for the old copy to quit instead of handing
+  over to it. The download folder and the `*.update-old` files are removed on the next start.
+
 ## Features
 
 - The panel appears as soon as a system drag (OLE drag-and-drop) starts in any app: files and folders from Explorer,
@@ -303,7 +327,9 @@ exports them as `stdcall`, and without the change the x86 build doesn't link.
 
 Releases are built by `.github/workflows/release.yml`: `Traydex.exe` for `x86_64`, `i686` and `aarch64` (the latter on
 a GitHub ARM runner), then Inno Setup installers from `packaging/traydex.iss`, portable zips with
-`packaging/portable.txt`, and `SHA256SUMS.txt`. CI (`ci.yml`) checks formatting, clippy and tests on x64 and runs the
+`packaging/portable.txt`, and `SHA256SUMS.txt`. The updater relies on these asset names
+(`Traydex-<version>-<arch>-setup.exe`, `-portable.zip`, `SHA256SUMS.txt`), on the `v<version>` tag and on the
+installer's `/relaunch=1` parameter; change them together with `src/update.rs`. CI (`ci.yml`) checks formatting, clippy and tests on x64 and runs the
 tests in the x86 and ARM64 builds.
 
 GPUI is licensed under Apache-2.0. Dependency licenses sit next to their sources; the list for a shipped build is in

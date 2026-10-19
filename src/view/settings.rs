@@ -1,7 +1,7 @@
 use super::motion::{Enter, Motion};
 use super::widgets::{
-    Finder, Look, Marked, dimmed, hint, icon, icon_button, kbd, page, searched, section, segment_base, segments,
-    setting, switch, text_button,
+    Finder, Look, Marked, bare_button, dimmed, hint, icon, icon_button, kbd, page, searched, section, segment_base,
+    segments, setting, spinner, switch, text_button,
 };
 use crate::design::{glyph, radius, rem, size, space, text};
 use crate::i18n::{self, Language, tr};
@@ -411,6 +411,13 @@ impl Shelf {
                 Self::toggle_separate_notes,
                 cx,
             )))
+            .child(setting(t, query, tr().update_auto, Some(tr().update_auto_hint)).child(self.setting_switch(
+                t,
+                "check-updates-auto",
+                settings.check_updates,
+                Self::toggle_check_updates,
+                cx,
+            )))
     }
 
     pub(super) fn settings_page(&self, t: Theme, cx: &mut Context<Self>) -> AnyElement {
@@ -463,6 +470,25 @@ impl Shelf {
                         cx,
                     ))),
             )
-            .child(div().text_size(rem(text::CAPTION)).text_color(t.faint).child(crate::PRODUCT))
+            .child(self.version_footer(t, cx))
+    }
+
+    fn version_footer(&self, t: Theme, cx: &mut Context<Self>) -> Div {
+        let check = if self.checking_updates(cx) {
+            div().size(rem(size::BUTTON)).flex().items_center().justify_center().child(spinner(t.muted, glyph::S))
+        } else {
+            div().child(
+                bare_button(t, "check-updates", icon("refresh", t.muted, glyph::S), tr().update_check, false, t.hover)
+                    .on_click(cx.safe_listener(|shelf, _, _, cx| shelf.check_updates(cx))),
+            )
+        };
+        div()
+            .flex()
+            .items_center()
+            .gap(rem(space::XS))
+            .text_size(rem(text::CAPTION))
+            .text_color(t.faint)
+            .child(crate::PRODUCT)
+            .child(check.marked("check-updates"))
     }
 }

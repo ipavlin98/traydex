@@ -113,6 +113,13 @@ impl Shelf {
                     let name = self.plugin(id).map_or("", |plugin| plugin.name());
                     (fill(tr().plugin_uninstall_confirm, name).into(), tr().uninstall, 2)
                 }
+                Confirm::Update(release) => {
+                    (fill(tr().update_available, &release.version).into(), tr().update_install, 3)
+                }
+            };
+            let (cancel, look) = match confirm {
+                Confirm::Update(_) => (tr().later, Look::Primary),
+                Confirm::Clear | Confirm::Reset | Confirm::Uninstall(_) => (tr().cancel, Look::Danger),
             };
             let animated = self.animated();
             return bar
@@ -126,12 +133,12 @@ impl Shelf {
                         .flex()
                         .gap(rem(space::S))
                         .child(
-                            text_button(t, "cancel-clear", tr().cancel, Look::Plain)
+                            text_button(t, "cancel-clear", cancel, Look::Plain)
                                 .marked("cancel-clear")
                                 .on_click(cx.safe_listener(|shelf, _, _, cx| shelf.cancel_confirm(cx))),
                         )
                         .child(
-                            text_button(t, "confirm-action", action, Look::Danger)
+                            text_button(t, "confirm-action", action, look)
                                 .marked("confirm-action")
                                 .on_click(cx.safe_listener(|shelf, _, _, cx| shelf.confirm(cx))),
                         )
