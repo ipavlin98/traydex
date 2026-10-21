@@ -102,6 +102,14 @@ check failed; automatic checks only write failures to the log.
   read-only.
 - The *Send to Traydex shelf* item in the Explorer context menu for files and folders puts the selection straight
   on the shelf. On by default, can be turned off in Settings. On Windows 11 it's under *Show more options*.
+- Watched folders: *Add* in the *Folders* section of Settings picks a folder, and everything at its top level, files
+  and subfolders (a subfolder is one card), goes on the shelf at once, newest first; whatever appears in it later
+  follows within two seconds, including while Traydex was closed. Hidden files and unfinished downloads
+  (`.crdownload`, `.part`, `.partial`, `.tmp`) are skipped. Cards are links, nothing is copied. When a file is deleted
+  or moved out of the folder, its card leaves the shelf, pinned or not; a renamed file gets a new card. A card you
+  remove from the shelf stays off until its file leaves the folder and comes back. If the folder can't be read (a disconnected drive), its cards stay
+  as they are. The cross next to a folder stops watching it and removes its unpinned cards. The list and the names
+  already seen in each folder are stored in `shelf.json` under `watched` and aren't affected by *Reset all*.
 
 ## Controls
 
@@ -133,7 +141,7 @@ check failed; automatic checks only write failures to the log.
 | Rename a note or a link | Click the title in the preview or press `F2` and edit; `Enter`, `Esc` or `Tab` go back to the text. An empty title brings back the automatic one |
 | Show the shelf as a list or a grid | The grid (or list) button next to the storage button, `Ctrl+G` |
 | Keep the panel from hiding | The pin button |
-| Theme, transparency and blur, auto-show, hot corner, autostart, context menu, preview on double-click, keep notes separate, reset position and size, reset all settings | The settings button |
+| Theme, transparency and blur, auto-show, hot corner, autostart, context menu, preview on double-click, keep notes separate, watched folders, reset position and size, reset all settings | The settings button |
 | Add or remove quick action tiles | The lightning button |
 | Run an action | Drop files, an image or text on a tile |
 | Add files from Explorer | Right click → *Send to Traydex shelf* |

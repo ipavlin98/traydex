@@ -158,6 +158,11 @@ Spanish and French.<br><br>
 </tr>
 </table>
 
+### Watched folders
+
+Add folders such as *Downloads* in Settings, and their files and subfolders appear on the shelf by themselves, new
+ones included. A card goes away when its file is deleted or moved; a card you remove yourself doesn't come back.
+
 ## Quick actions
 
 | Tile | What it does |

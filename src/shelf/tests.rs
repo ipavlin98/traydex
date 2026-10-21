@@ -293,6 +293,7 @@ fn search(index: usize) -> Action {
     Action::new(actions::Kind::Search { url: format!("https://find{index}.example/?q=%s") })
 }
 
+mod folders;
 mod items;
 mod jobs;
 mod launch;

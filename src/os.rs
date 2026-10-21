@@ -11,7 +11,7 @@ use windows::Win32::NetworkManagement::IpHelper::{
 };
 use windows::Win32::NetworkManagement::Ndis::IfOperStatusUp;
 use windows::Win32::Networking::WinSock::{AF_INET, SOCKADDR_IN};
-use windows::Win32::Storage::FileSystem::FileTimeToLocalFileTime;
+use windows::Win32::Storage::FileSystem::{FILE_ATTRIBUTE_HIDDEN, FileTimeToLocalFileTime};
 use windows::Win32::System::WindowsProgramming::FileTimeToDosDateTime;
 use windows::Win32::UI::Input::KeyboardAndMouse::{MAPVK_VK_TO_CHAR, MapVirtualKeyW};
 
@@ -65,6 +65,10 @@ pub fn local_dos_time(metadata: &Metadata) -> Option<(u16, u16)> {
         FileTimeToLocalFileTime(&utc, &mut local).is_ok() && FileTimeToDosDateTime(&local, &mut date, &mut time).is_ok()
     };
     converted.then_some((date, time))
+}
+
+pub fn hidden(metadata: &Metadata) -> bool {
+    metadata.file_attributes() & FILE_ATTRIBUTE_HIDDEN.0 != 0
 }
 
 const ADAPTERS_BUFFER: u32 = 16 * 1024;

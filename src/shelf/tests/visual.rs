@@ -129,6 +129,7 @@ fn rich(sandbox: &Sandbox, store: &mut Store, _: &Fake) {
     for index in 0..15 {
         store.add_text(format!("note {index}")).expect("note");
     }
+    store.watch(sandbox.join("Очень длинное имя папки/которое не помещается в одну строку настроек/Загрузки"));
 }
 
 struct Check<'a, 'b> {
@@ -657,7 +658,7 @@ fn verify(check: &mut Check, scene: Scene, ids: &[ItemId]) {
             let controls: Vec<String> = names(SWITCHES, "switch:")
                 .into_iter()
                 .chain(names(SEGMENTS, "segmented:"))
-                .chain(["language".to_string(), "tile-input".to_string(), "check-updates".to_string()])
+                .chain(["language", "tile-input", "check-updates", "watch-folder", "watched:0"].map(String::from))
                 .collect();
             for control in &controls {
                 check.in_window(control, false);

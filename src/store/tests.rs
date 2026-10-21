@@ -1143,3 +1143,23 @@ fn a_single_text_item_is_handed_over_as_text_and_the_rest_as_files() {
             if paths == [PathBuf::from(r"C:\Хранилище\note 1.txt"), PathBuf::from(r"C:\Мои файлы\отчёт.pdf")]
     ));
 }
+
+#[test]
+fn watched_folder_listing_skips_hidden_and_unfinished_files() {
+    use windows::Win32::Storage::FileSystem::{FILE_ATTRIBUTE_HIDDEN, SetFileAttributesW};
+    use windows::core::HSTRING;
+    let sandbox = Sandbox::new();
+    sandbox.file("Загрузки/отчёт.pdf", "pdf");
+    sandbox.file("Загрузки/фильм.mp4.crdownload", "partial");
+    sandbox.file("Загрузки/архив.zip.PART", "partial");
+    let hidden = sandbox.file("Загрузки/desktop.ini", "ini");
+    unsafe { SetFileAttributesW(&HSTRING::from(hidden.as_path()), FILE_ATTRIBUTE_HIDDEN) }.expect("hide");
+    sandbox.folder("Загрузки/Папка");
+    let mut names: Vec<String> = list_folder(&sandbox.join("Загрузки"))
+        .expect("listing")
+        .iter()
+        .map(|path| path.file_name().expect("name").to_string_lossy().into_owned())
+        .collect();
+    names.sort();
+    assert_eq!(names, ["Папка", "отчёт.pdf"]);
+}

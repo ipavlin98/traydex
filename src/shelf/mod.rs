@@ -1,6 +1,7 @@
 mod catalog;
 mod fade;
 mod filter;
+mod folders;
 mod hover;
 mod items;
 mod jobs;
@@ -39,6 +40,7 @@ pub(crate) use catalog::Catalog;
 pub use fade::{Fade, FadedOut};
 pub use filter::Filter;
 use filter::{PageSearch, Tabs};
+use folders::{Folders, Scan};
 pub(crate) use hover::Hover;
 pub(crate) use items::Rows;
 use jobs::Ended;
@@ -96,6 +98,7 @@ pub struct Shelf {
     notices: Entity<Notices>,
     jobs: Entity<Jobs>,
     updates: Entity<Updates>,
+    folders: Entity<Folders>,
     fade: Entity<Fade>,
     confirming: Option<Confirm>,
     menu: Menu,
@@ -138,6 +141,7 @@ impl Shelf {
         let notices = cx.new(|_| Notices::default());
         let jobs = cx.new(|_| Jobs::default());
         let updates = cx.new(|_| Updates::default());
+        let folders = cx.new(|_| Folders::default());
         let fade = cx.new(|_| if store.settings().window_animations { Fade::out() } else { Fade::default() });
         let subscriptions = vec![
             cx.observe_window_appearance(window, |shelf, window, cx| {
@@ -173,6 +177,7 @@ impl Shelf {
             cx.observe(&jobs, |_, _, cx| cx.notify()),
             cx.observe(&updates, |_, _, cx| cx.notify()),
             cx.subscribe(&updates, |shelf, _, _: &Due, cx| shelf.guarded(cx, |shelf, cx| shelf.check(Check::Auto, cx))),
+            cx.subscribe(&folders, |shelf, _, _: &Scan, cx| shelf.guarded(cx, |shelf, cx| shelf.scan_folders(cx))),
             cx.observe_in(&fade, window, |shelf, _, window, cx| shelf.follow_fade(window, cx)),
             cx.subscribe(&fade, |shelf, _, _: &FadedOut, cx| shelf.guarded(cx, |shelf, cx| shelf.hidden(cx))),
         ];
@@ -194,6 +199,7 @@ impl Shelf {
             notices,
             jobs,
             updates,
+            folders,
             fade,
             confirming: None,
             menu: Menu::default(),
@@ -236,6 +242,7 @@ impl Shelf {
             self.fail(fill(tr().actions_failed, &error), cx);
         }
         self.detect_tools(cx);
+        self.schedule_scans(cx);
         self.fit(cx);
         self.refresh(cx);
     }

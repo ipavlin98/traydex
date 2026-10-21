@@ -1,15 +1,16 @@
 use super::motion::{Enter, Motion};
 use super::widgets::{
     Finder, Look, Marked, bare_button, dimmed, hint, icon, icon_button, kbd, page, searched, section, segment_base,
-    segments, setting, spinner, switch, text_button,
+    segments, setting, spinner, switch, text_button, unmatched,
 };
-use crate::design::{glyph, radius, rem, size, space, text};
+use crate::design::{glyph, line, radius, rem, size, space, text};
 use crate::i18n::{self, Language, tr};
 use crate::keys::Command;
 use crate::shelf::{Dropdown, Page, SafeListener, Shelf};
 use crate::store::{Corner, FONT_SIZES, ShakeLevel, TileInput};
 use crate::theme::{Theme, ThemeMode};
 use gpui::{prelude::*, *};
+use std::path::Path;
 
 const PICKER_WIDTH: f32 = 152.;
 const MENU_WIDTH: f32 = 180.;
@@ -420,6 +421,46 @@ impl Shelf {
             )))
     }
 
+    fn folders_section(&self, t: Theme, query: Finder, cx: &mut Context<Self>) -> Div {
+        let missed = query.locate(tr().watch_folders, tr().watch_folders_hint).is_none();
+        section(t, tr().section_folders)
+            .child(
+                setting(t, query, tr().watch_folders, Some(tr().watch_folders_hint)).child(
+                    text_button(t, "watch-folder", tr().watch_add, Look::Plain)
+                        .marked("watch-folder")
+                        .on_click(cx.safe_listener(|shelf, _, _, cx| shelf.watch_folder(cx))),
+                ),
+            )
+            .children(
+                self.store()
+                    .watched()
+                    .iter()
+                    .enumerate()
+                    .map(|(index, watched)| self.watched_row(t, index, watched.path(), missed, cx)),
+            )
+    }
+
+    fn watched_row(&self, t: Theme, index: usize, folder: &Path, missed: bool, cx: &mut Context<Self>) -> Div {
+        let target = folder.to_path_buf();
+        div()
+            .marked(format!("watched:{index}"))
+            .when(missed, unmatched)
+            .py(rem(space::S))
+            .flex()
+            .items_center()
+            .gap(rem(space::M))
+            .border_b_1()
+            .border_color(t.border)
+            .text_size(rem(text::SMALL))
+            .line_height(rem(line::SMALL))
+            .child(icon("folder", t.muted, glyph::S))
+            .child(div().flex_1().min_w_0().truncate().child(folder.display().to_string()))
+            .child(
+                icon_button(t, ("unwatch", index), "close", tr().watch_remove, false)
+                    .on_click(cx.safe_listener(move |shelf, _, _, cx| shelf.unwatch_folder(&target, cx))),
+            )
+    }
+
     pub(super) fn settings_page(&self, t: Theme, cx: &mut Context<Self>) -> AnyElement {
         let query = self.page_query(cx);
         let content = searched(query.as_ref(), self.regions(), |finder| self.settings_content(t, finder, cx));
@@ -431,6 +472,7 @@ impl Shelf {
             .gap(rem(space::SECTION))
             .child(self.appearance_section(t, query, cx))
             .child(self.behavior_section(t, query, cx))
+            .child(self.folders_section(t, query, cx))
             .child(
                 section(t, tr().section_keys).children(
                     Command::ALL

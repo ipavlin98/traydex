@@ -3,12 +3,14 @@ mod images;
 mod settings;
 mod snapshot;
 mod storage;
+mod watched;
 
 pub use files::{is_archive, is_image, restore_note, save_virtual, set_aside, vacant};
 pub use images::{decode, dib_bytes, open_image, open_oriented, png_bytes, save_image, title, write_png};
 pub use settings::{Corner, DEFAULT_SIZE, FONT_SIZES, MIN_SIZE, Settings, ShakeLevel, TileInput};
 pub use snapshot::Snapshot;
 pub use storage::{Scratch, Storage, id};
+pub use watched::{Watched, list_folder};
 
 use self::files::{copy_path, save_note};
 use crate::i18n::{fill, tr};
@@ -254,6 +256,8 @@ pub enum Unsaved {
 #[derive(Serialize, Deserialize)]
 pub struct Store {
     items: Vec<Item>,
+    #[serde(default)]
+    watched: Vec<Watched>,
     #[serde(flatten)]
     settings: Settings,
     #[serde(skip)]
@@ -398,6 +402,7 @@ impl Store {
     fn empty() -> Self {
         Self {
             items: Vec::new(),
+            watched: Vec::new(),
             settings: Settings::default(),
             storage: Storage::default(),
             doomed: Vec::new(),
