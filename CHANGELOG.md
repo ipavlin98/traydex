@@ -2,6 +2,10 @@
 
 Notable changes in each release. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.3.1-alpha] — 2026-10-21
+
+- Middle-clicking an item on the shelf shows it in its folder, like Ctrl+click.
+
 ## [0.3.0-alpha] — 2026-10-21
 
 - Watched folders: add folders such as *Downloads* in Settings, and their files and subfolders appear on the shelf by
@@ -33,6 +37,7 @@ First public release.
 - Preview, notes, search with typo and keyboard-layout tolerance, list and grid views.
 - Light and dark themes, transparency and blur, six languages.
 
+[0.3.1-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.3.1-alpha
 [0.3.0-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.3.0-alpha
 [0.2.0-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.2.0-alpha
 [0.1.0-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.1.0-alpha

@@ -102,6 +102,19 @@ fn ctrl_click_on_an_item_reveals_it_instead_of_selecting(cx: &mut TestAppContext
 }
 
 #[gpui::test]
+fn middle_click_on_an_item_reveals_it(cx: &mut TestAppContext) {
+    let mut h = open_with(cx, true, notes(&["a", "b"]));
+    let ids = h.ids();
+    h.fake.take_calls();
+    let position = h.center(&format!("item:{}", ids[1]));
+    h.cx.simulate_mouse_down(position, MouseButton::Middle, Modifiers::default());
+    h.cx.simulate_mouse_up(position, MouseButton::Middle, Modifiers::default());
+    h.settle();
+    assert_eq!(h.fake.take_calls(), [Call::Reveal(ids[1].clone())]);
+    assert!(h.selected().is_empty());
+}
+
+#[gpui::test]
 fn filters_limit_visible_items_and_reset_selection(cx: &mut TestAppContext) {
     let mut h = open_with(cx, true, |sandbox, store, _| {
         store.add_paths(vec![sandbox.file("doc.txt", "x"), sandbox.file("pic.png", png(2, 2)), sandbox.folder("dir")]);
