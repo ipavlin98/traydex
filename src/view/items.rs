@@ -30,6 +30,7 @@ impl Shelf {
         let select_key = key.clone();
         let hover_key = key.clone();
         let point_key = key.clone();
+        let reveal_key = key.clone();
         let quick_item = item.clone();
         let quick_id = copy_id(&key);
         element
@@ -51,6 +52,13 @@ impl Shelf {
                 cx.safe_listener(move |shelf, _: &MouseDownEvent, _, cx| {
                     cx.stop_propagation();
                     shelf.copy(vec![quick_item.clone()], quick_id.clone(), cx);
+                }),
+            )
+            .on_mouse_down(
+                MouseButton::Middle,
+                cx.safe_listener(move |shelf, _: &MouseDownEvent, _, cx| {
+                    cx.stop_propagation();
+                    shelf.open(&reveal_key, true, cx);
                 }),
             )
             .on_click(cx.safe_listener(move |shelf, event: &ClickEvent, _, cx| {
