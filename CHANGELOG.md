@@ -2,6 +2,12 @@
 
 Notable changes in each release. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.3.0-alpha] — 2026-10-21
+
+- Watched folders: add folders such as *Downloads* in Settings, and their files and subfolders appear on the shelf by
+  themselves, including new ones. Cards of files deleted or moved out of the folder go away; a card you remove
+  yourself doesn't come back. Removing a folder from the list also removes its unpinned cards.
+
 ## [0.2.0-alpha] — 2026-10-19
 
 - Updates: Traydex checks GitHub at startup and once a day and offers a new version at the bottom of the window.
@@ -27,5 +33,6 @@ First public release.
 - Preview, notes, search with typo and keyboard-layout tolerance, list and grid views.
 - Light and dark themes, transparency and blur, six languages.
 
+[0.3.0-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.3.0-alpha
 [0.2.0-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.2.0-alpha
 [0.1.0-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.1.0-alpha
