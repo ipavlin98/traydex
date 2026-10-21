@@ -1,4 +1,4 @@
-use super::{Event, drag, guarded, send};
+use super::{Event, corner, drag, guarded, send};
 use crate::i18n::{fill, tr};
 use crate::keys::{Command, Shortcut};
 use crate::profile;
@@ -367,6 +367,7 @@ fn tray_menu(window: HWND) {
 fn dispatch(window: HWND, msg: u32, wp: WPARAM, lp: LPARAM) -> Option<LRESULT> {
     match msg {
         WM_TIMER if wp.0 == drag::TIMER => drag::tick(),
+        WM_TIMER if wp.0 == corner::TIMER => corner::tick(),
         WM_HOTKEY => {
             if let Some(command) = Command::ALL.into_iter().find(|command| hotkey_id(*command) == wp.0 as i32) {
                 send(Event::Hotkey(command));
@@ -498,6 +499,7 @@ fn run(hotkeys: Vec<(Command, Shortcut)>) {
     if hook.is_none() {
         send(Event::Failure(tr().hook_failed.into()));
     }
+    let foreground = corner::watch();
     let mut msg = MSG::default();
     unsafe {
         while GetMessageW(&mut msg, None, 0, 0).0 > 0 {
@@ -510,6 +512,9 @@ fn run(hotkeys: Vec<(Command, Shortcut)>) {
     unregister_all(window);
     if let Some(hook) = hook {
         drag::uninstall(hook);
+    }
+    if let Some(foreground) = foreground {
+        corner::unwatch(foreground);
     }
     log::debug!("Relay thread stopped");
 }

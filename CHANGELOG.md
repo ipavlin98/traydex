@@ -2,6 +2,10 @@
 
 Notable changes in each release. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.3.2-alpha] — 2026-10-21
+
+- The hot corner works while a window run as administrator is in front.
+
 ## [0.3.1-alpha] — 2026-10-21
 
 - Middle-clicking an item on the shelf shows it in its folder, like Ctrl+click.
@@ -37,6 +41,7 @@ First public release.
 - Preview, notes, search with typo and keyboard-layout tolerance, list and grid views.
 - Light and dark themes, transparency and blur, six languages.
 
+[0.3.2-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.3.2-alpha
 [0.3.1-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.3.1-alpha
 [0.3.0-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.3.0-alpha
 [0.2.0-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.2.0-alpha

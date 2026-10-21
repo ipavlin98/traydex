@@ -1,20 +1,29 @@
 use super::{
     Event,
     drag::{self, buttons_down, class_name},
-    send, window,
+    guarded, relay, send, window,
 };
 use crate::store::Corner;
 use std::{
     cell::Cell,
+    ffi::c_void,
     sync::atomic::{AtomicBool, AtomicU8, Ordering},
 };
 use windows::Win32::{
-    Foundation::{POINT, RECT},
+    Foundation::{CloseHandle, HANDLE, HWND, POINT, RECT},
     Graphics::Gdi::*,
+    Security::{GetTokenInformation, TOKEN_ELEVATION, TOKEN_QUERY, TokenElevation},
+    System::Threading::{GetCurrentProcess, OpenProcess, OpenProcessToken, PROCESS_QUERY_LIMITED_INFORMATION},
+    UI::Accessibility::{HWINEVENTHOOK, SetWinEventHook, UnhookWinEvent},
     UI::HiDpi::GetDpiForSystem,
-    UI::WindowsAndMessaging::{GWL_STYLE, GetForegroundWindow, GetWindowLongPtrW, GetWindowRect, IsZoomed, WS_CAPTION},
+    UI::WindowsAndMessaging::{
+        EVENT_SYSTEM_FOREGROUND, GWL_STYLE, GetCursorPos, GetForegroundWindow, GetWindowLongPtrW, GetWindowRect,
+        GetWindowThreadProcessId, IsZoomed, KillTimer, SetTimer, WINEVENT_OUTOFCONTEXT, WS_CAPTION,
+    },
 };
 
+pub(super) const TIMER: usize = 2;
+const POLL_MS: u32 = 30;
 const REACH: i32 = 2;
 const REARM: i32 = 60;
 const DRAG_ZONE: i32 = 440;
@@ -25,6 +34,7 @@ static DRAG_REVEAL: AtomicBool = AtomicBool::new(false);
 
 thread_local! {
     static ARMED: Cell<bool> = const { Cell::new(true) };
+    static POLLING: Cell<bool> = const { Cell::new(false) };
 }
 
 pub fn set_corner(corner: Option<Corner>) {
@@ -184,6 +194,97 @@ pub(super) fn feed(point: POINT) {
     if fire {
         log::debug!("Cursor reached the hot corner");
         send(Event::Corner);
+    }
+}
+
+fn elevated(process: HANDLE) -> Option<bool> {
+    let mut token = HANDLE::default();
+    unsafe { OpenProcessToken(process, TOKEN_QUERY, &mut token) }.ok()?;
+    let mut elevation = TOKEN_ELEVATION::default();
+    let mut length = 0;
+    let queried = unsafe {
+        GetTokenInformation(
+            token,
+            TokenElevation,
+            Some(&mut elevation as *mut TOKEN_ELEVATION as *mut c_void),
+            size_of::<TOKEN_ELEVATION>() as u32,
+            &mut length,
+        )
+    };
+    unsafe {
+        let _ = CloseHandle(token);
+    }
+    queried.ok()?;
+    Some(elevation.TokenIsElevated != 0)
+}
+
+fn owner_elevated(window: HWND) -> Option<bool> {
+    let mut process = 0;
+    unsafe { GetWindowThreadProcessId(window, Some(&mut process)) };
+    let handle = unsafe { OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, process) }.ok()?;
+    let elevated = elevated(handle);
+    unsafe {
+        let _ = CloseHandle(handle);
+    }
+    elevated
+}
+
+fn follow(front: HWND) {
+    if front.is_invalid() {
+        return;
+    }
+    let poll = owner_elevated(front) != Some(false);
+    if POLLING.replace(poll) == poll {
+        return;
+    }
+    if poll {
+        log::debug!("An elevated window is in front, the hot corner follows the cursor by polling");
+        unsafe { SetTimer(Some(relay::window()), TIMER, POLL_MS, None) };
+    } else {
+        log::debug!("The elevated window left the front, cursor polling stopped");
+        unsafe {
+            let _ = KillTimer(Some(relay::window()), TIMER);
+        }
+    }
+}
+
+unsafe extern "system" fn foreground_changed(_: HWINEVENTHOOK, _: u32, front: HWND, _: i32, _: i32, _: u32, _: u32) {
+    guarded((), || follow(front));
+}
+
+pub(super) fn tick() {
+    let mut point = POINT::default();
+    if unsafe { GetCursorPos(&mut point) }.is_ok() {
+        feed(point);
+    }
+}
+
+pub(super) fn watch() -> Option<HWINEVENTHOOK> {
+    if elevated(unsafe { GetCurrentProcess() }) == Some(true) {
+        return None;
+    }
+    let hook = unsafe {
+        SetWinEventHook(
+            EVENT_SYSTEM_FOREGROUND,
+            EVENT_SYSTEM_FOREGROUND,
+            None,
+            Some(foreground_changed),
+            0,
+            0,
+            WINEVENT_OUTOFCONTEXT,
+        )
+    };
+    if hook.is_invalid() {
+        log::warn!("Couldn't follow the foreground window, the hot corner won't work over elevated windows");
+        return None;
+    }
+    follow(unsafe { GetForegroundWindow() });
+    Some(hook)
+}
+
+pub(super) fn unwatch(hook: HWINEVENTHOOK) {
+    unsafe {
+        let _ = UnhookWinEvent(hook);
     }
 }
 

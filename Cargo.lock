@@ -5120,7 +5120,7 @@ dependencies = [
 
 [[package]]
 name = "traydex"
-version = "0.3.1-alpha"
+version = "0.3.2-alpha"
 dependencies = [
  "anyhow",
  "bzip2",
