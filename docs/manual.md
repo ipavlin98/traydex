@@ -58,7 +58,9 @@ check failed; automatic checks only write failures to the log.
   panel. Only outer corners of the desktop, where the cursor actually stops, work; a corner between two monitors
   doesn't. The corner fires again once the cursor has moved 60 px away from it or has been inside the Traydex
   window. Entering the corner with a mouse button held does nothing. If a full-screen window (video, game,
-  presentation) is in front on the same monitor, the corner doesn't open the panel.
+  presentation) is in front on the same monitor, the corner doesn't open the panel. Windows doesn't pass mouse
+  movement to a non-elevated Traydex while a window run as administrator is in front, so then Traydex checks the
+  cursor position every 30 ms instead.
 - A panel that opened by itself hides right away when the drag ends and the cursor isn't over it. If you drop
   something on Traydex, the panel stays open as if you had opened it yourself. A panel opened manually (tray icon,
   shortcut, hotkey or hot corner) or left open after a drop hides when you click anywhere outside it, after the
