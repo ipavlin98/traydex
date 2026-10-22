@@ -223,6 +223,7 @@ pub enum Call {
     Pick(String, bool),
     PickFiles(String),
     Transfer(Vec<PathBuf>, PathBuf, bool),
+    Recycle(Vec<PathBuf>),
     Copy(Vec<ItemId>),
     Paste,
     Drag(Vec<ItemId>),
@@ -584,6 +585,19 @@ impl Services for Fake {
         let mut state = self.state();
         state.calls.push(Call::Transfer(files.to_vec(), folder.into(), copy));
         Self::failure(&state.transfer_error)
+    }
+
+    fn recycle(&self, paths: &[PathBuf]) -> Result<()> {
+        let mut state = self.state();
+        state.calls.push(Call::Recycle(paths.to_vec()));
+        for path in paths {
+            if path.is_dir() {
+                std::fs::remove_dir_all(path)?;
+            } else {
+                std::fs::remove_file(path)?;
+            }
+        }
+        Ok(())
     }
 
     fn thumbnail(&self, _: &Path, _: i32) -> Option<(u32, u32, Vec<u8>)> {

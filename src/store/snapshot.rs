@@ -1,4 +1,5 @@
 use super::{ItemId, Storage, restore_note};
+use crate::system::Services;
 use anyhow::Result;
 use std::fs;
 use std::path::PathBuf;
@@ -9,6 +10,7 @@ pub struct Snapshot {
     pub(super) shelf: Arc<[u8]>,
     pub(super) notes: Vec<(ItemId, PathBuf, String)>,
     pub(super) doomed: Vec<PathBuf>,
+    pub(super) binned: Vec<PathBuf>,
 }
 
 impl Snapshot {
@@ -26,12 +28,26 @@ impl Snapshot {
         Ok(())
     }
 
+    pub fn recycle(&self, services: &dyn Services) {
+        let binned: Vec<PathBuf> =
+            self.binned.iter().filter(|path| self.storage.owned(path) && path.exists()).cloned().collect();
+        if binned.is_empty() {
+            return;
+        }
+        match services.recycle(&binned) {
+            Ok(()) => log::debug!("Moved {} item(s) to the Recycle Bin", binned.len()),
+            Err(error) => log::warn!("Couldn't move items to the Recycle Bin: {error:#}"),
+        }
+    }
+
     pub fn merge(self, newer: Snapshot) -> Snapshot {
         let mut notes: Vec<_> =
             self.notes.into_iter().filter(|(key, ..)| !newer.notes.iter().any(|(fresh, ..)| fresh == key)).collect();
         notes.extend(newer.notes);
         let mut doomed = self.doomed;
         doomed.extend(newer.doomed);
-        Snapshot { storage: newer.storage, shelf: newer.shelf, notes, doomed }
+        let mut binned = self.binned;
+        binned.extend(newer.binned);
+        Snapshot { storage: newer.storage, shelf: newer.shelf, notes, doomed, binned }
     }
 }

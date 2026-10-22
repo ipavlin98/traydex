@@ -20,7 +20,7 @@ pub use ole::{copy, drag, exporting, flush_clipboard, paste, set_reject};
 pub use preview::{Host, focus, preview_handler, thumbnail, type_name};
 pub use registry::{AUTOSTART_FLAG, SEND_FLAG, set_autostart, set_context_menu};
 pub use relay::{bind, capture, notify, set_tray, single_instance, start as start_watch, stop as stop_watch};
-pub use shell::{desktop, display_name, open, pick, pick_files, reveal, shell_open, transfer};
+pub use shell::{desktop, display_name, open, pick, pick_files, recycle, reveal, shell_open, transfer};
 pub use window::{
     hide, place, place_near_cursor, pointer_inside, prepare, reset_position, resize, set_caption, set_min_size, show,
     visible,

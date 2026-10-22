@@ -381,6 +381,7 @@ const IMPACTS: &[&str] = &[
     "your mouse and keyboard will be fully blocked until the run ends: moves, clicks and key presses reach no window;",
     "the cursor and keyboard will be driven programmatically (SendInput): moves, clicks, drags, Ctrl+Shift+Alt+F9, Esc, Ctrl+A; window focus will switch;",
     "the clipboard will be overwritten;",
+    "a small test picture is moved to your Recycle Bin and restored from it (removed from the Bin if the restore fails);",
     "HKCU temporarily gets a test autostart value \"Traydex Test\" and a context menu item \"TraydexTest\"; both are removed after the run;",
     "test files and the profile are created in %TEMP%\\traydex-e2e and deleted after the run;",
     "your Traydex profile, your files, display and security settings stay untouched, and no internet is used.",

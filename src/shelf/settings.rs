@@ -194,6 +194,10 @@ impl Shelf {
         self.update_settings(|settings| settings.check_updates = !settings.check_updates, cx);
     }
 
+    pub fn toggle_recycle(&mut self, cx: &mut Context<Self>) {
+        self.update_settings(|settings| settings.recycle = !settings.recycle, cx);
+    }
+
     pub fn toggle_separate_notes(&mut self, cx: &mut Context<Self>) {
         self.selection.reset();
         self.update_settings(|settings| settings.separate_notes = !settings.separate_notes, cx);

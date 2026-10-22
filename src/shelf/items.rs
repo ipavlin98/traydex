@@ -234,7 +234,8 @@ impl Shelf {
     }
 
     pub(super) fn ask_remove(&mut self, keys: &HashSet<ItemId>, cx: &mut Context<Self>) -> bool {
-        let lost = self.store.items().iter().any(|item| keys.contains(&item.id) && item.only_in_storage());
+        let lost = !self.store.settings().recycle
+            && self.store.items().iter().any(|item| keys.contains(&item.id) && item.only_in_storage());
         if lost {
             self.confirming = Some(Confirm::Remove(keys.clone()));
             cx.notify();
@@ -253,7 +254,30 @@ impl Shelf {
     }
 
     pub(crate) fn clear_loses_files(&self) -> bool {
-        self.store.items().iter().any(|item| item.only_in_storage() && self.clears(item))
+        !self.store.settings().recycle
+            && self.store.items().iter().any(|item| item.only_in_storage() && self.clears(item))
+    }
+
+    pub(super) fn find_recycled(&mut self, cx: &mut Context<Self>) {
+        let recycled = self.store.recycled();
+        if recycled.is_empty() || self.saving.busy() || self.store.recycling() {
+            return;
+        }
+        self.background(
+            cx,
+            move || Ok(recycled.into_iter().filter(|path| path.exists()).collect::<Vec<_>>()),
+            |shelf, found, cx| match found {
+                Ok(found) if !found.is_empty() => {
+                    if shelf.store.bring_back(&found) > 0 {
+                        shelf.items_changed(cx);
+                    } else {
+                        shelf.commit(cx);
+                    }
+                }
+                Ok(_) => {}
+                Err(error) => log::warn!("Couldn't look for cards back from the Recycle Bin: {error:#}"),
+            },
+        );
     }
 
     pub(crate) fn keeps_pinned(&self) -> bool {

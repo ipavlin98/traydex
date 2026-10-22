@@ -203,6 +203,8 @@ pub(super) static ZH: Strings = Strings {
     double_click_preview_hint: "关闭后，双击会用默认程序打开文件",
     separate_notes: "笔记单独存放",
     separate_notes_hint: "笔记不显示在“全部”和“文本”中，也不会被“拖出全部”带走",
+    recycle: "删除到回收站",
+    recycle_hint: "仅存于 Traydex 的文件和笔记可以从回收站还原",
     tray_icon: "托盘图标",
     tray_icon_hint: "隐藏后，可用快捷键或再次启动 Traydex 打开面板",
     context_menu_verb: "发送到 Traydex 货架",

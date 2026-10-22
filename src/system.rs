@@ -194,6 +194,7 @@ pub trait Services: Send + Sync {
     fn display_name(&self, path: &Path) -> String;
     fn desktop_folder(&self) -> Option<PathBuf>;
     fn transfer(&self, files: &[PathBuf], folder: &Path, copy: bool) -> Result<()>;
+    fn recycle(&self, paths: &[PathBuf]) -> Result<()>;
 
     fn thumbnail(&self, path: &Path, size: i32) -> Option<(u32, u32, Vec<u8>)>;
     fn preview_handler(&self, path: &Path) -> Option<Handler>;

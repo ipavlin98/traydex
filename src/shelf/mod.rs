@@ -156,6 +156,7 @@ impl Shelf {
                 );
                 if window.is_window_active() {
                     shelf.detect_tools(cx);
+                    shelf.find_recycled(cx);
                     shelf.focus_password(window, cx);
                 } else {
                     shelf.stop_recording(cx);

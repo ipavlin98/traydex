@@ -373,7 +373,8 @@ fn removed_notes_are_deleted_from_storage_after_save(cx: &mut TestAppContext) {
     assert!(!path.exists());
 }
 
-fn kept(store: &Store, name: &str) -> PathBuf {
+fn kept(store: &mut Store, name: &str) -> PathBuf {
+    store.settings_mut().recycle = false;
     let path = store.storage().content().join(name);
     std::fs::create_dir_all(store.storage().content()).expect("content folder");
     std::fs::write(&path, "x").expect("kept file");
@@ -440,6 +441,47 @@ fn deleting_a_previewed_kept_file_moves_to_the_next_after_confirmation(cx: &mut 
     h.keys("enter");
     assert_eq!(h.titles(), ["b.png"]);
     assert_eq!(h.previewed(), Some(ids[1].clone()));
+}
+
+#[gpui::test]
+fn with_the_recycle_bin_a_stored_file_goes_there_without_asking_and_comes_back(cx: &mut TestAppContext) {
+    let mut h = open_with(cx, true, |_, store, _| {
+        let path = kept(store, "снимок экрана.png");
+        store.settings_mut().recycle = true;
+        store.add_paths(vec![path]);
+    });
+    let id = h.ids().remove(0);
+    let path = h.read(|shelf| shelf.store.items()[0].path.clone());
+    h.act(|shelf, _, cx| shelf.remove(&id, cx));
+    assert!(h.read(|shelf| shelf.confirming.is_none() && !shelf.clear_loses_files()));
+    h.settle();
+    assert!(h.titles().is_empty());
+    assert_eq!(h.count(&Call::Recycle(vec![path.clone()])), 1);
+    assert!(!path.exists());
+    std::fs::write(&path, "x").expect("restored from the Recycle Bin");
+    h.send(Event::Toggle);
+    h.send(Event::Toggle);
+    h.settle();
+    assert_eq!(h.titles(), ["снимок экрана.png"]);
+    assert_eq!(h.saved().items().len(), 1);
+}
+
+#[gpui::test]
+fn a_file_still_waiting_for_the_recycle_bin_is_not_taken_for_restored(cx: &mut TestAppContext) {
+    let mut h = open_with(cx, true, |_, store, _| {
+        let path = kept(store, "a.png");
+        store.settings_mut().recycle = true;
+        store.add_paths(vec![path]);
+    });
+    let id = h.ids().remove(0);
+    h.act(|shelf, _, cx| {
+        shelf.remove(&id, cx);
+        shelf.find_recycled(cx);
+    });
+    h.settle();
+    h.act(|shelf, _, cx| shelf.find_recycled(cx));
+    h.settle();
+    assert!(h.titles().is_empty());
 }
 
 #[gpui::test]

@@ -198,6 +198,10 @@ impl Services for Native {
         super::transfer(files, folder, copy)
     }
 
+    fn recycle(&self, paths: &[PathBuf]) -> Result<()> {
+        super::recycle(paths)
+    }
+
     fn thumbnail(&self, path: &Path, size: i32) -> Option<(u32, u32, Vec<u8>)> {
         super::thumbnail(path, size)
     }

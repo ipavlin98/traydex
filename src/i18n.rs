@@ -317,6 +317,8 @@ pub struct Strings {
     pub double_click_preview_hint: &'static str,
     pub separate_notes: &'static str,
     pub separate_notes_hint: &'static str,
+    pub recycle: &'static str,
+    pub recycle_hint: &'static str,
     pub tray_icon: &'static str,
     pub tray_icon_hint: &'static str,
     pub context_menu_verb: &'static str,

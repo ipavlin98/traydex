@@ -203,6 +203,8 @@ pub(super) static FR: Strings = Strings {
     double_click_preview_hint: "Désactivé, le double-clic ouvre le fichier dans son application par défaut",
     separate_notes: "Notes à part",
     separate_notes_hint: "Les notes n'apparaissent ni dans Tout ni dans Texte et ne sont pas incluses dans « Tout glisser »",
+    recycle: "Supprimer vers la Corbeille",
+    recycle_hint: "Les fichiers et notes propres à Traydex pourront être restaurés",
     tray_icon: "Icône dans la zone de notification",
     tray_icon_hint: "Sans elle, ouvrez le panneau avec le raccourci ou en relançant Traydex",
     context_menu_verb: "Envoyer vers l'étagère Traydex",

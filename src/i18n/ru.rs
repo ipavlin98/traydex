@@ -203,6 +203,8 @@ pub(super) static RU: Strings = Strings {
     double_click_preview_hint: "Если выключено, двойной щелчок открывает файл в программе по умолчанию",
     separate_notes: "Заметки отдельно",
     separate_notes_hint: "Заметки не показываются во «Всё» и «Текст» и не попадают в «Перетащить всё»",
+    recycle: "Удалять в корзину",
+    recycle_hint: "Файлы и заметки, которые есть только в Traydex, можно будет восстановить",
     tray_icon: "Значок в трее",
     tray_icon_hint: "Без него панель открывается сочетанием клавиш или повторным запуском Traydex",
     context_menu_verb: "На полку в Traydex",

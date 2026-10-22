@@ -1,5 +1,6 @@
 mod files;
 mod images;
+mod recycled;
 mod settings;
 mod snapshot;
 mod storage;
@@ -298,10 +299,14 @@ pub struct Store {
     watched: Vec<Watched>,
     #[serde(flatten)]
     settings: Settings,
+    #[serde(default)]
+    recycled: Vec<Item>,
     #[serde(skip)]
     storage: Storage,
     #[serde(skip)]
     doomed: Vec<PathBuf>,
+    #[serde(skip)]
+    binned: Vec<PathBuf>,
     #[serde(skip)]
     edited: Vec<ItemId>,
     #[serde(skip)]
@@ -341,8 +346,15 @@ impl Store {
 
     pub fn open(storage: Storage, legacy: &Path) -> Self {
         let legacy = migrate(storage.root(), legacy);
-        let (store, readable) = Self::read(storage, legacy);
+        let (mut store, readable) = Self::read(storage, legacy);
         if readable {
+            let found: Vec<PathBuf> = store.recycled().into_iter().filter(|path| path.exists()).collect();
+            if !found.is_empty() {
+                store.bring_back(&found);
+                if let Err(error) = store.save() {
+                    log::warn!("Couldn't save the cards back from the Recycle Bin: {error:#}");
+                }
+            }
             store.sweep();
         }
         store
@@ -442,8 +454,10 @@ impl Store {
             items: Vec::new(),
             watched: Vec::new(),
             settings: Settings::default(),
+            recycled: Vec::new(),
             storage: Storage::default(),
             doomed: Vec::new(),
+            binned: Vec::new(),
             edited: Vec::new(),
             unsaved: None,
             trouble: None,
@@ -499,7 +513,13 @@ impl Store {
                 Some((key.clone(), item.path.clone(), item.text.clone()?))
             })
             .collect();
-        Ok(Snapshot { storage: self.storage.clone(), shelf, notes, doomed: std::mem::take(&mut self.doomed) })
+        Ok(Snapshot {
+            storage: self.storage.clone(),
+            shelf,
+            notes,
+            doomed: std::mem::take(&mut self.doomed),
+            binned: std::mem::take(&mut self.binned),
+        })
     }
 
     pub fn restore(&mut self, unsaved: Snapshot) {
@@ -509,6 +529,7 @@ impl Store {
             }
         }
         self.doomed.extend(unsaved.doomed);
+        self.binned.extend(unsaved.binned);
     }
 
     pub fn save(&mut self) -> Result<()> {
@@ -704,9 +725,15 @@ impl Store {
             };
             let others: Vec<&Path> =
                 self.items.iter().filter(|other| other.managed).map(|other| other.path.as_path()).collect();
-            if !others.iter().any(|other| storage::related(other, &slot)) {
+            let unshared = !others.iter().any(|other| storage::related(other, &slot));
+            if !unshared && others.iter().any(|other| storage::related(other, &item.path)) {
+                continue;
+            }
+            if self.settings.recycle {
+                self.remember_recycled(item);
+            } else if unshared {
                 self.doomed.push(slot);
-            } else if !others.iter().any(|other| storage::related(other, &item.path)) {
+            } else {
                 self.doomed.push(item.path);
             }
         }
