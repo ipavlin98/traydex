@@ -206,9 +206,14 @@ Explorer's context menu also gets a *Send to Traydex shelf* item (on Windows 11,
 All data is stored locally: in `%LOCALAPPDATA%\Traydex`, or in the `data` folder of the portable version. There are
 no accounts and no telemetry. Traydex connects to the internet only for tiles that need it (uploads, web search,
 VirusTotal and downloading ffmpeg) and to check GitHub for updates, which can be turned off in Settings. Files from Explorer aren't copied; the shelf stores a link to the original, and a card shows the folder the file is in.
+<<<<<<< HEAD
 Pasted images and files from browsers are kept in Traydex itself: their cards say *Stored only in Traydex*.
 Removing such a card sends the file to the Recycle Bin, and restoring it there brings the card back; with that
 setting off, Traydex asks first, because the file is deleted for good. Logs are in the `logs` subfolder.
+=======
+Pasted images and files from browsers are kept in Traydex itself: their cards say *Stored only in Traydex*, and
+removing one asks first, because the file is deleted for good. Logs are in the `logs` subfolder.
+>>>>>>> origin/main
 
 ## FAQ
 

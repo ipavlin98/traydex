@@ -373,8 +373,12 @@ fn removed_notes_are_deleted_from_storage_after_save(cx: &mut TestAppContext) {
     assert!(!path.exists());
 }
 
+<<<<<<< HEAD
 fn kept(store: &mut Store, name: &str) -> PathBuf {
     store.settings_mut().recycle = false;
+=======
+fn kept(store: &Store, name: &str) -> PathBuf {
+>>>>>>> origin/main
     let path = store.storage().content().join(name);
     std::fs::create_dir_all(store.storage().content()).expect("content folder");
     std::fs::write(&path, "x").expect("kept file");
@@ -443,6 +447,7 @@ fn deleting_a_previewed_kept_file_moves_to_the_next_after_confirmation(cx: &mut 
     assert_eq!(h.previewed(), Some(ids[1].clone()));
 }
 
+<<<<<<< HEAD
 #[gpui::test]
 fn with_the_recycle_bin_a_stored_file_goes_there_without_asking_and_comes_back(cx: &mut TestAppContext) {
     let mut h = open_with(cx, true, |_, store, _| {
@@ -484,6 +489,8 @@ fn a_file_still_waiting_for_the_recycle_bin_is_not_taken_for_restored(cx: &mut T
     assert!(h.titles().is_empty());
 }
 
+=======
+>>>>>>> origin/main
 #[gpui::test]
 fn text_items_are_copied_as_plain_text(cx: &mut TestAppContext) {
     let mut h = open_with(cx, true, notes(&["first", "second"]));
