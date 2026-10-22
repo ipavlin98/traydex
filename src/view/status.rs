@@ -106,6 +106,7 @@ impl Shelf {
         let bar = bottom_bar(t).marked("status-bar").justify_between().bg(t.surface);
         if let Some(confirm) = &self.confirming() {
             let (question, action, key): (SharedString, _, usize) = match confirm {
+                Confirm::Clear if self.clear_loses_files() => (tr().remove_confirm.into(), tr().delete, 0),
                 Confirm::Clear if self.keeps_pinned() => (tr().clear_confirm_pinned.into(), tr().clear, 0),
                 Confirm::Clear => (tr().clear_confirm.into(), tr().clear, 0),
                 Confirm::Reset => (tr().reset_all_confirm.into(), tr().reset, 1),
@@ -116,16 +117,7 @@ impl Shelf {
                 Confirm::Update(release) => {
                     (fill(tr().update_available, &release.version).into(), tr().update_install, 3)
                 }
-                Confirm::Remove(keys) if keys.len() == 1 => (tr().remove_confirm.into(), tr().delete, 4),
-                Confirm::Remove(keys) => {
-                    let lost = self
-                        .store()
-                        .items()
-                        .iter()
-                        .filter(|item| keys.contains(&item.id) && item.only_in_storage())
-                        .count();
-                    (fill(tr().remove_confirm_many, lost).into(), tr().delete, 4)
-                }
+                Confirm::Remove(_) => (tr().remove_confirm.into(), tr().delete, 4),
             };
             let (cancel, look) = match confirm {
                 Confirm::Update(_) => (tr().later, Look::Primary),

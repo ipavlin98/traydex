@@ -225,7 +225,6 @@ pub struct Strings {
     pub clear_confirm: &'static str,
     pub clear_confirm_pinned: &'static str,
     pub remove_confirm: &'static str,
-    pub remove_confirm_many: &'static str,
     pub delete: &'static str,
     pub cancel: &'static str,
     pub clear: &'static str,

@@ -169,7 +169,8 @@ the folder it's in. If an original is moved or deleted, the card shows *Original
 Traydex* instead of a folder. They're deleted together with their card or by *Clear Traydex*, after the change is
 written to `shelf.json`; originals from Explorer are never touched. Removing a card whose file is stored only in
 Traydex (with the cross, `Delete` or the *Selected* bar) first asks at the bottom of the window whether to delete it
-for good; `Enter` confirms and `Esc` cancels. Notes and text are removed without asking. When such a
+for good; `Enter` confirms and `Esc` cancels. *Clear Traydex* shows the same warning instead of its usual question
+when such files are among the cards it removes. Notes and text are removed without asking. When such a
 file is dropped on a tile, the temporary copy is deleted right after the action, and the result (a converted image,
 for example) is saved separately and becomes a new card; for the run-program tile the copy stays until Traydex
 starts next time. Anything in `content` that no card refers to is deleted on startup. The shelf and the settings

@@ -388,6 +388,10 @@ fn removing_a_file_kept_only_in_traydex_asks_before_deleting_it(cx: &mut TestApp
     });
     let ids = h.ids();
     let (outside, inside) = h.read(|shelf| (shelf.store.items()[0].path.clone(), shelf.store.items()[1].path.clone()));
+    assert!(h.read(|shelf| shelf.clear_loses_files()), "clearing warns about the stored file too");
+    h.act(|shelf, _, cx| shelf.toggle_stuck(&ids[1], cx));
+    assert!(!h.read(|shelf| shelf.clear_loses_files()), "a pinned card survives clearing");
+    h.act(|shelf, _, cx| shelf.toggle_stuck(&ids[1], cx));
     h.act(|shelf, _, cx| shelf.remove(&ids[0], cx));
     assert_eq!(h.titles(), ["снимок экрана.png"], "a file that lives elsewhere goes at once");
     assert!(outside.exists());

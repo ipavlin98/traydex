@@ -6,7 +6,8 @@ Notable changes in each release. Versions follow [Semantic Versioning](https://s
 
 - Cards of files and folders show the folder they're in after the type and size, or *Stored only in Traydex* for
   pasted images and files kept by Traydex itself.
-- Removing a card whose file is stored only in Traydex asks first, since the file is deleted for good.
+- Removing a card whose file is stored only in Traydex, or clearing the shelf with such cards, warns first, since
+  the file is deleted for good.
 
 ## [0.3.2-alpha] — 2026-10-21
 

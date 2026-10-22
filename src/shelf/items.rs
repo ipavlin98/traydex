@@ -252,6 +252,10 @@ impl Shelf {
         !item.pinned && self.shows(self.clearable(), item)
     }
 
+    pub(crate) fn clear_loses_files(&self) -> bool {
+        self.store.items().iter().any(|item| item.only_in_storage() && self.clears(item))
+    }
+
     pub(crate) fn keeps_pinned(&self) -> bool {
         self.store.items().iter().any(|item| item.pinned && self.shows(self.clearable(), item))
     }
