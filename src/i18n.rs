@@ -566,7 +566,6 @@ pub struct Strings {
     pub section_plugins: &'static str,
     pub plugins_hint: &'static str,
     pub tile_refused: &'static str,
-    pub tile_failed: &'static str,
     pub update_check: &'static str,
     pub update_auto: &'static str,
     pub update_auto_hint: &'static str,

@@ -452,7 +452,6 @@ pub(super) static FR: Strings = Strings {
     section_plugins: "MODULES",
     plugins_hint: "Déposez un fichier .tdx dans la fenêtre pour installer un module",
     tile_refused: "Non accepté",
-    tile_failed: "Échec la dernière fois",
     update_check: "Rechercher des mises à jour",
     update_auto: "Rechercher les mises à jour automatiquement",
     update_auto_hint: "Au démarrage et une fois par jour. Rien n'est installé sans votre accord",

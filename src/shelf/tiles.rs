@@ -81,8 +81,6 @@ impl Shelf {
             subject,
             move |progress| actions::run(&action, payload, progress, &storage, &*services),
             move |shelf, id, ended, cx| {
-                let failed = matches!(ended, Ended::Finished(Err(_)));
-                shelf.jobs.update(cx, |jobs, cx| jobs.record(tile, failed, cx));
                 let Ended::Finished(result) = ended else {
                     return log::info!("Action \"{title}\" stopped");
                 };

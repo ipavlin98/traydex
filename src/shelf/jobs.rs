@@ -69,7 +69,6 @@ pub struct Jobs {
     list: Vec<Job>,
     next: usize,
     poll: Option<Task<()>>,
-    failed: Vec<TileId>,
     drawn: Vec<Option<u8>>,
 }
 
@@ -85,8 +84,7 @@ impl Jobs {
         self.next += 1;
         let progress = Progress::default();
         let mut deadline = None;
-        if let JobKind::Action { tile, timeout } = kind {
-            self.failed.retain(|failed| *failed != tile);
+        if let JobKind::Action { timeout, .. } = kind {
             deadline = timeout.map(|timeout| self.expire_after(id, timeout, cx));
         }
         self.list.push(Job { id, label, subject, progress: progress.clone(), kind, _deadline: deadline });
@@ -135,18 +133,6 @@ impl Jobs {
 
     pub fn for_tile(&self, tile: TileId) -> Option<&Job> {
         self.list.iter().find(|job| job.tile() == Some(tile))
-    }
-
-    pub fn record(&mut self, tile: TileId, failed: bool, cx: &mut Context<Self>) {
-        self.failed.retain(|known| *known != tile);
-        if failed {
-            self.failed.push(tile);
-        }
-        cx.notify();
-    }
-
-    pub fn failed(&self, tile: TileId) -> bool {
-        self.failed.contains(&tile)
     }
 
     pub fn end(&mut self, id: JobId, cx: &mut Context<Self>) {

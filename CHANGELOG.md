@@ -2,6 +2,11 @@
 
 Notable changes in each release. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.3.6-alpha] — 2026-10-22
+
+- A tile whose action failed keeps showing its description instead of a red "Last run failed"; the error itself is
+  still shown as a message.
+
 ## [0.3.5-alpha] — 2026-10-22
 
 - Cards of files and folders show the folder they're in after the type and size, or *Stored only in Traydex* for
@@ -58,6 +63,7 @@ First public release.
 - Preview, notes, search with typo and keyboard-layout tolerance, list and grid views.
 - Light and dark themes, transparency and blur, six languages.
 
+[0.3.6-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.3.6-alpha
 [0.3.5-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.3.5-alpha
 [0.3.4-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.3.4-alpha
 [0.3.3-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.3.3-alpha

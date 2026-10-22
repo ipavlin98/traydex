@@ -452,7 +452,6 @@ pub(super) static HI: Strings = Strings {
     section_plugins: "प्लगइन",
     plugins_hint: "प्लगइन इंस्टॉल करने के लिए .tdx फ़ाइल विंडो में खींचें",
     tile_refused: "उपयुक्त नहीं",
-    tile_failed: "पिछली बार विफल",
     update_check: "अपडेट जाँचें",
     update_auto: "अपडेट अपने-आप जाँचें",
     update_auto_hint: "शुरू होने पर और दिन में एक बार। आपसे पूछे बिना कुछ भी इंस्टॉल नहीं होता",
