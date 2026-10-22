@@ -14,7 +14,8 @@ Single working build: `target\debug\traydex.exe`. Never call `cargo` directly (n
 
 ## Repository
 Public GitHub repo; contributors and their AI assistants follow this file.
-- Version: `version` in `Cargo.toml` (exe resources take it via `build.rs`). Release = bump version + `CHANGELOG.md` section, then tag `v<version>` or run the Release workflow. Never bump the version unasked.
+- Version: `version` in `Cargo.toml` (exe resources take it via `build.rs`). Feature and fix branches never touch it, `Cargo.lock`'s version or `CHANGELOG.md`: a user-visible change adds `changes/<branch-name>.md` instead (format in `changes/README.md`), so parallel branches never conflict.
+- Release = one `chore/release-<version>` PR: fold `changes/*.md` (not `README.md`) into a dated `CHANGELOG.md` section plus its link, raise the version (minor if any file says `minor`, else patch; keep the pre-release suffix), delete the folded files. After it merges, tag `v<version>` or run the Release workflow. Never release or tag unasked.
 - CI (`.github/workflows/ci.yml`, windows-latest): `cargo fmt --check`, clippy `-D warnings`, `cargo test`, all `--locked`. Same as `-Lint` + `-Test`; keep them equal. Plus `cargo test` for `i686-pc-windows-msvc` and `aarch64-pc-windows-msvc`.
 - Targets: x64, x86, ARM64. Code builds on all three: no `isize`-specific casts for Win32 pointer-sized values (`as _`), no references into packed structs (`NOTIFYICONDATAW`, `SHFILEINFOW`; assign/copy whole fields). Locally: `cargo check --target i686-pc-windows-msvc` (x86 MSVC tools are installed, ARM64 aren't).
 - Release assets (`release.yml`): per arch `Traydex-<version>-<arch>-setup.exe` (Inno Setup, `packaging/traydex.iss`, per-user) and `-portable.zip` (`packaging/portable.txt` beside the exe switches data to `data\`, see `Profile::portable_beside`), plus `SHA256SUMS.txt`.
@@ -131,7 +132,7 @@ Standing requirements for all new code. Feature works but breaks rules = not don
   - new `Shelf` field belonging in separate entity;
   - function/file over size limits;
   - page waiting for background work without same-geometry placeholder.
-- User-visible change (feature, setting, shortcut, tile, string meaning) → update `README.md`, `README.ru.md` and `docs/manual.md`; plugin protocol change → also `docs/plugins.md`. Pure internals → no doc changes.
+- User-visible change (feature, setting, shortcut, tile, string meaning) → update `README.md`, `README.ru.md` and `docs/manual.md`, and add a `changes/` file; plugin protocol change → also `docs/plugins.md`. Pure internals → no doc changes.
 
 ## Tests
 Tests catch bugs; not for count or green. User won't remind; you decide by these rules and write/update yourself. "No test needed" is normal.
