@@ -449,7 +449,6 @@ pub(super) static RU: Strings = Strings {
     section_plugins: "ПЛАГИНЫ",
     plugins_hint: "Перетащите файл .tdx в окно, чтобы установить плагин",
     tile_refused: "Не подходит",
-    tile_failed: "Прошлый запуск не удался",
     update_check: "Проверить обновления",
     update_auto: "Проверять обновления автоматически",
     update_auto_hint: "При запуске и раз в сутки. Без вашего согласия ничего не устанавливается",

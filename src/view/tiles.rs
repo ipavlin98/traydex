@@ -162,8 +162,6 @@ impl Shelf {
             (tr().tile_refused.into(), t.muted)
         } else if !self.ready(action) {
             (tr().needs_setup.into(), t.danger)
-        } else if jobs.failed(id) {
-            (tr().tile_failed.into(), t.danger)
         } else {
             (action.description().into(), t.muted)
         }

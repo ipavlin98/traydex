@@ -158,7 +158,6 @@ fn plugin_that_outlives_its_timeout_is_stopped_and_reported(cx: &mut TestAppCont
     assert_eq!(h.running(), 0);
     let alert = h.alert().expect("alert");
     assert!(alert.contains(&fill(tr().plugin_timeout, 5)), "{alert}");
-    assert!(h.read_cx(|shelf, cx| shelf.jobs.read(cx).failed(tile)), "the tile shows the failure");
 }
 
 #[gpui::test]

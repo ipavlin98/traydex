@@ -449,7 +449,6 @@ pub(super) static EN: Strings = Strings {
     section_plugins: "PLUGINS",
     plugins_hint: "Drop a .tdx file into the window to install a plugin",
     tile_refused: "Doesn't fit",
-    tile_failed: "Last run failed",
     update_check: "Check for updates",
     update_auto: "Check for updates automatically",
     update_auto_hint: "At startup and once a day. Nothing is installed without asking",
