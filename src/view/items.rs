@@ -1,4 +1,5 @@
 use super::*;
+use crate::store::{Location, Meta, shorten_path};
 
 impl Shelf {
     pub(super) fn open_tip(&self) -> Tip {
@@ -159,13 +160,13 @@ impl Shelf {
         })
     }
 
-    pub(super) fn item_state(&self, item: &Item) -> (bool, bool, SharedString) {
+    pub(super) fn item_state(&self, item: &Item, width: f32, window: &Window) -> (bool, bool, SharedString) {
         let selected = self.selection().contains(&item.id);
         let meta = self.catalog().meta(&item.id);
         let exists = meta.is_none_or(|m| m.exists);
         let detail: SharedString = match meta {
             Some(m) if !m.exists => tr().missing.into(),
-            Some(m) => m.detail.clone().into(),
+            Some(m) => detail(m, width - FADE, window),
             None => SharedString::default(),
         };
         (selected, exists, detail)
@@ -180,7 +181,7 @@ impl Shelf {
         cx: &mut Context<Self>,
     ) -> Stateful<Div> {
         let key = item.id.clone();
-        let (selected, exists, detail) = self.item_state(item);
+        let (selected, exists, detail) = self.item_state(item, text_width, window);
         let preview = if selected {
             badge_icon(t, "check", ICON_SIZE, true)
         } else if item.kind == Kind::Image && exists {
@@ -297,12 +298,12 @@ impl Shelf {
         cx: &mut Context<Self>,
     ) -> Stateful<Div> {
         let key = item.id.clone();
-        let (selected, exists, detail) = self.item_state(item);
         let pointer = !self.hovered().keyboard();
         let lit = self.hovered().lit(&Hovered::Item(key.clone()));
         let scale = design::scale(window);
         let edge = design::device(size::HAIRLINE, window.scale_factor()) / scale;
         let text_width = (width - (design::snap(TILE_PADDING, scale) + edge) * 2.).max(20.);
+        let (selected, exists, detail) = self.item_state(item, text_width, window);
         let border = if selected { t.accent } else { t.border };
         let hover_border = if selected { t.accent } else { t.border_strong };
         let tile = div()
@@ -363,6 +364,17 @@ impl Shelf {
                     .child(overlay(t, self.item_buttons(t, item, lit, cx)))
                     .children(self.pin_mark(t, item, lit).map(|mark| overlay(t, mark))),
             )
+    }
+}
+
+fn detail(meta: &Meta, room: f32, window: &Window) -> SharedString {
+    let with = |place: &str| format!("{} · {place}", meta.detail);
+    match &meta.location {
+        None => meta.detail.clone().into(),
+        Some(Location::Storage) => with(tr().only_in_traydex).into(),
+        Some(Location::Folder(folder)) => {
+            with(&shorten_path(folder, |place| measure(window, &with(place), text::CAPTION) <= room)).into()
+        }
     }
 }
 

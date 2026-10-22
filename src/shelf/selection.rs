@@ -70,8 +70,4 @@ impl Selection {
     pub(super) fn retain(&mut self, keep: impl Fn(&ItemId) -> bool) {
         self.ids.retain(keep);
     }
-
-    pub(super) fn take(&mut self) -> HashSet<ItemId> {
-        std::mem::take(&mut self.ids)
-    }
 }

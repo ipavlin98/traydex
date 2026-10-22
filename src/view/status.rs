@@ -33,10 +33,8 @@ impl Shelf {
                     .on_hover(
                         cx.safe_listener(move |shelf, hovered: &bool, _, cx| shelf.hold_notice(notice, *hovered, cx)),
                     )
-                    .when(notice == Notice::Alert, |d| {
-                        d.cursor_pointer()
-                            .on_click(cx.safe_listener(|shelf, _, _, cx| shelf.dismiss_notice(Notice::Alert, cx)))
-                    })
+                    .cursor_pointer()
+                    .on_click(cx.safe_listener(move |shelf, _, _, cx| shelf.dismiss_notice(notice, cx)))
                     .enter(text, Motion::Rise, self.animated()),
             ),
         )
@@ -106,6 +104,7 @@ impl Shelf {
         let bar = bottom_bar(t).marked("status-bar").justify_between().bg(t.surface);
         if let Some(confirm) = &self.confirming() {
             let (question, action, key): (SharedString, _, usize) = match confirm {
+                Confirm::Clear if self.clear_loses_files() => (tr().remove_confirm.into(), tr().delete, 0),
                 Confirm::Clear if self.keeps_pinned() => (tr().clear_confirm_pinned.into(), tr().clear, 0),
                 Confirm::Clear => (tr().clear_confirm.into(), tr().clear, 0),
                 Confirm::Reset => (tr().reset_all_confirm.into(), tr().reset, 1),
@@ -116,10 +115,13 @@ impl Shelf {
                 Confirm::Update(release) => {
                     (fill(tr().update_available, &release.version).into(), tr().update_install, 3)
                 }
+                Confirm::Remove(_) => (tr().remove_confirm.into(), tr().delete, 4),
             };
             let (cancel, look) = match confirm {
                 Confirm::Update(_) => (tr().later, Look::Primary),
-                Confirm::Clear | Confirm::Reset | Confirm::Uninstall(_) => (tr().cancel, Look::Danger),
+                Confirm::Clear | Confirm::Reset | Confirm::Uninstall(_) | Confirm::Remove(_) => {
+                    (tr().cancel, Look::Danger)
+                }
             };
             let animated = self.animated();
             return bar
@@ -140,7 +142,7 @@ impl Shelf {
                         .child(
                             text_button(t, "confirm-action", action, look)
                                 .marked("confirm-action")
-                                .on_click(cx.safe_listener(|shelf, _, _, cx| shelf.confirm(cx))),
+                                .on_click(cx.safe_listener(|shelf, _, window, cx| shelf.confirm(window, cx))),
                         )
                         .enter(("confirm-buttons", key), Motion::Fade, animated),
                 );

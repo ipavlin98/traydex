@@ -19,7 +19,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::fmt;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::{Component, MAIN_SEPARATOR_STR, Path, PathBuf};
 use std::sync::Arc;
 
 const TITLE_LIMIT: usize = 96;
@@ -105,6 +105,13 @@ impl From<StoredItem> for Item {
 pub struct Meta {
     pub exists: bool,
     pub detail: String,
+    pub location: Option<Location>,
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub enum Location {
+    Folder(PathBuf),
+    Storage,
 }
 
 pub enum Payload {
@@ -183,14 +190,25 @@ impl Item {
         !self.named
     }
 
+    pub fn only_in_storage(&self) -> bool {
+        self.managed && !self.editable()
+    }
+
+    fn location(&self) -> Option<Location> {
+        if self.only_in_storage() {
+            return Some(Location::Storage);
+        }
+        self.path.parent().map(|folder| Location::Folder(folder.to_path_buf()))
+    }
+
     pub fn describe(&self) -> Meta {
+        let text = |detail| Meta { exists: true, detail, location: None };
         match self.kind {
-            Kind::Text | Kind::Note => Meta {
-                exists: true,
-                detail: fill(tr().text_detail, self.text.as_deref().unwrap_or_default().chars().count()),
-            },
-            Kind::Link => Meta { exists: true, detail: link_host(self.text.as_deref().unwrap_or_default()) },
-            Kind::Folder => Meta { exists: self.path.is_dir(), detail: tr().folder.into() },
+            Kind::Text | Kind::Note => {
+                text(fill(tr().text_detail, self.text.as_deref().unwrap_or_default().chars().count()))
+            }
+            Kind::Link => text(link_host(self.text.as_deref().unwrap_or_default())),
+            Kind::Folder => Meta { exists: self.path.is_dir(), detail: tr().folder.into(), location: self.location() },
             Kind::File | Kind::Image => match fs::metadata(&self.path) {
                 Ok(metadata) => {
                     let label = self
@@ -198,9 +216,13 @@ impl Item {
                         .extension()
                         .map(|e| e.to_string_lossy().to_uppercase())
                         .unwrap_or_else(|| tr().file.into());
-                    Meta { exists: true, detail: format!("{label} · {}", human_size(metadata.len())) }
+                    Meta {
+                        exists: true,
+                        detail: format!("{label} · {}", human_size(metadata.len())),
+                        location: self.location(),
+                    }
                 }
-                Err(_) => Meta { exists: false, detail: String::new() },
+                Err(_) => Meta { exists: false, detail: String::new(), location: None },
             },
         }
     }
@@ -245,6 +267,22 @@ pub fn human_size(bytes: u64) -> String {
         b if b >= 1 << 10 => format!("{} {}", b.div_ceil(1 << 10), tr().unit_kb),
         b => format!("{b} {}", tr().unit_b),
     }
+}
+
+pub fn shorten_path(path: &Path, fits: impl Fn(&str) -> bool) -> String {
+    let full = path.display().to_string();
+    let (head, names): (Vec<_>, Vec<_>) =
+        path.components().partition(|part| matches!(part, Component::Prefix(_) | Component::RootDir));
+    let head: PathBuf = head.iter().collect();
+    let names: Vec<_> = names.iter().map(|part| part.as_os_str().to_string_lossy()).collect();
+    if fits(&full) || names.len() < 2 {
+        return full;
+    }
+    let shortened = |kept: usize| {
+        let tail = names.get(names.len() - kept..).unwrap_or_default().join(MAIN_SEPARATOR_STR);
+        format!("{}…{MAIN_SEPARATOR_STR}{tail}", head.display())
+    };
+    (1..names.len()).rev().map(shortened).find(|text| fits(text)).unwrap_or_else(|| shortened(1))
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]

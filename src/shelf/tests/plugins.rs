@@ -90,7 +90,7 @@ fn plugin_is_uninstalled_from_its_tile_after_confirmation_together_with_the_tile
     assert_eq!(h.read(|shelf| shelf.plugins().len()), 1, "nothing is deleted without confirmation");
 
     h.act(|shelf, _, cx| shelf.ask_uninstall("resize", cx));
-    h.act(|shelf, _, cx| shelf.confirm(cx));
+    h.act(|shelf, window, cx| shelf.confirm(window, cx));
     assert!(h.read(|shelf| shelf.plugins().is_empty()));
     assert!(!h.sandbox.storage().root().join("actions").join("custom").join("resize").exists());
     assert!(h.read(|shelf| shelf.tiles.get(tile).is_none()), "its tile goes with it");
@@ -104,7 +104,7 @@ fn plugin_without_a_tile_is_uninstalled_from_its_card(cx: &mut TestAppContext) {
     h.act(|shelf, _, cx| shelf.toggle_page(Page::Actions, cx));
     let tiles = h.read(|shelf| shelf.tiles.len());
     h.act(|shelf, _, cx| shelf.ask_uninstall("resize", cx));
-    h.act(|shelf, _, cx| shelf.confirm(cx));
+    h.act(|shelf, window, cx| shelf.confirm(window, cx));
     assert!(h.read(|shelf| shelf.plugins().is_empty()));
     assert_eq!(h.read(|shelf| shelf.tiles.len()), tiles, "other tiles stay");
     assert_eq!(h.read(|shelf| shelf.page()), Page::Actions);

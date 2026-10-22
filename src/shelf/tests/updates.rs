@@ -67,7 +67,7 @@ fn accepted_update_starts_the_verified_installer(cx: &mut TestAppContext) {
     h.act(|shelf, _, cx| shelf.check_updates(cx));
     assert_eq!(offered(&mut h).as_deref(), Some(NEWER));
     serve_installer(&h, b"installer", b"installer");
-    h.act(|shelf, _, cx| shelf.confirm(cx));
+    h.act(|shelf, window, cx| shelf.confirm(window, cx));
     let [setup] = launched(&h).try_into().expect("the installer is started once");
     assert_eq!(std::fs::read(&setup.program).expect("downloaded installer"), b"installer");
     assert!(setup.args().contains(&"/SILENT".to_string()), "{:?}", setup.args());
@@ -80,7 +80,7 @@ fn damaged_download_is_never_started(cx: &mut TestAppContext) {
     answer(&h, &releases());
     h.act(|shelf, _, cx| shelf.check_updates(cx));
     serve_installer(&h, b"tampered", b"installer");
-    h.act(|shelf, _, cx| shelf.confirm(cx));
+    h.act(|shelf, window, cx| shelf.confirm(window, cx));
     assert!(launched(&h).is_empty());
     assert_eq!(h.alert(), Some(fill(tr().update_failed, tr().update_corrupted)));
 }
