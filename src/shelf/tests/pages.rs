@@ -140,6 +140,22 @@ fn shelf_notices_live_in_the_title_and_page_notices_at_the_bottom_for_less(cx: &
 }
 
 #[gpui::test]
+fn clicking_the_bottom_notice_dismisses_it(cx: &mut TestAppContext) {
+    let mut h = open(cx, true);
+    h.act(|shelf, _, cx| {
+        shelf.toggle_page(Page::Settings, cx);
+        shelf.show_toast("done".into(), cx);
+        shelf.fail("boom", cx);
+    });
+    h.render();
+    click(&mut h, "notice");
+    assert_eq!((h.alert(), h.toast().as_deref()), (None, Some("done")), "the error goes, the success shows next");
+    h.render();
+    click(&mut h, "notice");
+    assert_eq!(h.toast(), None);
+}
+
+#[gpui::test]
 fn hovering_a_notice_pauses_its_timer(cx: &mut TestAppContext) {
     use crate::shelf::Notice;
     let mut h = open(cx, true);

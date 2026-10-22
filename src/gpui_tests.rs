@@ -3,7 +3,7 @@ use gpui::{
     HoverTransition, Hsla, InteractiveElement, IntoElement, Modifiers, MouseButton, MouseExitEvent, ParentElement,
     Pixels, Point, Render, SharedString, StatefulInteractiveElement, Style, Styled, TestAppContext, TextRun,
     Visibility, VisualTestContext, Window, blend_hover, canvas, crop_image, div, font, glyph_placement, point,
-    prelude::FluentBuilder, px, relative, size,
+    prelude::FluentBuilder, px, relative, size, svg_raster_size,
 };
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -731,4 +731,14 @@ fn glyph_baseline_goes_to_the_nearest_pixel_row() {
     assert_eq!(row(637.9), 797., "797.38 device pixels");
     let (pixel, variant) = glyph_placement(point(px(10.3), px(20.)), 1.25);
     assert_eq!((f64::from(pixel.x), variant.x, variant.y), (12., 3, 0), "12.875 keeps its horizontal subpixel variant");
+}
+
+#[test]
+fn svg_bitmap_matches_whole_device_pixels_despite_float_noise() {
+    let raster = svg_raster_size(size(px(18.000002), px(17.999878)).scale(1.));
+    assert_eq!(
+        (raster.width, raster.height),
+        (DevicePixels(36), DevicePixels(36)),
+        "18 device pixels at 2x supersampling"
+    );
 }
