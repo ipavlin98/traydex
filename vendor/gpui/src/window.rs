@@ -3117,9 +3117,7 @@ impl Window {
         let bounds = bounds.scale(scale_factor);
         let params = RenderSvgParams {
             path,
-            size: bounds.size.map(|pixels| {
-                DevicePixels::from((pixels.0 * SMOOTH_SVG_SCALE_FACTOR).ceil() as i32)
-            }),
+            size: svg_raster_size(bounds.size),
         };
 
         let Some(tile) =
@@ -5178,6 +5176,14 @@ fn snap_border(widths: Edges<ScaledPixels>) -> Edges<ScaledPixels> {
         bottom: snap(widths.bottom),
         left: snap(widths.left),
     }
+}
+
+/// Size of the supersampled bitmap of an SVG drawn over `size` device pixels. Layout sizes are
+/// whole device pixels, but converting them to logical pixels and back leaves float noise
+/// (18.000002); rounding it up added a texel, so the sprite grew by half a pixel and its center
+/// moved off the point a transformation turns it around.
+pub fn svg_raster_size(size: Size<ScaledPixels>) -> Size<DevicePixels> {
+    size.map(|pixels| DevicePixels::from((pixels.0 * SMOOTH_SVG_SCALE_FACTOR).round() as i32))
 }
 
 /// Places a glyph whose baseline starts at `origin`: returns the device pixel its bitmap is drawn

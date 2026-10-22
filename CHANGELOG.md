@@ -2,10 +2,15 @@
 
 Notable changes in each release. Versions follow [Semantic Versioning](https://semver.org/).
 
-## [0.3.3-alpha] — 2026-10-22
+## [0.3.4-alpha] — 2026-10-22
 
 - A click on the message bar at the bottom of a page dismisses it, successes included, like a click on the message
   icon in the title bar.
+
+## [0.3.3-alpha] — 2026-10-22
+
+- The loading spinner turns around its own center instead of wobbling, and icons are no longer stretched by half a
+  pixel at fractional Windows scales.
 
 ## [0.3.2-alpha] — 2026-10-21
 
@@ -46,6 +51,7 @@ First public release.
 - Preview, notes, search with typo and keyboard-layout tolerance, list and grid views.
 - Light and dark themes, transparency and blur, six languages.
 
+[0.3.4-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.3.4-alpha
 [0.3.3-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.3.3-alpha
 [0.3.2-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.3.2-alpha
 [0.3.1-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.3.1-alpha

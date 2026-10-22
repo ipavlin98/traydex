@@ -275,7 +275,7 @@ statically. Dependency versions are pinned in `Cargo.lock`. More on building and
 
 ### Patches in `vendor/gpui`
 
-GPUI 0.2.2 lives in `vendor/gpui` with eight patches, wired in through `[patch.crates-io]` in `Cargo.toml`.
+GPUI 0.2.2 lives in `vendor/gpui` with nine patches, wired in through `[patch.crates-io]` in `Cargo.toml`.
 
 1. **Pixel snapping.** All layout sizes are rounded to whole physical pixels, border widths to a whole number of
    pixels and at least one, and content offsets (scrolling, for example) to whole pixels. Identical elements are
@@ -327,6 +327,11 @@ GPUI 0.2.2 lives in `vendor/gpui` with eight patches, wired in through `[patch.c
    device pixel; `glyph_placement` in `vendor/gpui/src/window.rs` puts the baseline on the nearest pixel row
    instead, so capitals stay within half a pixel of the middle. Its test is
    `glyph_baseline_goes_to_the_nearest_pixel_row`.
+9. **Icon bitmaps.** An SVG icon is rasterized at twice its size in device pixels, rounded to the nearest texel.
+   Upstream rounded up, and since a whole-pixel layout size comes back from logical pixels with float noise
+   (18.000002), the bitmap got an extra texel: the icon was stretched by half a pixel and drawn off its center, so the
+   rotating spinner wobbled around its axis. The patch is `svg_raster_size` in `vendor/gpui/src/window.rs`; the
+   regression test is `svg_bitmap_matches_whole_device_pixels_despite_float_noise` in `src/gpui_tests.rs`.
 
 ### Patch in `vendor/unrar`
 
