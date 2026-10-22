@@ -941,7 +941,6 @@ fn describe_reports_existence_and_details() {
 }
 
 #[test]
-<<<<<<< HEAD
 fn recycled_cards_come_back_when_their_files_return() {
     let sandbox = Sandbox::new();
     let mut store = sandbox.store();
@@ -990,8 +989,6 @@ fn only_the_latest_recycled_cards_are_remembered() {
 }
 
 #[test]
-=======
->>>>>>> origin/main
 fn long_paths_keep_the_drive_and_the_innermost_folders() {
     let path = Path::new(r"C:\Users\Игорь\AppData\Local\Temp\мои файлы");
     let within = |limit: usize| move |text: &str| text.chars().count() <= limit;

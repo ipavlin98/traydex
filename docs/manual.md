@@ -167,7 +167,6 @@ Files and folders in Traydex are links to the originals. Under the name a card s
 the folder it's in. If an original is moved or deleted, the card shows *Original unavailable*. Text, pasted images and files from browsers and mail are saved in
 `%LOCALAPPDATA%\Traydex\content`, one folder or file per card; the cards of such files and folders say *Stored only in
 Traydex* instead of a folder. They're deleted together with their card or by *Clear Traydex*, after the change is
-<<<<<<< HEAD
 written to `shelf.json`; originals from Explorer are never touched. With *Delete to the Recycle Bin* (on by default)
 they go to the Windows Recycle Bin without a question: the file itself, under its own name, not its `content`
 folder. Restoring it there brings the card back as it was (kind, title, pin) the next time the window is shown or
@@ -177,12 +176,6 @@ without a Recycle Bin (a network share, some USB drives with the portable versio
 setting off, removing a card whose file is stored only in Traydex (with the cross, `Delete` or the *Selected* bar)
 first asks at the bottom of the window whether to delete it for good; `Enter` confirms and `Esc` cancels, and *Clear
 Traydex* shows the same warning instead of its usual question. Notes and text are removed without asking. When such a
-=======
-written to `shelf.json`; originals from Explorer are never touched. Removing a card whose file is stored only in
-Traydex (with the cross, `Delete` or the *Selected* bar) first asks at the bottom of the window whether to delete it
-for good; `Enter` confirms and `Esc` cancels. *Clear Traydex* shows the same warning instead of its usual question
-when such files are among the cards it removes. Notes and text are removed without asking. When such a
->>>>>>> origin/main
 file is dropped on a tile, the temporary copy is deleted right after the action, and the result (a converted image,
 for example) is saved separately and becomes a new card; for the run-program tile the copy stays until Traydex
 starts next time. Anything in `content` that no card refers to is deleted on startup. The shelf and the settings

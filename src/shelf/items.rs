@@ -234,12 +234,8 @@ impl Shelf {
     }
 
     pub(super) fn ask_remove(&mut self, keys: &HashSet<ItemId>, cx: &mut Context<Self>) -> bool {
-<<<<<<< HEAD
         let lost = !self.store.settings().recycle
             && self.store.items().iter().any(|item| keys.contains(&item.id) && item.only_in_storage());
-=======
-        let lost = self.store.items().iter().any(|item| keys.contains(&item.id) && item.only_in_storage());
->>>>>>> origin/main
         if lost {
             self.confirming = Some(Confirm::Remove(keys.clone()));
             cx.notify();
@@ -258,7 +254,6 @@ impl Shelf {
     }
 
     pub(crate) fn clear_loses_files(&self) -> bool {
-<<<<<<< HEAD
         !self.store.settings().recycle
             && self.store.items().iter().any(|item| item.only_in_storage() && self.clears(item))
     }
@@ -283,9 +278,6 @@ impl Shelf {
                 Err(error) => log::warn!("Couldn't look for cards back from the Recycle Bin: {error:#}"),
             },
         );
-=======
-        self.store.items().iter().any(|item| item.only_in_storage() && self.clears(item))
->>>>>>> origin/main
     }
 
     pub(crate) fn keeps_pinned(&self) -> bool {
