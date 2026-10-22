@@ -1,5 +1,6 @@
 use super::dnd::{center, drag_into};
 use super::{Session, Spec, Suite, none, pattern, same_file, spec, write};
+use crate::app::App;
 use crate::helper::{self, Payload};
 use crate::{Ctx, app, expect_eq, mismatch, pause, poll, skip, wait, win};
 use anyhow::{Context, Result};
@@ -21,6 +22,11 @@ fn specs() -> Vec<Spec> {
         spec("ocr-tile", "The text recognition tile (Windows OCR) puts the image text on the clipboard", true),
         spec("rename-tile", "The rename tile: the rule is picked after the drop, files are renamed", true),
         spec("qr-tile", "The QR code tile shows a code for a .url shortcut", true),
+        spec(
+            "recycle-bin",
+            "A file stored only in Traydex goes to the Recycle Bin and its card returns on restore",
+            true,
+        ),
     ]
 }
 
@@ -38,6 +44,25 @@ fn drop_files(ctx: &Ctx, files: &[PathBuf]) -> Result<()> {
 fn clipboard(what: &str, timeout: Duration, ready: impl Fn(&str) -> bool) -> Result<String> {
     wait(what, timeout, || win::clipboard_text().filter(|text| ready(text)))
         .map_err(|_| mismatch(what, "text on the clipboard", win::clipboard_text().unwrap_or_default()))
+}
+
+fn recycle_bin(powershell: &Path, name: &str, verb: &str) -> Result<bool> {
+    let name = name.replace('\'', "''");
+    let stem = Path::new(&name).file_stem().map(|stem| stem.to_string_lossy().into_owned()).unwrap_or_default();
+    let action = if verb == "purge" {
+        "$r = $item.Path; $i = Join-Path (Split-Path $r) ('$I' + (Split-Path $r -Leaf).Substring(2)); \
+         Remove-Item -LiteralPath $r -Recurse -Force; Remove-Item -LiteralPath $i -Force -ErrorAction SilentlyContinue"
+            .to_string()
+    } else {
+        format!("$item.InvokeVerb('{verb}')")
+    };
+    let script = format!(
+        "$bin = (New-Object -ComObject Shell.Application).NameSpace(10); \
+         $item = $bin.Items() | Where-Object {{ $_.Name -eq '{name}' -or $_.Name -eq '{stem}' }} | Select-Object -First 1; \
+         if (-not $item) {{ exit 3 }}; {action}"
+    );
+    let status = Command::new(powershell).args(["-NoProfile", "-Command", &script]).status()?;
+    Ok(status.success())
 }
 
 fn listing(folder: &Path) -> Vec<String> {
@@ -237,6 +262,54 @@ fn run(s: &mut Session) {
         expect_eq("contents preserved", Some(b"one".to_vec()), fs::read(&renamed[0]).ok())?;
         expect_eq("no old names left", false, files.iter().any(|file| file.exists()))?;
         Ok(())
+    });
+
+    s.run("recycle-bin", |ctx| {
+        let powershell = ctx.powershell.clone().ok_or_else(|| skip("PowerShell not found"))?;
+        ctx.reset()?;
+        let name = format!("traydex-e2e-корзина-{}.png", std::process::id());
+        let slot = ctx.sandbox.data().join("content").join("files-e2e-recycle");
+        fs::create_dir_all(&slot)?;
+        let picture = slot.join(&name);
+        image::RgbaImage::from_fn(32, 32, |x, y| image::Rgba([(x * 8) as u8, (y * 8) as u8, 200, 255]))
+            .save(&picture)?;
+        let mut item = app::path_item(&picture);
+        item["managed"] = json!(true);
+        let id = item["id"].as_str().unwrap_or_default().to_string();
+        ctx.start(app::settings(ctx), vec![item], none(), &["--autostart"])?;
+        let restored = (|| -> Result<()> {
+            App::run_once(ctx, &[])?;
+            let app = ctx.app()?;
+            app.wait_shown(true, "the second launch showed the panel", Duration::from_secs(5))?;
+            app.wait_diag("item drawn", Duration::from_secs(5), |d| d.page == "shelf" && d.has(&format!("item:{id}")))?;
+            app.post_click(&format!("item:{id}"))?;
+            pause(300)?;
+            win::post_key(
+                app.panel().context("panel not found")?,
+                windows::Win32::UI::Input::KeyboardAndMouse::VK_DELETE,
+            );
+            wait("the file left the storage", Duration::from_secs(10), || (!picture.exists()).then_some(()))?;
+            app.wait_diag("the card is gone without a question", Duration::from_secs(5), |d| {
+                !d.has(&format!("item:{id}")) && !d.has("confirm-question")
+            })?;
+            win::post_key(
+                app.panel().context("panel not found")?,
+                windows::Win32::UI::Input::KeyboardAndMouse::VK_ESCAPE,
+            );
+            app.wait_shown(false, "the panel hid", Duration::from_secs(5))?;
+            if !recycle_bin(&powershell, &name, "undelete")? {
+                return Err(mismatch("the picture in the Recycle Bin", &name, "not found"));
+            }
+            wait("the file is back in the storage", Duration::from_secs(10), || picture.exists().then_some(()))?;
+            App::run_once(ctx, &[])?;
+            ctx.app()?
+                .wait_diag("the card is back on the shelf", Duration::from_secs(5), |d| d.has(&format!("item:{id}")))?;
+            Ok(())
+        })();
+        if !picture.exists() {
+            let _ = recycle_bin(&powershell, &name, "purge");
+        }
+        restored
     });
 
     s.run("qr-tile", |ctx| {

@@ -314,6 +314,7 @@ impl Shelf {
     pub(super) fn appear(&mut self, activate: bool, cx: &mut Context<Self>) {
         log::debug!("Showing the window, activate: {activate}");
         self.session.thaw();
+        self.find_recycled(cx);
         if self.fades() {
             let from_zero = !self.desktop.visible();
             self.fade.update(cx, |fade, cx| fade.fade_in(from_zero, cx));

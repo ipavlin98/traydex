@@ -203,6 +203,8 @@ pub(super) static ES: Strings = Strings {
     double_click_preview_hint: "Si está desactivado, el doble clic abre el archivo en su aplicación predeterminada",
     separate_notes: "Notas aparte",
     separate_notes_hint: "Las notas no aparecen en Todo ni en Texto y no se incluyen al arrastrar todo",
+    recycle: "Eliminar a la Papelera",
+    recycle_hint: "Los archivos y notas que solo están en Traydex se podrán restaurar",
     tray_icon: "Icono en la bandeja",
     tray_icon_hint: "Sin él, abre el panel con el atajo o iniciando Traydex de nuevo",
     context_menu_verb: "Enviar al estante de Traydex",

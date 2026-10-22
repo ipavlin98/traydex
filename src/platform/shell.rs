@@ -119,6 +119,20 @@ const DESTINATION_SUBTREE: i32 = 0x76;
 const DESTINATION_SAME_TREE: i32 = 0x7D;
 const ERROR_CANCELLED: i32 = 1223;
 
+pub fn recycle(paths: &[PathBuf]) -> anyhow::Result<()> {
+    let from: Vec<u16> = paths.iter().flat_map(|path| path.as_os_str().encode_wide().chain([0])).chain([0]).collect();
+    let mut operation = SHFILEOPSTRUCTW {
+        wFunc: FO_DELETE,
+        pFrom: PCWSTR(from.as_ptr()),
+        fFlags: (FOF_ALLOWUNDO | FOF_NOCONFIRMATION | FOF_SILENT | FOF_NOERRORUI).0 as u16,
+        ..Default::default()
+    };
+    match unsafe { SHFileOperationW(&mut operation) } {
+        0 => Ok(()),
+        code => bail!(fill(tr().file_operation_failed, format!("0x{code:X}"))),
+    }
+}
+
 pub fn transfer(files: &[PathBuf], folder: &Path, copy: bool) -> anyhow::Result<()> {
     let from: Vec<u16> = files.iter().flat_map(|f| f.as_os_str().encode_wide().chain([0])).chain([0]).collect();
     let to: Vec<u16> = folder.as_os_str().encode_wide().chain([0, 0]).collect();

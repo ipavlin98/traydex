@@ -412,6 +412,13 @@ impl Shelf {
                 Self::toggle_separate_notes,
                 cx,
             )))
+            .child(setting(t, query, tr().recycle, Some(tr().recycle_hint)).child(self.setting_switch(
+                t,
+                "recycle",
+                settings.recycle,
+                Self::toggle_recycle,
+                cx,
+            )))
             .child(setting(t, query, tr().update_auto, Some(tr().update_auto_hint)).child(self.setting_switch(
                 t,
                 "check-updates-auto",

@@ -203,6 +203,8 @@ pub(super) static HI: Strings = Strings {
     double_click_preview_hint: "बंद होने पर डबल-क्लिक फ़ाइल को डिफ़ॉल्ट ऐप में खोलता है",
     separate_notes: "नोट्स अलग रखें",
     separate_notes_hint: "नोट्स “सभी” और “टेक्स्ट” में नहीं दिखते और “सब कुछ खींचें” में शामिल नहीं होते",
+    recycle: "रीसायकल बिन में हटाएँ",
+    recycle_hint: "सिर्फ़ Traydex वाली फ़ाइलें और नोट्स वापस लाए जा सकेंगे",
     tray_icon: "ट्रे आइकन",
     tray_icon_hint: "इसके बिना पैनल हॉटकी से या Traydex को फिर से चलाकर खोलें",
     context_menu_verb: "Traydex शेल्फ़ में भेजें",

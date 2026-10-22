@@ -34,6 +34,10 @@ impl Saving {
         Some(snapshot)
     }
 
+    pub(super) fn busy(&self) -> bool {
+        self.writing || self.queued.is_some() || self.later.is_some()
+    }
+
     fn finished(&mut self) -> Option<Snapshot> {
         self.writing = false;
         let queued = self.queued.take()?;
@@ -102,11 +106,15 @@ impl Shelf {
     }
 
     fn write(&self, snapshot: Snapshot, cx: &mut Context<Self>) {
+        let services = self.services.clone();
         self.background(
             cx,
             move || {
                 Ok(match snapshot.write() {
-                    Ok(()) => None,
+                    Ok(()) => {
+                        snapshot.recycle(&*services);
+                        None
+                    }
                     Err(error) => Some((snapshot, error)),
                 })
             },

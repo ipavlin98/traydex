@@ -203,6 +203,8 @@ pub(super) static EN: Strings = Strings {
     double_click_preview_hint: "When off, a double-click opens the file in its default app",
     separate_notes: "Keep notes separate",
     separate_notes_hint: "Notes stay out of All and Text and aren't included in Drag everything",
+    recycle: "Delete to the Recycle Bin",
+    recycle_hint: "Files and notes stored only in Traydex can be restored from it",
     tray_icon: "Tray icon",
     tray_icon_hint: "Without it, open the panel with the hotkey or by launching Traydex again",
     context_menu_verb: "Send to Traydex shelf",

@@ -221,6 +221,7 @@ Runs real Traydex in test profile (`--test-profile`) on user's desktop. Separate
   - physical mouse/keyboard blocked whole run: low-level hooks swallow movement, clicks, wheel, keys; only test SendInput passes;
   - programmatic mouse/keyboard control, focus switching;
   - clipboard overwritten;
+  - a small test picture moved to the user's Recycle Bin and restored from it (`files` suite);
   - temp HKCU keys: `Run\Traydex Test`, `Classes\*\shell\TraydexTest`, `Classes\Directory\shell\TraydexTest`;
   - files in `%TEMP%\traydex-e2e`.
 - Stopping: physical input swallowed, doesn't stop; Ctrl+Alt+Shift+Q stops with cleanup, returns input immediately, exit 2; Ctrl+Alt+Del always emergency exit; lock lifts itself when runner exits or after run timeout + margin.

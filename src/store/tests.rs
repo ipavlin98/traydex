@@ -762,6 +762,7 @@ fn adopt_keeps_added_files_and_releases_the_rest() {
 fn removing_items_deletes_managed_content_only_after_save() {
     let sandbox = Sandbox::new();
     let mut store = sandbox.store();
+    store.settings.recycle = false;
     let external = sandbox.file("docs/a.txt", "x");
     store.add_paths(vec![external.clone()]);
     store.add_text("note".into()).expect("text");
@@ -779,6 +780,7 @@ fn removing_items_deletes_managed_content_only_after_save() {
 fn removing_one_file_of_a_shared_folder_keeps_the_other() {
     let sandbox = Sandbox::new();
     let mut store = sandbox.store();
+    store.settings.recycle = false;
     let first = sandbox.file("root/content/files-1/a.txt", "a");
     let second = sandbox.file("root/content/files-1/b.txt", "b");
     store.add_paths(vec![first.clone(), second.clone()]);
@@ -809,6 +811,7 @@ fn removing_a_file_inside_a_kept_folder_item_deletes_nothing() {
 fn clear_keeps_external_originals() {
     let sandbox = Sandbox::new();
     let mut store = sandbox.store();
+    store.settings.recycle = false;
     let external = sandbox.file("docs/a.txt", "x");
     let folder = sandbox.folder("docs/folder");
     store.add_paths(vec![external.clone(), folder.clone()]);
@@ -826,6 +829,7 @@ fn clear_keeps_external_originals() {
 fn failed_save_defers_deletion_until_next_success() {
     let sandbox = Sandbox::new();
     let mut store = sandbox.store();
+    store.settings.recycle = false;
     store.add_text("note".into()).expect("text");
     let note = store.items[0].path.clone();
     clear(&mut store);
@@ -934,6 +938,54 @@ fn describe_reports_existence_and_details() {
     let missing = item(Kind::Image, "i", sandbox.join("gone.png"), None).describe();
     assert!(!missing.exists);
     assert!(missing.detail.is_empty());
+}
+
+#[test]
+fn recycled_cards_come_back_when_their_files_return() {
+    let sandbox = Sandbox::new();
+    let mut store = sandbox.store();
+    let first = sandbox.file("root/content/files-1/снимок экрана.png", "a");
+    let second = sandbox.file("root/content/files-2/отчёт.pdf", "b");
+    store.add_paths(vec![first.clone(), second.clone()]);
+    let pinned: HashSet<ItemId> =
+        store.items.iter().filter(|item| item.path == second).map(|item| item.id.clone()).collect();
+    store.set_pinned(&pinned, true);
+    let everything: HashSet<ItemId> = store.items.iter().map(|item| item.id.clone()).collect();
+    store.remove(&everything);
+    let snapshot = store.snapshot().expect("snapshot");
+    snapshot.write().expect("write");
+    assert!(first.exists() && second.exists(), "files wait for the Recycle Bin, not for deletion");
+    let mut remembered = store.recycled();
+    remembered.sort();
+    assert_eq!(remembered, [first.clone(), second.clone()]);
+    assert_eq!(store.bring_back(std::slice::from_ref(&second)), 1);
+    assert_eq!(
+        store.items.iter().map(|item| (item.title.as_str(), item.pinned)).collect::<Vec<_>>(),
+        [("отчёт.pdf", true)]
+    );
+    assert!(store.items[0].managed);
+    assert_eq!(store.recycled(), std::slice::from_ref(&first), "only the returned card is forgotten");
+    store.save().expect("save");
+    let reopened = Store::open(sandbox.storage(), &sandbox.join("legacy"));
+    let titles: Vec<&str> = reopened.items.iter().map(|item| item.title.as_str()).collect();
+    assert_eq!(titles, ["отчёт.pdf", "снимок экрана.png"]);
+    assert!(first.exists(), "a file restored while Traydex was closed is not swept as an orphan");
+    assert!(reopened.recycled().is_empty());
+}
+
+#[test]
+fn only_the_latest_recycled_cards_are_remembered() {
+    let sandbox = Sandbox::new();
+    let mut store = sandbox.store();
+    for index in 0..105 {
+        store.add_text(format!("note {index}")).expect("text");
+        let key = store.items[0].id.clone();
+        store.remove(&HashSet::from([key]));
+    }
+    let remembered = store.recycled();
+    assert_eq!(remembered.len(), 100);
+    assert_eq!(store.recycled.last().and_then(|item| item.text.as_deref()), Some("note 104"));
+    assert_eq!(store.recycled.first().and_then(|item| item.text.as_deref()), Some("note 5"));
 }
 
 #[test]
