@@ -54,6 +54,8 @@ GPUI is vendored in `vendor/gpui` with a few patches; they are described in the
 
 - One topic per pull request; keep unrelated refactoring out.
 - `-Lint` and `-Test` pass locally; CI checks the same.
+- User-visible change → add a file to [`changes/`](changes/README.md). Don't edit `CHANGELOG.md` or the version in
+  `Cargo.toml`: they change only in release pull requests, so pull requests never conflict over them.
 - Visible change → add a screenshot or a short video.
 - Describe *what* and *why*. Commit messages can be in English or Russian.
 
@@ -64,8 +66,10 @@ language, copy `en.rs`, translate it and register it next to the others.
 
 ## Releasing (maintainers)
 
-1. Bump `version` in `Cargo.toml` and add a section to [CHANGELOG.md](CHANGELOG.md).
-2. Commit to `main`, then either push a tag with the same version (`git tag v0.2.0 && git push origin v0.2.0`)
+1. Open a `chore/release-<version>` pull request that moves the bullets of every `changes/*.md` (except its
+   README) into a new dated section of [CHANGELOG.md](CHANGELOG.md), raises `version` in `Cargo.toml` (minor if any
+   file says `minor`, otherwise patch) and deletes those files.
+2. After it is merged, either push a tag with the same version (`git tag v0.2.0 && git push origin v0.2.0`)
    or open *Actions → Release → Run workflow*.
 3. The [Release workflow](.github/workflows/release.yml) builds Traydex for x64, x86 and ARM64, packs an installer
    ([`packaging/traydex.iss`](packaging/traydex.iss), Inno Setup) and a portable zip for each, writes
