@@ -116,10 +116,22 @@ impl Shelf {
                 Confirm::Update(release) => {
                     (fill(tr().update_available, &release.version).into(), tr().update_install, 3)
                 }
+                Confirm::Remove(keys) if keys.len() == 1 => (tr().remove_confirm.into(), tr().delete, 4),
+                Confirm::Remove(keys) => {
+                    let lost = self
+                        .store()
+                        .items()
+                        .iter()
+                        .filter(|item| keys.contains(&item.id) && item.only_in_storage())
+                        .count();
+                    (fill(tr().remove_confirm_many, lost).into(), tr().delete, 4)
+                }
             };
             let (cancel, look) = match confirm {
                 Confirm::Update(_) => (tr().later, Look::Primary),
-                Confirm::Clear | Confirm::Reset | Confirm::Uninstall(_) => (tr().cancel, Look::Danger),
+                Confirm::Clear | Confirm::Reset | Confirm::Uninstall(_) | Confirm::Remove(_) => {
+                    (tr().cancel, Look::Danger)
+                }
             };
             let animated = self.animated();
             return bar
@@ -140,7 +152,7 @@ impl Shelf {
                         .child(
                             text_button(t, "confirm-action", action, look)
                                 .marked("confirm-action")
-                                .on_click(cx.safe_listener(|shelf, _, _, cx| shelf.confirm(cx))),
+                                .on_click(cx.safe_listener(|shelf, _, window, cx| shelf.confirm(window, cx))),
                         )
                         .enter(("confirm-buttons", key), Motion::Fade, animated),
                 );

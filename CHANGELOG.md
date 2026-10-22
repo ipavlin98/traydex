@@ -2,6 +2,12 @@
 
 Notable changes in each release. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.3.3-alpha] — 2026-10-22
+
+- Cards of files and folders show the folder they're in after the type and size, or *Stored only in Traydex* for
+  pasted images and files kept by Traydex itself.
+- Removing a card whose file is stored only in Traydex asks first, since the file is deleted for good.
+
 ## [0.3.2-alpha] — 2026-10-21
 
 - The hot corner works while a window run as administrator is in front.
@@ -41,6 +47,7 @@ First public release.
 - Preview, notes, search with typo and keyboard-layout tolerance, list and grid views.
 - Light and dark themes, transparency and blur, six languages.
 
+[0.3.3-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.3.3-alpha
 [0.3.2-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.3.2-alpha
 [0.3.1-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.3.1-alpha
 [0.3.0-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.3.0-alpha

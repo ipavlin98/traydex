@@ -163,10 +163,13 @@ content. Case and "ё"/"е" don't matter, and all words of the query must match.
 layout is found too (`ghbdtn` → «привет»). Without exact matches, typos are allowed: one in words of 4–7 letters,
 two in longer ones. Tab counters show only what was found.
 
-Files and folders in Traydex are links to the originals. If an original is moved or deleted, the card shows
-*Original unavailable*. Text, pasted images and files from browsers and mail are saved in
-`%LOCALAPPDATA%\Traydex\content`, one folder or file per card. They're deleted together with their card or by
-*Clear Traydex*, after the change is written to `shelf.json`; originals from Explorer are never touched. When such a
+Files and folders in Traydex are links to the originals. Under the name a card shows the type, the size of a file and
+the folder it's in. If an original is moved or deleted, the card shows *Original unavailable*. Text, pasted images and files from browsers and mail are saved in
+`%LOCALAPPDATA%\Traydex\content`, one folder or file per card; the cards of such files and folders say *Stored only in
+Traydex* instead of a folder. They're deleted together with their card or by *Clear Traydex*, after the change is
+written to `shelf.json`; originals from Explorer are never touched. Removing a card whose file is stored only in
+Traydex (with the cross, `Delete` or the *Selected* bar) first asks at the bottom of the window whether to delete it
+for good; `Enter` confirms and `Esc` cancels. Notes and text are removed without asking. When such a
 file is dropped on a tile, the temporary copy is deleted right after the action, and the result (a converted image,
 for example) is saved separately and becomes a new card; for the run-program tile the copy stays until Traydex
 starts next time. Anything in `content` that no card refers to is deleted on startup. The shelf and the settings

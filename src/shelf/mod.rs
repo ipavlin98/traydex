@@ -339,12 +339,16 @@ impl Shelf {
         self.confirming.as_ref()
     }
 
-    pub fn confirm(&mut self, cx: &mut Context<Self>) {
+    pub fn confirm(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         match self.confirming.take() {
             Some(Confirm::Clear) => self.clear(cx),
             Some(Confirm::Reset) => self.reset_settings(cx),
             Some(Confirm::Uninstall(id)) => self.uninstall_plugin(&id, cx),
             Some(Confirm::Update(release)) => self.install_update(release, cx),
+            Some(Confirm::Remove(keys)) => match self.previewed() {
+                Some(key) if keys.contains(&key) => self.drop_previewed(window, cx),
+                _ => self.drop_items(&keys, cx),
+            },
             None => {}
         }
     }

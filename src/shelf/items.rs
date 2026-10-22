@@ -1,4 +1,4 @@
-use super::{COPY_SELECTED, Filter, Hovered, Page, Screen, Selection, Shelf, copy_id, plugins};
+use super::{COPY_SELECTED, Confirm, Filter, Hovered, Page, Screen, Selection, Shelf, copy_id, plugins};
 use crate::design::snap;
 use crate::i18n::{fill, tr};
 use crate::store::{self, Item, ItemId, Layout, Payload, Store};
@@ -188,13 +188,7 @@ impl Shelf {
     }
 
     pub(super) fn remove_targets(&mut self, cx: &mut Context<Self>) {
-        let keys: HashSet<ItemId> = self.targets().into_iter().collect();
-        if keys.is_empty() {
-            return;
-        }
-        self.store.remove(&keys);
-        self.selection.retain(|key| !keys.contains(key));
-        self.items_changed(cx);
+        self.discard(self.targets().into_iter().collect(), cx);
     }
 
     pub fn copy_selection(&mut self, cx: &mut Context<Self>) {
@@ -226,17 +220,31 @@ impl Shelf {
     }
 
     pub fn remove(&mut self, key: &ItemId, cx: &mut Context<Self>) {
-        self.store.remove(&HashSet::from([key.clone()]));
-        self.selection.remove(key);
-        self.items_changed(cx);
+        self.discard(HashSet::from([key.clone()]), cx);
     }
 
     pub fn remove_selected(&mut self, cx: &mut Context<Self>) {
-        if self.selection.is_empty() {
-            return;
+        self.discard(self.selection.ids().cloned().collect(), cx);
+    }
+
+    fn discard(&mut self, keys: HashSet<ItemId>, cx: &mut Context<Self>) {
+        if !keys.is_empty() && !self.ask_remove(&keys, cx) {
+            self.drop_items(&keys, cx);
         }
-        let selected = self.selection.take();
-        self.store.remove(&selected);
+    }
+
+    pub(super) fn ask_remove(&mut self, keys: &HashSet<ItemId>, cx: &mut Context<Self>) -> bool {
+        let lost = self.store.items().iter().any(|item| keys.contains(&item.id) && item.only_in_storage());
+        if lost {
+            self.confirming = Some(Confirm::Remove(keys.clone()));
+            cx.notify();
+        }
+        lost
+    }
+
+    pub(super) fn drop_items(&mut self, keys: &HashSet<ItemId>, cx: &mut Context<Self>) {
+        self.store.remove(keys);
+        self.selection.retain(|key| !keys.contains(key));
         self.items_changed(cx);
     }
 

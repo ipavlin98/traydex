@@ -373,6 +373,71 @@ fn removed_notes_are_deleted_from_storage_after_save(cx: &mut TestAppContext) {
     assert!(!path.exists());
 }
 
+fn kept(store: &Store, name: &str) -> PathBuf {
+    let path = store.storage().content().join(name);
+    std::fs::create_dir_all(store.storage().content()).expect("content folder");
+    std::fs::write(&path, "x").expect("kept file");
+    path
+}
+
+#[gpui::test]
+fn removing_a_file_kept_only_in_traydex_asks_before_deleting_it(cx: &mut TestAppContext) {
+    let mut h = open_with(cx, true, |sandbox, store, _| {
+        let paths = vec![sandbox.file("отчёт 1.pdf", "x"), kept(store, "снимок экрана.png")];
+        store.add_paths(paths);
+    });
+    let ids = h.ids();
+    let (outside, inside) = h.read(|shelf| (shelf.store.items()[0].path.clone(), shelf.store.items()[1].path.clone()));
+    h.act(|shelf, _, cx| shelf.remove(&ids[0], cx));
+    assert_eq!(h.titles(), ["снимок экрана.png"], "a file that lives elsewhere goes at once");
+    assert!(outside.exists());
+    assert!(h.read(|shelf| shelf.confirming.is_none()));
+    h.act(|shelf, _, cx| shelf.remove(&ids[1], cx));
+    assert!(h.read(|shelf| matches!(&shelf.confirming, Some(Confirm::Remove(keys)) if keys.contains(&ids[1]))));
+    h.keys("escape");
+    assert_eq!(h.titles(), ["снимок экрана.png"]);
+    assert!(inside.exists());
+    h.act(|shelf, _, cx| shelf.remove(&ids[1], cx));
+    h.keys("enter");
+    assert!(h.titles().is_empty());
+    assert!(h.saved().items().is_empty());
+    assert!(!inside.exists());
+}
+
+#[gpui::test]
+fn removing_a_selection_with_a_kept_file_asks_once_for_all(cx: &mut TestAppContext) {
+    let mut h = open_with(cx, true, |sandbox, store, _| {
+        let paths = vec![sandbox.file("a.txt", "x"), kept(store, "b.png"), sandbox.file("c.txt", "x")];
+        store.add_paths(paths);
+    });
+    let ids = h.ids();
+    h.act(|shelf, _, cx| {
+        shelf.toggle(&ids[0], cx);
+        shelf.toggle(&ids[1], cx);
+        shelf.remove_selected(cx);
+    });
+    assert_eq!(h.titles(), ["a.txt", "b.png", "c.txt"]);
+    h.keys("enter");
+    assert_eq!(h.titles(), ["c.txt"]);
+    assert!(h.selected().is_empty());
+}
+
+#[gpui::test]
+fn deleting_a_previewed_kept_file_moves_to_the_next_after_confirmation(cx: &mut TestAppContext) {
+    let mut h = open_with(cx, true, |_, store, _| {
+        let paths = vec![kept(store, "a.png"), kept(store, "b.png")];
+        store.add_paths(paths);
+    });
+    let ids = h.ids();
+    h.act(|shelf, window, cx| shelf.show_preview(ids[0].clone(), window, cx));
+    h.keys("delete");
+    assert_eq!(h.previewed(), Some(ids[0].clone()), "stays on the file until the deletion is confirmed");
+    assert_eq!(h.titles().len(), 2);
+    h.keys("enter");
+    assert_eq!(h.titles(), ["b.png"]);
+    assert_eq!(h.previewed(), Some(ids[1].clone()));
+}
+
 #[gpui::test]
 fn text_items_are_copied_as_plain_text(cx: &mut TestAppContext) {
     let mut h = open_with(cx, true, notes(&["first", "second"]));

@@ -199,9 +199,18 @@ impl Shelf {
         let Some(key) = self.previewed() else {
             return;
         };
+        if !self.ask_remove(&HashSet::from([key]), cx) {
+            self.drop_previewed(window, cx);
+        }
+    }
+
+    pub(super) fn drop_previewed(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(key) = self.previewed() else {
+            return;
+        };
         let order = self.visible_ids();
         let index = order.iter().position(|id| *id == key);
-        self.remove(&key, cx);
+        self.drop_items(&HashSet::from([key]), cx);
         let next = index.and_then(|index| order.get(index + 1).or_else(|| order.get(index.checked_sub(1)?)));
         match next {
             Some(next) => self.show_preview(next.clone(), window, cx),
