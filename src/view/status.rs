@@ -33,10 +33,8 @@ impl Shelf {
                     .on_hover(
                         cx.safe_listener(move |shelf, hovered: &bool, _, cx| shelf.hold_notice(notice, *hovered, cx)),
                     )
-                    .when(notice == Notice::Alert, |d| {
-                        d.cursor_pointer()
-                            .on_click(cx.safe_listener(|shelf, _, _, cx| shelf.dismiss_notice(Notice::Alert, cx)))
-                    })
+                    .cursor_pointer()
+                    .on_click(cx.safe_listener(move |shelf, _, _, cx| shelf.dismiss_notice(notice, cx)))
                     .enter(text, Motion::Rise, self.animated()),
             ),
         )
