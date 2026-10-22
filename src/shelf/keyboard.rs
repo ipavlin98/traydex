@@ -101,7 +101,7 @@ impl Shelf {
                 cx.notify();
             }
             "escape" => self.escape(cx),
-            "enter" if self.confirming.is_some() => self.confirm(cx),
+            "enter" if self.confirming.is_some() => self.confirm(window, cx),
             "up" if page == Page::Shelf => self.step_hover(-self.row_step(), cx),
             "down" if page == Page::Shelf => self.step_hover(self.row_step(), cx),
             "left" if page == Page::Shelf && grid => self.step_hover(-1, cx),

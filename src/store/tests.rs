@@ -918,15 +918,35 @@ fn describe_reports_existence_and_details() {
     assert_eq!(text.describe().detail, fill(tr().text_detail, 6));
     let link = item(Kind::Link, "l", PathBuf::new(), Some(" https://www.example.com/page "));
     assert_eq!(link.describe().detail, fill(tr().link_detail, "example.com"));
-    let pdf = item(Kind::File, "f", file, None).describe();
+    let pdf = item(Kind::File, "f", file.clone(), None).describe();
     assert!(pdf.exists);
     assert_eq!(pdf.detail, format!("PDF · {}", human_size(2048)));
+    assert_eq!(pdf.location, Some(Location::Folder(sandbox.path().to_path_buf())));
+    let mut kept = item(Kind::File, "f", file, None);
+    kept.managed = true;
+    assert_eq!(kept.describe().location, Some(Location::Storage));
+    assert_eq!(text.describe().location, None, "text has no folder of its own");
     assert!(item(Kind::File, "f", bare, None).describe().detail.starts_with(tr().file));
-    assert!(item(Kind::Folder, "d", folder, None).describe().exists);
+    let docs = item(Kind::Folder, "d", folder, None).describe();
+    assert!(docs.exists);
+    assert_eq!(docs.location, Some(Location::Folder(sandbox.path().to_path_buf())));
     assert!(!item(Kind::Folder, "d", sandbox.join("gone"), None).describe().exists);
     let missing = item(Kind::Image, "i", sandbox.join("gone.png"), None).describe();
     assert!(!missing.exists);
     assert!(missing.detail.is_empty());
+}
+
+#[test]
+fn long_paths_keep_the_drive_and_the_innermost_folders() {
+    let path = Path::new(r"C:\Users\Игорь\AppData\Local\Temp\мои файлы");
+    let within = |limit: usize| move |text: &str| text.chars().count() <= limit;
+    assert_eq!(shorten_path(path, within(100)), r"C:\Users\Игорь\AppData\Local\Temp\мои файлы");
+    assert_eq!(shorten_path(path, within(33)), r"C:\…\AppData\Local\Temp\мои файлы");
+    assert_eq!(shorten_path(path, within(19)), r"C:\…\Temp\мои файлы");
+    assert_eq!(shorten_path(path, within(3)), r"C:\…\мои файлы", "the folder itself stays even when nothing fits");
+    let share = Path::new(r"\\server\share\отдел\отчёты 2026");
+    assert_eq!(shorten_path(share, within(30)), r"\\server\share\…\отчёты 2026");
+    assert_eq!(shorten_path(Path::new(r"D:\Фото"), within(1)), r"D:\Фото");
 }
 
 #[test]

@@ -1,10 +1,12 @@
 use super::{JobId, Preview, Shelf};
 use crate::actions::{Batch, Digest, Fetch, Field, Media, Pending, Rule, TileId};
 use crate::input::TextInput;
+use crate::store::ItemId;
 use crate::system::Server;
 use crate::update::Release;
 use gpui::*;
 use qrcodegen::QrCode;
+use std::collections::HashSet;
 use std::path::PathBuf;
 
 #[derive(Clone, PartialEq, Debug)]
@@ -13,6 +15,7 @@ pub enum Confirm {
     Reset,
     Uninstall(String),
     Update(Release),
+    Remove(HashSet<ItemId>),
 }
 
 #[derive(Clone, Copy, PartialEq, Debug)]
