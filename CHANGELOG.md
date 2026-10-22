@@ -8,12 +8,27 @@ Notable changes in each release. Versions follow [Semantic Versioning](https://s
   Recycle Bin when their cards are removed, without a question. Restoring a file there brings its card back.
   With the setting off, Traydex warns before deleting them for good.
 
-## [0.3.3-alpha] — 2026-10-22
+## [0.3.6-alpha] — 2026-10-22
+
+- A tile whose action failed keeps showing its description instead of a red "Last run failed"; the error itself is
+  still shown as a message.
+
+## [0.3.5-alpha] — 2026-10-22
 
 - Cards of files and folders show the folder they're in after the type and size, or *Stored only in Traydex* for
   pasted images and files kept by Traydex itself.
 - Removing a card whose file is stored only in Traydex, or clearing the shelf with such cards, warns first, since
   the file is deleted for good.
+
+## [0.3.4-alpha] — 2026-10-22
+
+- A click on the message bar at the bottom of a page dismisses it, successes included, like a click on the message
+  icon in the title bar.
+
+## [0.3.3-alpha] — 2026-10-22
+
+- The loading spinner turns around its own center instead of wobbling, and icons are no longer stretched by half a
+  pixel at fractional Windows scales.
 
 ## [0.3.2-alpha] — 2026-10-21
 
@@ -55,6 +70,9 @@ First public release.
 - Light and dark themes, transparency and blur, six languages.
 
 [0.4.0-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.4.0-alpha
+[0.3.6-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.3.6-alpha
+[0.3.5-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.3.5-alpha
+[0.3.4-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.3.4-alpha
 [0.3.3-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.3.3-alpha
 [0.3.2-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.3.2-alpha
 [0.3.1-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.3.1-alpha

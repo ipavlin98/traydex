@@ -454,7 +454,6 @@ pub(super) static ZH: Strings = Strings {
     section_plugins: "插件",
     plugins_hint: "将 .tdx 文件拖入窗口即可安装插件",
     tile_refused: "不适用",
-    tile_failed: "上次运行失败",
     update_check: "检查更新",
     update_auto: "自动检查更新",
     update_auto_hint: "启动时及每天一次。未经你同意不会安装任何内容",

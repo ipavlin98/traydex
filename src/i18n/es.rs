@@ -454,7 +454,6 @@ pub(super) static ES: Strings = Strings {
     section_plugins: "COMPLEMENTOS",
     plugins_hint: "Arrastra un archivo .tdx a la ventana para instalar un complemento",
     tile_refused: "No admite esto",
-    tile_failed: "Falló la última vez",
     update_check: "Buscar actualizaciones",
     update_auto: "Buscar actualizaciones automáticamente",
     update_auto_hint: "Al iniciar y una vez al día. No se instala nada sin preguntar",

@@ -215,8 +215,9 @@ required settings is marked *Needs setup*.
 
 While an action runs, a purple progress ring fills next to the pin in the title bar (an arc spins when the percentage
 is unknown); its tooltip lists all running jobs with their stage and percentage. Errors show up as a red icon in the
-same place: the text is in the tooltip, and a click dismisses it. On success a bar appears above the bottom strips for
-4 seconds (for example, "Text copied · 245 chars"); it doesn't catch clicks. Text and images from a browser are saved
+same place and successes (for example, "Text copied · 245 chars") as a green check: the text is in the tooltip, and a
+click dismisses it. On other pages the message appears as a bar above the bottom strips instead; a click on the bar
+dismisses it too. Text and images from a browser are saved
 to a file before the action. Results (an archive, converted and compressed images, a GIF, a PDF) appear next to the
 original and are added to the shelf. The archive path and links to uploaded files are copied to the clipboard. If the
 panel is already hidden, the result is shown as a system notification. The search tile hides the panel right away
@@ -283,7 +284,7 @@ statically. Dependency versions are pinned in `Cargo.lock`. More on building and
 
 ### Patches in `vendor/gpui`
 
-GPUI 0.2.2 lives in `vendor/gpui` with eight patches, wired in through `[patch.crates-io]` in `Cargo.toml`.
+GPUI 0.2.2 lives in `vendor/gpui` with nine patches, wired in through `[patch.crates-io]` in `Cargo.toml`.
 
 1. **Pixel snapping.** All layout sizes are rounded to whole physical pixels, border widths to a whole number of
    pixels and at least one, and content offsets (scrolling, for example) to whole pixels. Identical elements are
@@ -335,6 +336,11 @@ GPUI 0.2.2 lives in `vendor/gpui` with eight patches, wired in through `[patch.c
    device pixel; `glyph_placement` in `vendor/gpui/src/window.rs` puts the baseline on the nearest pixel row
    instead, so capitals stay within half a pixel of the middle. Its test is
    `glyph_baseline_goes_to_the_nearest_pixel_row`.
+9. **Icon bitmaps.** An SVG icon is rasterized at twice its size in device pixels, rounded to the nearest texel.
+   Upstream rounded up, and since a whole-pixel layout size comes back from logical pixels with float noise
+   (18.000002), the bitmap got an extra texel: the icon was stretched by half a pixel and drawn off its center, so the
+   rotating spinner wobbled around its axis. The patch is `svg_raster_size` in `vendor/gpui/src/window.rs`; the
+   regression test is `svg_bitmap_matches_whole_device_pixels_despite_float_noise` in `src/gpui_tests.rs`.
 
 ### Patch in `vendor/unrar`
 
