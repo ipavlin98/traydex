@@ -76,13 +76,9 @@ fn computed_row(
 }
 
 fn pending_row(t: Theme, label: &'static str, lines: usize, id: SharedString, animated: bool) -> Div {
-    let bars = div().flex().flex_col().children((0..lines).map(|line| {
-        div().h(rem(LINE)).max_w(rem(SKELETON_WIDTH)).flex().items_center().child(skeleton_line(
-            t,
-            (id.clone(), line),
-            animated,
-        ))
-    }));
+    let bars = div().flex().flex_col().children(
+        (0..lines).map(|line| div().max_w(rem(SKELETON_WIDTH)).child(skeleton_line(t, (id.clone(), line), animated))),
+    );
     hash_row(t, label, bars, disabled_button(t, id.clone(), "copy").marked(id))
 }
 

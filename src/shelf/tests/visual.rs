@@ -1076,9 +1076,12 @@ fn result_pages_keep_elements_inside_and_apart(cx: &mut TestAppContext) {
 #[gpui::test]
 fn placeholders_keep_the_layout_of_the_result(cx: &mut TestAppContext) {
     let mut failures = Vec::new();
-    for (width, height) in SIZES {
+    for (font_size, (width, height)) in store::FONT_SIZES.into_iter().flat_map(|font| SIZES.map(|size| (font, size))) {
         for opened in [Opened::Share, Opened::Hashes, Opened::Qr, Opened::Rename, Opened::Media] {
-            let mut h = open_with(cx, true, rich);
+            let mut h = open_with(cx, true, move |sandbox, store, fake| {
+                rich(sandbox, store, fake);
+                store.settings_mut().font_size = font_size;
+            });
             h.cx.simulate_resize(size(px(width), px(height)));
             h.settle();
             let (index, payload) = page_tile(&mut h, opened);
@@ -1101,7 +1104,8 @@ fn placeholders_keep_the_layout_of_the_result(cx: &mut TestAppContext) {
                     _ => false,
                 };
                 if !kept {
-                    failures.push(format!("{opened:?} {width}x{height} {mark}: {before:?} -> {after:?}"));
+                    failures
+                        .push(format!("{opened:?} {width}x{height} font {font_size} {mark}: {before:?} -> {after:?}"));
                 }
             }
             h.fake.drop_jobs();

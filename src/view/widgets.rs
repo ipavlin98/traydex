@@ -61,7 +61,16 @@ pub(super) fn skeleton(t: Theme, id: impl Into<ElementId>, shape: Div, animated:
 }
 
 pub(super) fn skeleton_line(t: Theme, id: impl Into<ElementId>, animated: bool) -> AnyElement {
-    skeleton(t, id, div().w_full().h(rem(SKELETON_HEIGHT)).rounded_full(), animated)
+    div()
+        .relative()
+        .child(" ")
+        .child(div().absolute().inset_0().flex().items_center().child(skeleton(
+            t,
+            id,
+            div().w_full().h(rem(SKELETON_HEIGHT)).rounded_full(),
+            animated,
+        )))
+        .into_any_element()
 }
 
 pub(super) fn measure(window: &Window, text: &str, size: f32) -> f32 {

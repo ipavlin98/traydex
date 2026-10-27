@@ -63,7 +63,7 @@ fn code_skeleton(t: Theme, id: &'static str, side: f32, animated: bool) -> AnyEl
 }
 
 fn line_skeleton(t: Theme, id: &'static str, width: f32, animated: bool) -> Div {
-    div().w(rem(width)).h(rem(TEXT_LINE)).flex().items_center().child(skeleton_line(t, id, animated))
+    div().w(rem(width)).line_height(rem(TEXT_LINE)).child(skeleton_line(t, id, animated))
 }
 
 fn shared_files(files: &[PathBuf]) -> String {
