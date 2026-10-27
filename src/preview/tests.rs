@@ -58,10 +58,10 @@ fn images_show_dimensions() {
     let sandbox = Sandbox::new();
     let fake = Fake::new(&sandbox);
     let good = load(&item(Kind::Image, "i", sandbox.file("a.png", png(3, 2)), None), &fake);
-    assert!(matches!(good.content, Content::Image));
+    assert!(matches!(good.content, Content::Image(Some(natural)) if natural == gpui::size(3., 2.)));
     assert!(good.detail.ends_with(" · 3 × 2"), "{}", good.detail);
     let broken = load(&item(Kind::Image, "i", sandbox.file("b.png", "junk"), None), &fake);
-    assert!(matches!(broken.content, Content::Image));
+    assert!(matches!(broken.content, Content::Image(None)));
     assert!(!broken.detail.contains('×'));
 }
 
@@ -218,7 +218,7 @@ fn broken_archive_falls_back_to_text_or_thumbnail() {
 fn svg_is_rendered_as_image() {
     let sandbox = Sandbox::new();
     let fake = Fake::new(&sandbox);
-    assert!(matches!(open(&sandbox, &fake, "icon.SVG", "<svg/>").content, Content::Image));
+    assert!(matches!(open(&sandbox, &fake, "icon.SVG", "<svg/>").content, Content::Image(None)));
 }
 
 #[test]

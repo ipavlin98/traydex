@@ -3,11 +3,11 @@ use super::widgets::{
     text_button,
 };
 use super::{BAR_GAP, BAR_ICON, BUTTON_GAP, FADE, Hidden, bottom_bar, copy_id, edge_fades, fade, hidden_by, strip};
-use crate::design::{self, glyph, line, radius, rem, space, text};
+use crate::design::{self, glyph, line, radius, rem, scaled, space, text};
 use crate::i18n::tr;
 use crate::input;
 use crate::keys::Command;
-use crate::preview::{Content, Entry, Line};
+use crate::preview::{Content, Entry, Line, Stage};
 use crate::shelf::{Preview, SafeListener, Shelf};
 use crate::store::{Item, human_size, is_archive, is_image};
 use crate::system::Frame;
@@ -29,10 +29,13 @@ const THUMBNAIL_SIZE: f32 = 220.;
 const TILE_PADDING: f32 = space::M;
 const NAME_SIZE: f32 = text::SMALL;
 const ENTRY_BADGE: f32 = 36.;
+const IMAGE_PADDING: f32 = space::X3L;
+const WHEEL_LINES: f32 = 3.;
+const WHEEL_PIXELS: f32 = 120.;
 const THUMBNAIL_BADGE: f32 = 64.;
 
 fn centered() -> Div {
-    div().size_full().p(rem(space::X3L)).flex().flex_col().items_center().justify_center().gap(rem(space::L))
+    div().size_full().p(rem(IMAGE_PADDING)).flex().flex_col().items_center().justify_center().gap(rem(space::L))
 }
 
 fn message(color: Rgba, text: &'static str) -> Div {
@@ -187,6 +190,20 @@ fn entry_grid(t: Theme, preview: &Preview, entries: Arc<[Entry]>, width: f32) ->
     .into_any_element()
 }
 
+fn notches(delta: ScrollDelta) -> f32 {
+    match delta {
+        ScrollDelta::Lines(lines) => lines.y / WHEEL_LINES,
+        ScrollDelta::Pixels(pixels) => f32::from(pixels.y) / WHEEL_PIXELS,
+    }
+}
+
+fn image_area(preview: &Preview, window: &Window) -> Option<Bounds<f32>> {
+    let frame = preview.frame.get()?;
+    let scale = window.scale_factor();
+    let edge = |value: i32| value as f32 / scale;
+    Some(Bounds::from_corners(point(edge(frame.left), edge(frame.top)), point(edge(frame.right), edge(frame.bottom))))
+}
+
 fn frame_probe(preview: &Preview) -> impl IntoElement {
     let frame = preview.frame.clone();
     let host = preview.host.as_ref().map(Rc::downgrade);
@@ -214,7 +231,7 @@ fn frame_probe(preview: &Preview) -> impl IntoElement {
 }
 
 impl Shelf {
-    pub(super) fn preview_page(&self, t: Theme, width: f32, cx: &mut Context<Self>) -> AnyElement {
+    pub(super) fn preview_page(&self, t: Theme, width: f32, window: &Window, cx: &mut Context<Self>) -> AnyElement {
         let found = self
             .preview()
             .and_then(|preview| Some((preview, self.store().items().iter().find(|item| item.id == preview.key)?)));
@@ -223,7 +240,7 @@ impl Shelf {
         };
         let content = match &preview.note {
             Some(note) => div().marked("note").size_full().child(note.area.clone()).into_any_element(),
-            None => self.preview_content(t, item, preview, width, cx),
+            None => self.preview_content(t, item, preview, width, window, cx),
         };
         let footer = match &preview.note {
             Some(_) => Some((SharedString::from(item.describe().detail), false)),
@@ -327,6 +344,7 @@ impl Shelf {
         item: &Item,
         preview: &Preview,
         width: f32,
+        window: &Window,
         cx: &mut Context<Self>,
     ) -> AnyElement {
         let Some(loaded) = &preview.loaded else {
@@ -335,15 +353,7 @@ impl Shelf {
         match &loaded.content {
             Content::Missing => message(t.danger, tr().missing).into_any_element(),
             Content::Failed => message(t.muted, tr().preview_failed).into_any_element(),
-            Content::Image => centered()
-                .child(
-                    img(item.path.clone())
-                        .size_full()
-                        .object_fit(ObjectFit::ScaleDown)
-                        .with_loading(move || spinner(t.muted, glyph::XL).into_any_element())
-                        .with_fallback(move || message(t.muted, tr().preview_failed).into_any_element()),
-                )
-                .into_any_element(),
+            Content::Image(natural) => self.image_view(t, item, preview, *natural, window, cx),
             Content::Text { lines, .. } if lines.is_empty() => message(t.faint, tr().empty_category).into_any_element(),
             Content::Text { lines, mono } => text_list(t, preview.list.clone(), lines.clone(), *mono),
             Content::Entries(entries) if entries.is_empty() => message(t.faint, tr().empty_category).into_any_element(),
@@ -369,6 +379,68 @@ impl Shelf {
                 ))
                 .into_any_element(),
         }
+    }
+}
+
+impl Shelf {
+    fn image_view(
+        &self,
+        t: Theme,
+        item: &Item,
+        preview: &Preview,
+        natural: Option<Size<f32>>,
+        window: &Window,
+        cx: &mut Context<Self>,
+    ) -> AnyElement {
+        let picture = || {
+            img(item.path.clone())
+                .with_loading(move || spinner(t.muted, glyph::XL).into_any_element())
+                .with_fallback(move || message(t.muted, tr().preview_failed).into_any_element())
+        };
+        let Some((natural, area)) = natural.zip(image_area(preview, window)) else {
+            return centered().child(picture().size_full().object_fit(ObjectFit::ScaleDown)).into_any_element();
+        };
+        let stage = Stage::new(natural, area.size, f32::from(scaled(IMAGE_PADDING, window)));
+        let zoom = &preview.zoom;
+        let placed = zoom.place(stage);
+        let origin = area.origin;
+        let local = move |at: Point<Pixels>| point(f32::from(at.x) - origin.x, f32::from(at.y) - origin.y);
+        let hand = if zoom.grabbed() { CursorStyle::ClosedHand } else { CursorStyle::OpenHand };
+        div()
+            .id("preview-image")
+            .marked("preview-image")
+            .size_full()
+            .relative()
+            .overflow_hidden()
+            .when(zoom.zoomed(), |d| d.cursor(hand))
+            .child(
+                picture()
+                    .absolute()
+                    .left(px(placed.origin.x))
+                    .top(px(placed.origin.y))
+                    .w(px(placed.size.width))
+                    .h(px(placed.size.height))
+                    .object_fit(ObjectFit::Fill),
+            )
+            .on_scroll_wheel(cx.safe_listener(move |shelf, event: &ScrollWheelEvent, _, cx| {
+                shelf.zoom_preview(notches(event.delta), local(event.position), stage, cx)
+            }))
+            .on_mouse_down(
+                MouseButton::Left,
+                cx.safe_listener(move |shelf, event: &MouseDownEvent, _, cx| match event.click_count {
+                    2 => shelf.toggle_zoom(local(event.position), stage, cx),
+                    _ => shelf.grab_preview(local(event.position), cx),
+                }),
+            )
+            .on_mouse_move(cx.safe_listener(move |shelf, event: &MouseMoveEvent, _, cx| match event.pressed_button {
+                Some(MouseButton::Left) => shelf.drag_preview(local(event.position), stage, cx),
+                _ => shelf.release_preview(cx),
+            }))
+            .on_mouse_up(
+                MouseButton::Left,
+                cx.safe_listener(|shelf, _: &MouseUpEvent, _, cx| shelf.release_preview(cx)),
+            )
+            .into_any_element()
     }
 }
 

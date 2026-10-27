@@ -1,8 +1,12 @@
+mod zoom;
+
+pub use zoom::{Stage, Zoom};
+
 use crate::i18n::{fill, tr};
 use crate::os;
 use crate::store::{Item, Kind, human_size};
 use crate::system::{Handler, Services};
-use gpui::{RenderImage, SharedString};
+use gpui::{RenderImage, SharedString, Size, size};
 use std::fs::{self, File};
 use std::io::Read;
 use std::path::Path;
@@ -96,7 +100,7 @@ pub struct Entry {
 }
 
 pub enum Content {
-    Image,
+    Image(Option<Size<f32>>),
     Text { lines: Arc<[Line]>, mono: bool },
     Entries(Arc<[Entry]>),
     Shell(Handler),
@@ -145,10 +149,10 @@ pub fn load(item: &Item, system: &dyn Services) -> Loaded {
             Loaded::new(Content::Text { lines, mono: false }, [meta.detail])
         }
         Kind::Image => {
-            let dimensions = image::image_dimensions(&item.path)
-                .map(|(width, height)| format!("{width} × {height}"))
-                .unwrap_or_default();
-            Loaded::new(Content::Image, [meta.detail, dimensions])
+            let natural = image::image_dimensions(&item.path).ok();
+            let dimensions = natural.map(|(width, height)| format!("{width} × {height}")).unwrap_or_default();
+            let natural = natural.map(|(width, height)| size(width as f32, height as f32));
+            Loaded::new(Content::Image(natural), [meta.detail, dimensions])
         }
         Kind::Folder => match folder(&item.path) {
             Some((entries, total)) => {
@@ -164,7 +168,7 @@ pub fn load(item: &Item, system: &dyn Services) -> Loaded {
 fn file(path: &Path, detail: String, system: &dyn Services) -> Loaded {
     let extension = path.extension().map(|e| e.to_string_lossy().to_lowercase()).unwrap_or_default();
     if extension == "svg" {
-        return Loaded::new(Content::Image, [detail]);
+        return Loaded::new(Content::Image(None), [detail]);
     }
     if TEXT.contains(&extension.as_str())
         && let Some(loaded) = text(path, &detail)
