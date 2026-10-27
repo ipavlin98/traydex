@@ -2,6 +2,22 @@
 
 Notable changes in each release. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.5.0-alpha] — 2026-10-27
+
+- The window opened by the hot corner takes keyboard focus even when another app is in front, so typed text no
+  longer goes to the browser or editor behind it.
+- Pages that load in the background (file hashes, sharing, renaming, media) no longer shift by a pixel when the
+  result replaces the placeholder at larger font sizes.
+- Zoom images in the preview: the mouse wheel zooms around the cursor, dragging moves the enlarged image, a
+  double-click zooms in or back to fit.
+- Mentions in notes: type `\` (or `@`) to link a file, picture, folder or link from the shelf. Hover a mention to peek
+  at it, click to open its preview and `Esc` to come back, `Ctrl`+click to find the card on the shelf, or drag it out
+  like the card itself. `Backspace` after a mention turns it back into `\` with the list open.
+- Pasting or dropping files and screenshots into an open note puts them on the shelf and mentions them in the text.
+- The preview of a card mentioned in notes links to them at the bottom; the mouse wheel switches between the notes.
+- Notes have a little more space between lines.
+- Pop-ups line up exactly with what they open from at 125% and 150% display scaling.
+
 ## [0.4.0-alpha] — 2026-10-22
 
 - Delete to the Recycle Bin (Settings, on by default): files and notes stored only in Traydex go to the Windows
@@ -69,6 +85,7 @@ First public release.
 - Preview, notes, search with typo and keyboard-layout tolerance, list and grid views.
 - Light and dark themes, transparency and blur, six languages.
 
+[0.5.0-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.5.0-alpha
 [0.4.0-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.4.0-alpha
 [0.3.6-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.3.6-alpha
 [0.3.5-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.3.5-alpha
