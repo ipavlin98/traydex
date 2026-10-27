@@ -100,6 +100,7 @@ impl Shelf {
                 cx.stop_propagation();
                 cx.notify();
             }
+            "escape" if page == Page::Preview && self.back_to_note(window, cx) => {}
             "escape" => self.escape(cx),
             "enter" if self.confirming.is_some() => self.confirm(window, cx),
             "up" if page == Page::Shelf => self.step_hover(-self.row_step(), cx),

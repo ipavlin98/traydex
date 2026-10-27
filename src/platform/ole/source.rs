@@ -179,7 +179,7 @@ impl Data {
         let bytes = if cf == CF_HDROP.0 {
             hdrop(&self.items)
         } else if cf == CF_UNICODETEXT.0 {
-            let text = self.items.iter().filter_map(|i| i.text.as_deref()).collect::<Vec<_>>().join("\r\n");
+            let text = self.items.iter().filter_map(|i| i.shown_text()).collect::<Vec<_>>().join("\r\n");
             text.encode_utf16().chain([0]).flat_map(u16::to_le_bytes).collect()
         } else if cf == png_format() {
             store::png_bytes(&self.items.first()?.path).ok()?

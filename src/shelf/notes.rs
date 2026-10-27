@@ -2,8 +2,9 @@ use super::{Filter, Shelf};
 use crate::i18n::tr;
 use crate::input::{Changed, Submitted, TextInput};
 use crate::store::{Item, ItemId};
-use crate::textarea::TextArea;
+use crate::textarea::{AreaEvent, Peek, TextArea};
 use gpui::*;
+
 fn placeholder(title: String) -> SharedString {
     if title.is_empty() { tr().new_note.into() } else { title.into() }
 }
@@ -11,7 +12,16 @@ fn placeholder(title: String) -> SharedString {
 pub struct Note {
     pub area: Entity<TextArea>,
     pub title: Entity<TextInput>,
+    pub picker: Option<Picker>,
+    pub peek: Option<Peek>,
+    pub(super) peeking: Option<Task<()>>,
     _subscriptions: Vec<Subscription>,
+}
+
+pub struct Picker {
+    pub hits: Vec<ItemId>,
+    pub chosen: usize,
+    pub scroll: ScrollHandle,
 }
 
 impl Shelf {
@@ -46,8 +56,13 @@ impl Shelf {
                 shelf.guarded(cx, |shelf, cx| shelf.title_changed(title, cx))
             }),
             cx.subscribe_in(&title, window, |shelf, _, _: &Submitted, window, cx| shelf.focus_note(window, cx)),
+            cx.subscribe_in(&area, window, |shelf, _, event: &AreaEvent, window, cx| {
+                shelf.guarded(cx, |shelf, cx| shelf.area_event(event, window, cx))
+            }),
         ];
-        Some(Note { area, title, _subscriptions: subscriptions })
+        let looks = self.chip_looks(&area.read(cx).referenced());
+        area.update(cx, |area, cx| area.set_looks(looks, cx));
+        Some(Note { area, title, picker: None, peek: None, peeking: None, _subscriptions: subscriptions })
     }
 
     fn note_changed(&mut self, area: Entity<TextArea>, cx: &mut Context<Self>) {
@@ -55,7 +70,7 @@ impl Shelf {
             return;
         };
         let before = self.title_of(&key);
-        let text = area.read(cx).text().to_owned();
+        let text = area.read(cx).text();
         self.store.edit_text(&key, &text);
         let after = self.title_of(&key);
         if after != before
@@ -92,13 +107,18 @@ impl Shelf {
         if let Some(item) = self.store.item(&key) {
             self.catalog.describe(item);
         }
+        self.catalog.cite(self.store.items());
         self.update_hits(cx);
         self.index_contents(cx);
         cx.notify();
     }
 
-    fn note(&self) -> Option<&Note> {
-        self.preview().and_then(|preview| preview.note.as_ref())
+    pub(super) fn note(&self) -> Option<&Note> {
+        self.preview().and_then(|preview| preview.note.as_deref())
+    }
+
+    pub(super) fn note_mut(&mut self) -> Option<&mut Note> {
+        self.preview_mut().and_then(|preview| preview.note.as_deref_mut())
     }
 
     pub(super) fn note_focused(&self, window: &Window, cx: &App) -> bool {

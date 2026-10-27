@@ -25,7 +25,7 @@ enum Source {
 impl Source {
     fn of(item: &Item) -> Option<Self> {
         match item.kind {
-            Kind::Text | Kind::Link | Kind::Note => item.text.clone().map(Source::Text),
+            Kind::Text | Kind::Link | Kind::Note => item.shown_text().map(|text| Source::Text(text.into_owned())),
             Kind::File => Some(Source::File(item.path.clone())),
             Kind::Folder | Kind::Image => None,
         }

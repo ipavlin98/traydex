@@ -47,9 +47,10 @@ impl EntityInputHandler for TextArea {
         if self.edit.marked().is_none() {
             self.remember(Edit::Other);
         }
-        self.edit.mark(range, &clean(text), selected);
+        self.edit.mark(range, &chips::strip(&clean(text)), selected);
         self.version += 1;
         self.reveal = true;
+        self.ask(cx);
         cx.emit(Changed);
         cx.notify();
     }

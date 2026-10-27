@@ -1,6 +1,6 @@
 use super::{Page, Shelf};
 use crate::search::{Grade, Index, Indexed, Query};
-use crate::store::{Item, ItemId, Kind, Layout, Meta};
+use crate::store::{Item, ItemId, Kind, Layout, Meta, mention};
 use gpui::*;
 use std::collections::HashMap;
 use std::ops::Range;
@@ -15,10 +15,27 @@ pub struct Catalog {
     thumbs: HashMap<PathBuf, Option<Arc<RenderImage>>>,
     index: Index,
     hits: Option<HashMap<ItemId, Vec<Range<usize>>>>,
+    cited: HashMap<ItemId, Vec<ItemId>>,
     describing: Option<Task<()>>,
 }
 
 impl Catalog {
+    pub fn citing(&self, id: &ItemId) -> &[ItemId] {
+        self.cited.get(id).map(Vec::as_slice).unwrap_or_default()
+    }
+
+    pub(super) fn cite(&mut self, items: &[Item]) {
+        self.cited.clear();
+        for note in items.iter().filter(|item| item.note()) {
+            for found in mention::mentions(note.text.as_deref().unwrap_or_default()) {
+                let notes = self.cited.entry(found.id).or_default();
+                if !notes.contains(&note.id) {
+                    notes.push(note.id.clone());
+                }
+            }
+        }
+    }
+
     pub fn meta(&self, id: &ItemId) -> Option<&Meta> {
         self.meta.get(id)
     }
@@ -89,6 +106,7 @@ impl Shelf {
     }
 
     pub fn refresh(&mut self, cx: &mut Context<Self>) {
+        self.catalog.cite(self.store.items());
         self.index_contents(cx);
         let items = self.store.items().to_vec();
         let task = self.background_task(
@@ -99,6 +117,7 @@ impl Shelf {
                     Ok(meta) => shelf.catalog.meta = meta,
                     Err(error) => log::warn!("Couldn't describe the items: {error:#}"),
                 }
+                shelf.refresh_mentions(cx);
                 shelf.load_thumbnails(cx);
                 cx.notify();
             },

@@ -13,6 +13,7 @@ use crate::store::{Item, human_size, is_archive, is_image};
 use crate::system::Frame;
 use crate::theme::Theme;
 use gpui::{prelude::*, *};
+use std::cell::Cell;
 use std::path::Path;
 use std::rc::{Rc, Weak};
 use std::sync::Arc;
@@ -197,11 +198,28 @@ fn notches(delta: ScrollDelta) -> f32 {
     }
 }
 
-fn image_area(preview: &Preview, window: &Window) -> Option<Bounds<f32>> {
-    let frame = preview.frame.get()?;
-    let scale = window.scale_factor();
-    let edge = |value: i32| value as f32 / scale;
-    Some(Bounds::from_corners(point(edge(frame.left), edge(frame.top)), point(edge(frame.right), edge(frame.bottom))))
+#[derive(Clone)]
+struct Viewport {
+    frame: Rc<Cell<Option<Frame>>>,
+    natural: Size<f32>,
+}
+
+impl Viewport {
+    fn stage(&self, window: &Window) -> Option<(Stage, Point<f32>)> {
+        let frame = self.frame.get()?;
+        let scale = window.scale_factor();
+        let edge = |value: i32| value as f32 / scale;
+        let area = Bounds::from_corners(
+            point(edge(frame.left), edge(frame.top)),
+            point(edge(frame.right), edge(frame.bottom)),
+        );
+        Some((Stage::new(self.natural, area.size, f32::from(scaled(IMAGE_PADDING, window))), area.origin))
+    }
+
+    fn at(&self, position: Point<Pixels>, window: &Window) -> Option<(Stage, Point<f32>)> {
+        let (stage, origin) = self.stage(window)?;
+        Some((stage, point(f32::from(position.x) - origin.x, f32::from(position.y) - origin.y)))
+    }
 }
 
 fn frame_probe(preview: &Preview) -> impl IntoElement {
@@ -239,7 +257,12 @@ impl Shelf {
             return message(t.faint, tr().empty_category).flex_1().into_any_element();
         };
         let content = match &preview.note {
-            Some(note) => div().marked("note").size_full().child(note.area.clone()).into_any_element(),
+            Some(note) => div()
+                .marked("note")
+                .size_full()
+                .child(note.area.clone())
+                .children(self.note_overlays(t, window, cx))
+                .into_any_element(),
             None => self.preview_content(t, item, preview, width, window, cx),
         };
         let footer = match &preview.note {
@@ -262,7 +285,9 @@ impl Shelf {
                     .child(content)
                     .when_some(scrolled(preview, cx), |d, hidden| d.children(edge_fades(t, hidden))),
             )
-            .when_some(footer, |d, (detail, partial)| d.child(preview_footer(t, detail, partial)))
+            .when_some(footer, |d, (detail, partial)| {
+                d.child(preview_footer(t, detail, partial, self.cite_link(t, item, cx)))
+            })
             .into_any_element()
     }
 
@@ -294,6 +319,21 @@ impl Shelf {
                     .flex()
                     .items_center()
                     .gap(rem(space::LABEL))
+                    .when(preview.back.is_some(), |d| {
+                        d.child(
+                            icon_button(
+                                t,
+                                "preview-back",
+                                "arrow-left",
+                                Tip::keys(tr().back_to_note, &[tr().escape_key]),
+                                false,
+                            )
+                            .marked("preview-back")
+                            .on_click(cx.safe_listener(|shelf, _, window, cx| {
+                                shelf.back_to_note(window, cx);
+                            })),
+                        )
+                    })
                     .child(leading_icon(item.icon(), t.muted, BAR_ICON))
                     .child(self.preview_title(t, item, preview)),
             )
@@ -397,44 +437,55 @@ impl Shelf {
                 .with_loading(move || spinner(t.muted, glyph::XL).into_any_element())
                 .with_fallback(move || message(t.muted, tr().preview_failed).into_any_element())
         };
-        let Some((natural, area)) = natural.zip(image_area(preview, window)) else {
-            return centered().child(picture().size_full().object_fit(ObjectFit::ScaleDown)).into_any_element();
+        let fitted = || centered().child(picture().size_full().object_fit(ObjectFit::ScaleDown));
+        let Some(natural) = natural else {
+            return fitted().into_any_element();
         };
-        let stage = Stage::new(natural, area.size, f32::from(scaled(IMAGE_PADDING, window)));
+        let viewport = Viewport { frame: preview.frame.clone(), natural };
         let zoom = &preview.zoom;
-        let placed = zoom.place(stage);
-        let origin = area.origin;
-        let local = move |at: Point<Pixels>| point(f32::from(at.x) - origin.x, f32::from(at.y) - origin.y);
+        let placed = viewport.stage(window).map(|(stage, _)| zoom.place(stage)).filter(|_| zoom.zoomed());
         let hand = if zoom.grabbed() { CursorStyle::ClosedHand } else { CursorStyle::OpenHand };
+        let (wheel, press, drag) = (viewport.clone(), viewport.clone(), viewport);
         div()
             .id("preview-image")
             .marked("preview-image")
             .size_full()
             .relative()
             .overflow_hidden()
-            .when(zoom.zoomed(), |d| d.cursor(hand))
-            .child(
-                picture()
-                    .absolute()
-                    .left(px(placed.origin.x))
-                    .top(px(placed.origin.y))
-                    .w(px(placed.size.width))
-                    .h(px(placed.size.height))
-                    .object_fit(ObjectFit::Fill),
-            )
-            .on_scroll_wheel(cx.safe_listener(move |shelf, event: &ScrollWheelEvent, _, cx| {
-                shelf.zoom_preview(notches(event.delta), local(event.position), stage, cx)
+            .map(|d| match placed {
+                Some(placed) => d.cursor(hand).child(
+                    picture()
+                        .absolute()
+                        .left(px(placed.origin.x))
+                        .top(px(placed.origin.y))
+                        .w(px(placed.size.width))
+                        .h(px(placed.size.height))
+                        .object_fit(ObjectFit::Fill),
+                ),
+                None => d.child(fitted()),
+            })
+            .on_scroll_wheel(cx.safe_listener(move |shelf, event: &ScrollWheelEvent, window, cx| {
+                if let Some((stage, at)) = wheel.at(event.position, window) {
+                    shelf.zoom_preview(notches(event.delta), at, stage, cx);
+                }
             }))
             .on_mouse_down(
                 MouseButton::Left,
-                cx.safe_listener(move |shelf, event: &MouseDownEvent, _, cx| match event.click_count {
-                    2 => shelf.toggle_zoom(local(event.position), stage, cx),
-                    _ => shelf.grab_preview(local(event.position), cx),
+                cx.safe_listener(move |shelf, event: &MouseDownEvent, window, cx| {
+                    let Some((stage, at)) = press.at(event.position, window) else {
+                        return;
+                    };
+                    match event.click_count {
+                        2 => shelf.toggle_zoom(at, stage, cx),
+                        _ => shelf.grab_preview(at, cx),
+                    }
                 }),
             )
-            .on_mouse_move(cx.safe_listener(move |shelf, event: &MouseMoveEvent, _, cx| match event.pressed_button {
-                Some(MouseButton::Left) => shelf.drag_preview(local(event.position), stage, cx),
-                _ => shelf.release_preview(cx),
+            .on_mouse_move(cx.safe_listener(move |shelf, event: &MouseMoveEvent, window, cx| {
+                match (event.pressed_button, drag.at(event.position, window)) {
+                    (Some(MouseButton::Left), Some((stage, at))) => shelf.drag_preview(at, stage, cx),
+                    _ => shelf.release_preview(cx),
+                }
             }))
             .on_mouse_up(
                 MouseButton::Left,
@@ -444,12 +495,14 @@ impl Shelf {
     }
 }
 
-fn preview_footer(t: Theme, detail: SharedString, partial: bool) -> Div {
+fn preview_footer(t: Theme, detail: SharedString, partial: bool, cited: Option<AnyElement>) -> Div {
     bottom_bar(t)
         .marked("preview-footer")
         .justify_between()
+        .gap(rem(BAR_GAP))
         .bg(t.surface)
         .text_color(t.muted)
         .child(div().min_w_0().truncate().child(detail))
         .when(partial, |d| d.child(div().flex_shrink_0().text_color(t.faint).child(tr().preview_partial)))
+        .children(cited)
 }

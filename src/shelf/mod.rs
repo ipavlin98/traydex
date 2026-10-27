@@ -8,6 +8,7 @@ mod jobs;
 mod keyboard;
 mod launch;
 mod media;
+mod mentions;
 mod notes;
 mod notices;
 mod plugins;
@@ -274,15 +275,11 @@ impl Shelf {
                     self.session.end();
                 }
                 if self.regions.zone().is_none() {
-                    log::debug!("Drop goes to the shelf: {}", payload.describe());
-                    return self.ingest(payload, cx);
+                    return self.take_drop(payload, cx);
                 }
                 match self.dropped_target() {
                     Some(Target::Tile(tile)) => self.perform(tile, payload, cx),
-                    Some(Target::Shelf) => {
-                        log::debug!("Drop goes to the shelf: {}", payload.describe());
-                        self.ingest(payload, cx)
-                    }
+                    Some(Target::Shelf) => self.take_drop(payload, cx),
                     Some(Target::Cancel) | None => log::debug!("Drop outside of any tile, ignored"),
                 }
             }
@@ -415,6 +412,7 @@ impl Shelf {
     fn items_changed(&mut self, cx: &mut Context<Self>) {
         self.update_hits(cx);
         self.refresh(cx);
+        self.refresh_mentions(cx);
     }
 }
 

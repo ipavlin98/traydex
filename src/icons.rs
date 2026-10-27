@@ -62,6 +62,7 @@ fn shape(name: &str) -> Option<&'static str> {
         "arrow-down" => "<path d='M12 5v14M19 12l-7 7-7-7'/>",
         "chevron-right" => "<path d='m9 6 6 6-6 6'/>",
         "chevron-left" => "<path d='m15 6-6 6 6 6'/>",
+        "arrow-left" => "<path d='M19 12H5M11 6l-6 6 6 6'/>",
         "refresh" => {
             "<path d='M3 12a9 9 0 0 1 15.4-6.4L21 8'/><path d='M21 3v5h-5'/><path d='M21 12a9 9 0 0 1-15.4 6.4L3 16'/><path d='M3 21v-5h5'/>"
         }

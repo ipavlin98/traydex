@@ -411,7 +411,7 @@ pub(super) static HI: Strings = Strings {
     qr_copy: "चित्र कॉपी करें",
     key_note: "नया नोट बनाएँ",
     new_note: "नया नोट",
-    note_placeholder: "लिखना शुरू करें…",
+    note_placeholder: "लिखना शुरू करें… शेल्फ़ की किसी चीज़ से जोड़ने के लिए \\ लिखें",
     add_ytdlp: "वीडियो डाउनलोड करें",
     add_ytdlp_hint: "yt-dlp, ffmpeg और Deno चाहिए (लगभग 250 MB, अलग से डाउनलोड)",
     verb_ytdlp: "लिंक से वीडियो या ऑडियो",
@@ -466,4 +466,9 @@ pub(super) static HI: Strings = Strings {
     update_failed: "अपडेट नहीं कर सके: {}",
     update_corrupted: "डाउनलोड किया गया अपडेट खराब है",
     update_notify: "Traydex {} उपलब्ध है। अपडेट करने के लिए Traydex खोलें",
+    mention_none: "कुछ नहीं मिला",
+    mention_gone: "शेल्फ़ से हटाया गया",
+    mention_hint: "क्लिक — खोलें · Ctrl+क्लिक — शेल्फ़ पर दिखाएँ",
+    back_to_note: "नोट पर वापस",
+    cited_in: "इनमें ज़िक्र: {}",
 };

@@ -1,6 +1,8 @@
+use super::chips::Display;
 use super::words::{previous, tail};
 use super::{LINE_HEIGHT, PADDING_X, PADDING_Y};
 use crate::design;
+use crate::store::ItemId;
 use gpui::*;
 
 pub(super) struct Row {
@@ -34,9 +36,16 @@ impl Row {
     }
 }
 
+pub(super) struct Placed {
+    pub(super) id: ItemId,
+    pub(super) bounds: Bounds<Pixels>,
+}
+
 pub(super) struct Layout {
     pub(super) version: usize,
+    pub(super) display: Display,
     pub(super) rows: Vec<Row>,
+    pub(super) chips: Vec<Placed>,
     pub(super) bounds: Bounds<Pixels>,
     pub(super) scroll: Pixels,
     pub(super) height: Pixels,
@@ -53,20 +62,29 @@ impl Layout {
         self.scaled(LINE_HEIGHT)
     }
 
-    pub(super) fn row(&self, offset: usize) -> Option<&Row> {
-        let index = self.rows.partition_point(|row| row.start <= offset).saturating_sub(1);
+    pub(super) fn row(&self, shown: usize) -> Option<&Row> {
+        let index = self.rows.partition_point(|row| row.start <= shown).saturating_sub(1);
         self.rows.get(index)
     }
 
     pub(super) fn point(&self, offset: usize) -> Point<Pixels> {
-        let Some(row) = self.row(offset) else {
+        self.shown_point(self.display.to_display(offset))
+    }
+
+    pub(super) fn shown_point(&self, shown: usize) -> Point<Pixels> {
+        let Some(row) = self.row(shown) else {
             return Point::default();
         };
-        let local = offset - row.start;
+        let local = shown - row.start;
         point(row.x(local), row.top + self.line_height() * row.visual(local) as f32)
     }
 
-    pub(super) fn index(&self, position: Point<Pixels>, text: &str) -> usize {
+    pub(super) fn index(&self, position: Point<Pixels>) -> usize {
+        self.display.to_edit(self.shown_index(position))
+    }
+
+    fn shown_index(&self, position: Point<Pixels>) -> usize {
+        let text = self.display.text.as_ref();
         let line_height = self.line_height();
         let y = position.y.max(px(0.)).min((self.height - px(1.)).max(px(0.)));
         let index = self.rows.partition_point(|row| row.top <= y).saturating_sub(1);
@@ -83,6 +101,10 @@ impl Layout {
         row.start + local.clamp(start, limit)
     }
 
+    pub(super) fn chip_at(&self, position: Point<Pixels>) -> Option<&Placed> {
+        self.chips.iter().find(|chip| chip.bounds.contains(&position))
+    }
+
     pub(super) fn origin(&self) -> Point<Pixels> {
         let snap = |value: Pixels| px(design::snap(value.into(), self.scale));
         point(
@@ -96,7 +118,26 @@ impl Layout {
     }
 }
 
-pub(super) fn breaks(line: &WrappedLine) -> Vec<usize> {
+pub(super) fn stack(lines: impl IntoIterator<Item = WrappedLine>, line_height: Pixels) -> (Vec<Row>, Pixels) {
+    let mut rows = Vec::new();
+    let mut start = 0;
+    let mut top = px(0.);
+    for line in lines {
+        let breaks = breaks(&line);
+        let count = breaks.len() - 1;
+        let len = line.len();
+        rows.push(Row { start, line, breaks, top });
+        top += line_height * count as f32;
+        start += len + 1;
+    }
+    if rows.is_empty() {
+        rows.push(Row { start: 0, line: WrappedLine::default(), breaks: vec![0, 0], top: px(0.) });
+        top = line_height;
+    }
+    (rows, top)
+}
+
+fn breaks(line: &WrappedLine) -> Vec<usize> {
     let runs = line.runs();
     std::iter::once(0)
         .chain(

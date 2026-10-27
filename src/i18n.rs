@@ -580,6 +580,11 @@ pub struct Strings {
     pub update_failed: &'static str,
     pub update_corrupted: &'static str,
     pub update_notify: &'static str,
+    pub mention_none: &'static str,
+    pub mention_gone: &'static str,
+    pub mention_hint: &'static str,
+    pub back_to_note: &'static str,
+    pub cited_in: &'static str,
 }
 
 #[cfg(test)]

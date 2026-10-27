@@ -411,7 +411,7 @@ pub(super) static RU: Strings = Strings {
     qr_copy: "Копировать картинку",
     key_note: "Создать заметку",
     new_note: "Новая заметка",
-    note_placeholder: "Начните печатать…",
+    note_placeholder: "Начните печатать… Через \\ можно сослаться на что-то с полки",
     add_ytdlp: "Скачать видео",
     add_ytdlp_hint: "Нужны yt-dlp, ffmpeg и Deno (около 250 МБ, скачиваются отдельно)",
     verb_ytdlp: "Видео или звук по ссылке",
@@ -466,4 +466,9 @@ pub(super) static RU: Strings = Strings {
     update_failed: "Не удалось обновить: {}",
     update_corrupted: "Загруженное обновление повреждено",
     update_notify: "Доступна Traydex {}. Откройте Traydex, чтобы обновиться",
+    mention_none: "Ничего не найдено",
+    mention_gone: "Убран с полки",
+    mention_hint: "ЛКМ — открыть · Ctrl+ЛКМ — найти на полке",
+    back_to_note: "Назад к заметке",
+    cited_in: "Упоминается в: {}",
 };

@@ -86,10 +86,11 @@ check failed; automatic checks only write failures to the log.
   file), `Space` on the card under the cursor, or the eye button. Images (including animated GIF and SVG) fit the
   window; the mouse wheel zooms a raster image up to 16 times around the cursor, dragging moves the enlarged image
   without uncovering its edges, a double-click zooms 3 times at the cursor or back to fit, and the next card starts
-  fitted again (SVG and images whose size can't be read don't zoom); text and code are shown with line numbers, the first 2 MB for large files; folders and ZIP archives as a
-  grid of tiles with names and sizes; notes and links in full and editable right away. Everything else (PDF, Office
-  documents, video, HTML and so on) opens with the same Windows preview handler as the Explorer preview pane. If
-  there's no handler, you see a thumbnail or icon, the file type and an *Open* button.
+  fitted again (SVG and images whose size can't be read don't zoom); text and code are shown with line numbers, the
+  first 2 MB for large files; folders and ZIP archives as a grid of tiles with names and sizes; notes and links in
+  full and editable right away. Everything else (PDF, Office documents, video, HTML and so on) opens with the same
+  Windows preview handler as the Explorer preview pane. If there's no handler, you see a thumbnail or icon, the file
+  type and an *Open* button.
 - Notes: the plus button before the storage button, the *new note* button on an empty shelf or an empty *Notes*
   tab, or `Ctrl+N` opens an empty note in the preview. Notes are a separate kind with their own icon and *Notes*
   tab. By default (*Keep notes separate*) they aren't shown under *All* and *Text* and aren't included in *Drag
@@ -104,6 +105,25 @@ check failed; automatic checks only write failures to the log.
   (without trailing commas, periods or brackets) and get "…" at the end; if a title doesn't fit a tile, the tooltip
   shows it in full. A long title fades at the edges and shows from the start when not focused. Files from disk open
   read-only.
+- Mentions in notes: `\` (the key above `Enter`, unshifted in both English and Russian layouts) or `@` at the start of
+  a word (not inside an address like `ivan@mail.ru` or a path like `C:\Users`) opens a list under it of every file,
+  picture, folder and link on the shelf (notes and texts aren't offered), newest first, then filtered by what you type
+  with the same matching as search (typos, keyboard layout). It shows seven rows and scrolls with the wheel; `↑`/`↓`
+  or `Alt+K`/`Alt+J` move and keep the chosen row in view, the mouse picks the row it moves over, `Enter`, `Tab` or a
+  click inserts, `Esc` closes the list and keeps the text; the same trigger doesn't ask again. A mention is a chip
+  with the card's icon and current title (renaming the card renames the chip) that moves and selects as one character;
+  `Backspace` right after it turns it back into `\` and opens the list again, a second `Backspace` removes the `\`,
+  and `Ctrl+Z` brings the chip back. Hovering it for a moment shows a card: the picture, a file's thumbnail or the
+  start of a note, with its size and place. A click opens the card's preview with a back arrow in the header; `Esc` or
+  the arrow returns to the note with the caret where it was, the cross goes to the shelf. `Ctrl`+click closes the note
+  and shows the card on the shelf, selected. Dragging a chip out works like dragging its card. `Ctrl+V` of files or a
+  screenshot and dropping files on an open note put them on the shelf and mentions to them at the caret; text is
+  pasted as text. A chip of a card removed from the shelf turns grey and says so; restoring the card from the Recycle
+  Bin brings it back. The preview of a card mentioned in notes shows the newest such note at the right of its bottom
+  bar (the tooltip lists all of them); with several notes the wheel over it switches to the next or previous one at
+  once, with its position next to it, and a click opens the note shown at the mention. In the stored text a mention is
+  `@[title](traydex:id)`; the title, search, copying and dragging a note out show it as `@title`, and copying inside
+  notes keeps mentions.
 - The *Send to Traydex shelf* item in the Explorer context menu for files and folders puts the selection straight
   on the shelf. On by default, can be turned off in Settings. On Windows 11 it's under *Show more options*.
 - Watched folders: *Add* in the *Folders* section of Settings picks a folder, and everything at its top level, files
@@ -291,7 +311,10 @@ GPUI 0.2.2 lives in `vendor/gpui` with nine patches, wired in through `[patch.cr
 1. **Pixel snapping.** All layout sizes are rounded to whole physical pixels, border widths to a whole number of
    pixels and at least one, and content offsets (scrolling, for example) to whole pixels. Identical elements are
    drawn identically and symmetrically at any Windows scale. The patch is `snap` in `vendor/gpui/src/taffy.rs`, and
-   `snap_border` and the offset snapping in `with_element_offset` in `vendor/gpui/src/window.rs`.
+   `snap_border` and the offset snapping in `with_element_offset` in `vendor/gpui/src/window.rs`. Anchored popups no
+   longer round their offset to whole logical pixels first (`prepaint` in `vendor/gpui/src/elements/anchored.rs`),
+   so at 125% or 150% a popup lands on the same physical pixel as the element it opens from; the regression test is
+   `anchored_element_lands_on_the_device_pixel_it_was_given` in `src/gpui_tests.rs`.
 2. **Mouse leave.** When the cursor leaves the window (`WM_MOUSELEAVE`, including when the window is hidden or
    covered), the Windows backend sends `PlatformInput::MouseExited`, as the macOS, X11 and Wayland backends do. The
    core then treats the cursor as outside the window: the hit test and tooltip checks return nothing until the next

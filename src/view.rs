@@ -3,6 +3,7 @@ mod hashes;
 mod items;
 mod list;
 mod media;
+mod mentions;
 mod motion;
 mod password;
 mod preview;

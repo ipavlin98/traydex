@@ -19,8 +19,16 @@ pub struct Preview {
     pub grid: UniformListScrollHandle,
     pub host: Option<Rc<dyn Embedded>>,
     pub frame: Rc<Cell<Option<Frame>>>,
-    pub note: Option<Note>,
+    pub note: Option<Box<Note>>,
     pub zoom: Zoom,
+    pub back: Option<Back>,
+    pub cited: usize,
+}
+
+#[derive(Clone)]
+pub struct Back {
+    pub note: ItemId,
+    pub cursor: usize,
 }
 
 fn colorref(color: Rgba) -> u32 {
@@ -84,8 +92,10 @@ impl Shelf {
                 grid: UniformListScrollHandle::new(),
                 host: None,
                 frame: Rc::default(),
-                note,
+                note: note.map(Box::new),
                 zoom: Zoom::default(),
+                back: None,
+                cited: 0,
             }),
             cx,
         );
@@ -178,7 +188,11 @@ impl Shelf {
             .and_then(|index| index.checked_add_signed(delta))
             .and_then(|index| order.get(index));
         if let Some(next) = next {
+            let back = self.preview().and_then(|preview| preview.back.clone());
             self.show_preview(next.clone(), window, cx);
+            if let Some(preview) = self.preview_mut() {
+                preview.back = back;
+            }
         }
     }
 

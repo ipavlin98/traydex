@@ -297,6 +297,7 @@ mod folders;
 mod items;
 mod jobs;
 mod launch;
+mod mentions;
 mod notes;
 mod pages;
 mod plugins;

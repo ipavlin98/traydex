@@ -1,12 +1,14 @@
 use crate::design::{self, line, rem, space};
 use crate::input::{Changed, caret_bounds, pixel_bounds};
+use crate::store::ItemId;
 use crate::theme::{Theme, ThemeMode};
 use gpui::{prelude::*, *};
 use std::cell::Cell;
+use std::collections::HashMap;
 use std::ops::Range;
 use std::rc::Rc;
 
-const LINE_HEIGHT: f32 = line::BODY;
+const LINE_HEIGHT: f32 = line::TITLE;
 const PADDING_X: f32 = space::PAGE;
 const PADDING_Y: f32 = space::M;
 const CARET_INSET: f32 = 2.;
@@ -14,12 +16,17 @@ const NEWLINE_WIDTH: f32 = 4.;
 const HISTORY: usize = 200;
 
 mod buffer;
+mod chips;
 mod handler;
 mod layout;
+mod links;
 mod words;
 
 pub(crate) use buffer::EditBuffer;
-use layout::{Layout, Row, breaks};
+pub(crate) use chips::{AreaEvent, Chip, Peek};
+use chips::{Display, Refs};
+use layout::{Layout, stack};
+use links::Painted;
 use words::{clean, previous};
 pub(crate) use words::{head, step, tail, word_around};
 
@@ -49,22 +56,35 @@ pub struct TextArea {
     reveal: bool,
     selecting: bool,
     extent: Rc<Cell<(Pixels, Pixels)>>,
+    refs: Refs,
+    looks: HashMap<ItemId, Chip>,
+    hovered: Option<ItemId>,
+    pressed: Option<(ItemId, Point<Pixels>)>,
+    asked: Option<(usize, String)>,
+    dismissed: Option<usize>,
+    suggesting: bool,
+    anchor: Option<Bounds<Pixels>>,
 }
 
 impl EventEmitter<Changed> for TextArea {}
+impl EventEmitter<AreaEvent> for TextArea {}
 
 struct Frame {
     layout: Layout,
     selections: Vec<Bounds<Pixels>>,
     cursor: Option<Bounds<Pixels>>,
     placeholder: Option<ShapedLine>,
+    chips: Vec<Painted>,
+    anchor: Option<Bounds<Pixels>>,
 }
 
 impl TextArea {
     pub fn new(text: &str, placeholder: impl Into<SharedString>, cx: &mut Context<Self>) -> Self {
+        let mut refs = Refs::default();
+        let edit = refs.encode(&clean(text));
         Self {
             focus: cx.focus_handle(),
-            edit: EditBuffer::new(clean(text), 0),
+            edit: EditBuffer::new(edit, 0),
             placeholder: placeholder.into(),
             version: 0,
             goal: None,
@@ -76,10 +96,22 @@ impl TextArea {
             reveal: false,
             selecting: false,
             extent: Rc::default(),
+            refs,
+            looks: HashMap::new(),
+            hovered: None,
+            pressed: None,
+            asked: None,
+            dismissed: None,
+            suggesting: false,
+            anchor: None,
         }
     }
 
-    pub fn text(&self) -> &str {
+    pub fn text(&self) -> String {
+        self.refs.decode(self.raw())
+    }
+
+    fn raw(&self) -> &str {
         self.edit.text()
     }
 
@@ -99,7 +131,7 @@ impl TextArea {
         self.layout.as_ref().filter(|layout| layout.version == self.version)
     }
 
-    fn cursor(&self) -> usize {
+    pub fn cursor(&self) -> usize {
         self.edit.cursor()
     }
 
@@ -122,6 +154,7 @@ impl TextArea {
         self.last = None;
         self.goal = None;
         self.reveal = true;
+        self.ask(cx);
         cx.notify();
     }
 
@@ -137,7 +170,7 @@ impl TextArea {
         if self.last == Some(edit) && edit != Edit::Other {
             return;
         }
-        self.undo.push(Snapshot { text: self.text().to_string(), selected: self.edit.selected() });
+        self.undo.push(Snapshot { text: self.raw().to_string(), selected: self.edit.selected() });
         if self.undo.len() > HISTORY {
             self.undo.remove(0);
         }
@@ -156,29 +189,41 @@ impl TextArea {
         self.last = None;
         self.goal = None;
         self.reveal = true;
+        self.ask(cx);
         cx.emit(Changed);
         cx.notify();
     }
 
     fn replace(&mut self, range: Range<usize>, text: &str, edit: Edit, cx: &mut Context<Self>) {
-        let text = clean(text);
+        let text = chips::strip(&clean(text));
+        self.write(range, &text, edit, cx);
+    }
+
+    fn write(&mut self, range: Range<usize>, text: &str, edit: Edit, cx: &mut Context<Self>) {
         if range.is_empty() && text.is_empty() {
             return;
         }
         self.remember(edit);
-        self.edit.replace(range, &text);
+        self.edit.replace(range, text);
         self.version += 1;
         self.goal = None;
         self.reveal = true;
+        self.ask(cx);
         cx.emit(Changed);
         cx.notify();
     }
 
     fn erase(&mut self, forward: bool, words: bool, cx: &mut Context<Self>) {
         let mut range = self.edit.selected();
+        let cursor = self.cursor();
+        let before = head(self.raw(), cursor).chars().next_back();
+        if range.is_empty() && !forward && !words && before.is_some_and(chips::is_chip) {
+            let chip = cursor - before.map_or(0, char::len_utf8)..cursor;
+            return self.write(chip, &chips::TRIGGER.to_string(), Edit::Other, cx);
+        }
         if range.is_empty() {
             let cursor = self.cursor();
-            let text = self.text();
+            let text = self.raw();
             let edge = step(text, cursor, forward, words);
             range = cursor.min(edge)..cursor.max(edge);
         }
@@ -195,9 +240,9 @@ impl TextArea {
         let target = if y < px(0.) {
             0
         } else if y >= layout.height {
-            self.text().len()
+            self.raw().len()
         } else {
-            layout.index(point(x, y), self.text())
+            layout.index(point(x, y))
         };
         self.travel(target, extend, cx);
         self.goal = Some(x);
@@ -209,39 +254,41 @@ impl TextArea {
 
     fn row_edge(&self, end: bool) -> usize {
         let cursor = self.cursor();
-        let Some(row) = self.current().and_then(|layout| layout.row(cursor)) else {
-            return if end { self.text().len() } else { 0 };
+        let Some(layout) = self.current() else {
+            return if end { self.raw().len() } else { 0 };
         };
-        let local = cursor - row.start;
+        let shown = layout.display.to_display(cursor);
+        let Some(row) = layout.row(shown) else {
+            return if end { self.raw().len() } else { 0 };
+        };
+        let local = shown - row.start;
         let visual = row.visual(local);
-        if !end {
-            return row.start + row.edge(visual);
-        }
-        let edge = row.edge(visual + 1);
-        if visual + 1 == row.rows() {
-            row.start + edge
+        let edge = if !end {
+            row.start + row.edge(visual)
+        } else if visual + 1 == row.rows() {
+            row.start + row.edge(visual + 1)
         } else {
-            row.start + previous(tail(self.text(), row.start), edge)
-        }
+            row.start + previous(tail(&layout.display.text, row.start), row.edge(visual + 1))
+        };
+        layout.display.to_edit(edge)
     }
 
     fn key(&mut self, event: &KeyDownEvent, _: &mut Window, cx: &mut Context<Self>) {
         let keys = &event.keystroke;
         let (control, shift) = (keys.modifiers.control, keys.modifiers.shift);
+        if self.suggesting && self.suggestion_key(keys, cx) {
+            return cx.stop_propagation();
+        }
         let cursor = self.cursor();
         let selected = self.edit.selected();
         let collapsed = selected.is_empty();
-        let end = self.text().len();
+        let end = self.raw().len();
         match keys.key.as_str() {
             "backspace" => self.erase(false, control, cx),
             "delete" => self.erase(true, control, cx),
-            "left" if control || shift || collapsed => {
-                self.travel(step(self.text(), cursor, false, control), shift, cx)
-            }
+            "left" if control || shift || collapsed => self.travel(step(self.raw(), cursor, false, control), shift, cx),
             "left" => self.move_to(selected.start, cx),
-            "right" if control || shift || collapsed => {
-                self.travel(step(self.text(), cursor, true, control), shift, cx)
-            }
+            "right" if control || shift || collapsed => self.travel(step(self.raw(), cursor, true, control), shift, cx),
             "right" => self.move_to(selected.end, cx),
             "up" => self.vertical(-1, shift, cx),
             "down" => self.vertical(1, shift, cx),
@@ -254,19 +301,15 @@ impl TextArea {
             "enter" if self.edit.marked().is_none() => self.replace(selected, "\n", Edit::Other, cx),
             "a" if control => self.select(0..end, cx),
             "c" | "x" if control => {
-                let Some(text) = self.text().get(selected.clone()).filter(|_| !collapsed).map(str::to_string) else {
+                if collapsed {
                     return;
-                };
-                cx.write_to_clipboard(ClipboardItem::new_string(text));
+                }
+                self.copy(selected.clone(), cx);
                 if keys.key == "x" {
                     self.replace(selected, "", Edit::Other, cx);
                 }
             }
-            "v" if control => {
-                if let Some(text) = cx.read_from_clipboard().and_then(|item| item.text()) {
-                    self.replace(selected, &text, Edit::Other, cx);
-                }
-            }
+            "v" if control => self.paste(selected, cx),
             "z" if control && shift => self.restore(true, cx),
             "z" if control => self.restore(false, cx),
             "y" if control => self.restore(true, cx),
@@ -280,18 +323,21 @@ impl TextArea {
         let Some(layout) = self.current() else {
             return self.cursor();
         };
-        layout.index(position - layout.origin(), self.text())
+        layout.index(position - layout.origin())
     }
 
     fn mouse_down(&mut self, event: &MouseDownEvent, window: &mut Window, cx: &mut Context<Self>) {
         window.focus(&self.focus);
+        if self.press_chip(event.position, cx) {
+            return cx.stop_propagation();
+        }
         self.selecting = true;
         let index = self.index_at(event.position);
         match event.click_count {
-            2 => self.select(word_around(self.text(), index), cx),
+            2 => self.select(word_around(self.raw(), index), cx),
             count if count > 2 => {
-                let start = head(self.text(), index).rfind('\n').map_or(0, |at| at + 1);
-                let end = tail(self.text(), index).find('\n').map_or(self.text().len(), |at| index + at);
+                let start = head(self.raw(), index).rfind('\n').map_or(0, |at| at + 1);
+                let end = tail(self.raw(), index).find('\n').map_or(self.raw().len(), |at| index + at);
                 self.select(start..end, cx);
             }
             _ if event.modifiers.shift => self.select_to(index, cx),
@@ -318,46 +364,28 @@ impl TextArea {
         let font_size = style.font_size.to_pixels(window.rem_size());
         let line_height = design::scaled(LINE_HEIGHT, window);
         let width = (bounds.size.width - design::scaled(PADDING_X * 2., window)).max(px(10.));
-        let shown: SharedString = self.text().replace('\t', " ").into();
-        let run = |len: usize, color: Hsla, underline: bool| TextRun {
-            len,
-            font: style.font(),
-            color,
-            background_color: None,
-            underline: underline.then(|| UnderlineStyle { thickness: px(1.), color: Some(color), wavy: false }),
-            strikethrough: None,
-        };
-        let runs = match self.edit.marked() {
-            Some(marked) => vec![
-                run(marked.start, style.color, false),
-                run(marked.len(), style.color, true),
-                run(shown.len() - marked.end, style.color, false),
-            ],
-            None => vec![run(shown.len(), style.color, false)],
-        };
-        let lines =
-            window.text_system().shape_text(shown.clone(), font_size, &runs, Some(width), None).unwrap_or_default();
-        let mut rows = Vec::new();
-        let mut start = 0;
-        let mut top = px(0.);
-        for line in lines {
-            let breaks = breaks(&line);
-            let count = breaks.len() - 1;
-            let len = line.len();
-            rows.push(Row { start, line, breaks, top });
-            top += line_height * count as f32;
-            start += len + 1;
-        }
-        if rows.is_empty() {
-            rows.push(Row { start: 0, line: WrappedLine::default(), breaks: vec![0, 0], top: px(0.) });
-            top = line_height;
-        }
-        let height = top;
+        let display = Display::build(self.raw(), &self.refs, &self.looks);
+        let marked = self.edit.marked().map(|m| display.to_display(m.start)..display.to_display(m.end));
+        let runs = links::runs(&display, marked, &style, t, &self.looks);
+        let lines = window
+            .text_system()
+            .shape_text(display.text.clone(), font_size, &runs, Some(width), None)
+            .unwrap_or_default();
+        let (rows, height) = stack(lines, line_height);
         let view = (bounds.size.height - design::scaled(PADDING_Y * 2., window)).max(line_height);
         let scale = window.scale_factor();
         let rem_size = window.rem_size();
-        let mut layout =
-            Layout { version: self.version, rows, bounds, scroll: self.scroll, height, scale, rem: rem_size };
+        let mut layout = Layout {
+            version: self.version,
+            display,
+            rows,
+            chips: Vec::new(),
+            bounds,
+            scroll: self.scroll,
+            height,
+            scale,
+            rem: rem_size,
+        };
         let caret = layout.point(self.cursor());
         let mut scroll = self.scroll;
         if self.reveal {
@@ -370,6 +398,7 @@ impl TextArea {
         }
         layout.scroll = scroll.min((height - view).max(px(0.))).max(px(0.));
         let origin = layout.origin();
+        let chips = links::place(&mut layout, origin, &self.looks, self.hovered.as_ref());
         let collapsed = self.edit.selected().is_empty();
         let selections = if focused && !collapsed { self.selection_bounds(&layout, origin) } else { Vec::new() };
         let cursor = (focused && collapsed).then(|| {
@@ -380,16 +409,20 @@ impl TextArea {
                 scale,
             )
         });
-        let placeholder = self.text().is_empty().then(|| {
+        let placeholder = self.raw().is_empty().then(|| {
             let text = self.placeholder.clone();
-            window.text_system().shape_line(text.clone(), font_size, &[run(text.len(), t.faint.into(), false)], None)
+            let run = links::run(text.len(), &style, t.faint.into());
+            window.text_system().shape_line(text.clone(), font_size, &[run], None)
         });
-        Frame { layout, selections, cursor, placeholder }
+        let anchor =
+            self.asked.as_ref().map(|(at, _)| Bounds::new(origin + layout.point(*at), size(px(1.), line_height)));
+        Frame { layout, selections, cursor, placeholder, chips, anchor }
     }
 
     fn selection_bounds(&self, layout: &Layout, origin: Point<Pixels>) -> Vec<Bounds<Pixels>> {
         let line_height = layout.line_height();
-        let Range { start: from, end: to } = self.edit.selected();
+        let Range { start, end } = self.edit.selected();
+        let (from, to) = (layout.display.to_display(start), layout.display.to_display(end));
         let mut rects = Vec::new();
         for row in &layout.rows {
             for visual in 0..row.rows() {
@@ -425,72 +458,102 @@ impl Render for TextArea {
         let focused = self.focus.is_focused(window);
         let entity = cx.entity();
         let painter = entity.clone();
-        let focus = self.focus.clone();
         div()
+            .id("note-text")
             .track_focus(&self.focus)
             .size_full()
             .cursor(CursorStyle::IBeam)
             .line_height(rem(LINE_HEIGHT))
             .on_key_down(cx.listener(Self::key))
             .on_mouse_down(MouseButton::Left, cx.listener(Self::mouse_down))
+            .on_mouse_move(cx.listener(|area, event: &MouseMoveEvent, _, cx| area.hover_at(event.position, cx)))
+            .on_hover(cx.listener(|area, hovered: &bool, _, cx| {
+                if !*hovered {
+                    area.unhover(cx);
+                }
+            }))
             .on_scroll_wheel(cx.listener(Self::scroll_by))
             .child(
                 canvas(
-                    move |bounds, window, cx| entity.read(cx).frame(bounds, focused, t, window),
-                    move |bounds, frame, window, cx| {
-                        window.handle_input(&focus, ElementInputHandler::new(bounds, painter.clone()), cx);
-                        let line_height = frame.layout.line_height();
-                        let origin = frame.layout.origin();
-                        window.with_content_mask(Some(ContentMask { bounds }), |window| {
-                            for selection in &frame.selections {
-                                window.paint_quad(fill(*selection, t.selection));
-                            }
-                            if let Some(placeholder) = &frame.placeholder {
-                                let _ = placeholder.paint(origin, line_height, window, cx);
-                            }
-                            for row in &frame.layout.rows {
-                                let top = origin.y + row.top;
-                                let bottom = top + line_height * row.rows() as f32;
-                                if bottom < bounds.top() || top > bounds.bottom() {
-                                    continue;
-                                }
-                                let _ = row.line.paint(
-                                    point(origin.x, top),
-                                    line_height,
-                                    TextAlign::Left,
-                                    None,
-                                    window,
-                                    cx,
-                                );
-                            }
-                            if let Some(cursor) = frame.cursor {
-                                window.paint_quad(fill(cursor, t.accent));
-                            }
-                        });
-                        let dragged = painter.clone();
-                        window.on_mouse_event(move |event: &MouseMoveEvent, phase, _, cx| {
-                            if phase == DispatchPhase::Bubble && event.pressed_button == Some(MouseButton::Left) {
-                                dragged.update(cx, |area, cx| area.drag_to(event.position, cx));
-                            }
-                        });
-                        let released = painter.clone();
-                        window.on_mouse_event(move |event: &MouseUpEvent, phase, _, cx| {
-                            if phase == DispatchPhase::Bubble && event.button == MouseButton::Left {
-                                released.update(cx, |area, _| area.selecting = false);
-                            }
-                        });
-                        let max = (frame.layout.height - frame.layout.view()).max(px(0.));
-                        painter.update(cx, |area, _| {
-                            area.extent.set((frame.layout.scroll, max));
-                            area.scroll = frame.layout.scroll;
-                            area.reveal = false;
-                            area.layout = Some(frame.layout);
-                        });
+                    move |bounds, window, cx| {
+                        let frame = entity.read(cx).frame(bounds, focused, t, window);
+                        let hitboxes: Vec<Hitbox> = frame
+                            .layout
+                            .chips
+                            .iter()
+                            .map(|chip| window.insert_hitbox(chip.bounds, HitboxBehavior::Normal))
+                            .collect();
+                        (frame, hitboxes)
+                    },
+                    move |bounds, (frame, hitboxes), window, cx| {
+                        paint(frame, &hitboxes, bounds, &painter, t, window, cx)
                     },
                 )
                 .size_full(),
             )
     }
+}
+
+fn paint(
+    frame: Frame,
+    hitboxes: &[Hitbox],
+    bounds: Bounds<Pixels>,
+    painter: &Entity<TextArea>,
+    t: Theme,
+    window: &mut Window,
+    cx: &mut App,
+) {
+    let focus = painter.read(cx).focus.clone();
+    window.handle_input(&focus, ElementInputHandler::new(bounds, painter.clone()), cx);
+    let line_height = frame.layout.line_height();
+    let origin = frame.layout.origin();
+    for hitbox in hitboxes {
+        window.set_cursor_style(CursorStyle::PointingHand, hitbox);
+    }
+    window.with_content_mask(Some(ContentMask { bounds }), |window| {
+        links::paint_backs(&frame.chips, t, window);
+        for selection in &frame.selections {
+            window.paint_quad(fill(*selection, t.selection));
+        }
+        if let Some(placeholder) = &frame.placeholder {
+            let _ = placeholder.paint(origin, line_height, window, cx);
+        }
+        for row in &frame.layout.rows {
+            let top = origin.y + row.top;
+            let bottom = top + line_height * row.rows() as f32;
+            if bottom < bounds.top() || top > bounds.bottom() {
+                continue;
+            }
+            let _ = row.line.paint(point(origin.x, top), line_height, TextAlign::Left, None, window, cx);
+        }
+        links::paint_icons(&frame.chips, t, window, cx);
+        if let Some(cursor) = frame.cursor {
+            window.paint_quad(fill(cursor, t.accent));
+        }
+    });
+    let dragged = painter.clone();
+    window.on_mouse_event(move |event: &MouseMoveEvent, phase, _, cx| {
+        if phase == DispatchPhase::Bubble && event.pressed_button == Some(MouseButton::Left) {
+            dragged.update(cx, |area, cx| area.drag_to(event.position, cx));
+        }
+    });
+    let released = painter.clone();
+    window.on_mouse_event(move |event: &MouseUpEvent, phase, _, cx| {
+        if phase == DispatchPhase::Bubble && event.button == MouseButton::Left {
+            released.update(cx, |area, cx| area.release(event, cx));
+        }
+    });
+    let max = (frame.layout.height - frame.layout.view()).max(px(0.));
+    painter.update(cx, |area, cx| {
+        area.extent.set((frame.layout.scroll, max));
+        area.scroll = frame.layout.scroll;
+        area.reveal = false;
+        area.layout = Some(frame.layout);
+        if area.anchor != frame.anchor {
+            area.anchor = frame.anchor;
+            cx.emit(AreaEvent::Anchored);
+        }
+    });
 }
 
 #[cfg(test)]
