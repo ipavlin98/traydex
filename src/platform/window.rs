@@ -15,7 +15,8 @@ use windows::{
         UI::{
             HiDpi::GetDpiForWindow,
             Input::KeyboardAndMouse::{
-                GetActiveWindow, GetFocus, GetKeyState, VIRTUAL_KEY, VK_CONTROL, VK_LWIN, VK_MENU, VK_RWIN, VK_SHIFT,
+                GetActiveWindow, GetFocus, GetKeyState, INPUT, INPUT_MOUSE, SendInput, VIRTUAL_KEY, VK_CONTROL,
+                VK_LWIN, VK_MENU, VK_RWIN, VK_SHIFT,
             },
             WindowsAndMessaging::*,
         },
@@ -476,7 +477,11 @@ pub fn show(activate: bool) {
         let _ = ShowWindow(hwnd, if activate { SW_SHOW } else { SW_SHOWNOACTIVATE });
         SendMessageW(hwnd, FORCE_REDRAW, None, None);
         if activate && !SetForegroundWindow(hwnd).as_bool() {
-            log::debug!("Couldn't bring the window to the foreground");
+            let input = INPUT { r#type: INPUT_MOUSE, ..Default::default() };
+            SendInput(&[input], size_of::<INPUT>() as i32);
+            if !SetForegroundWindow(hwnd).as_bool() {
+                log::warn!("Couldn't bring the window to the foreground");
+            }
         }
     }
     let topmost = unsafe { GetWindowLongPtrW(hwnd, GWL_EXSTYLE) } as u32 & WS_EX_TOPMOST.0 != 0;
