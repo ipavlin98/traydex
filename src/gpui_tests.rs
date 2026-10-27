@@ -742,3 +742,30 @@ fn svg_bitmap_matches_whole_device_pixels_despite_float_noise() {
         "18 device pixels at 2x supersampling"
     );
 }
+
+struct Popup {
+    at: Point<Pixels>,
+}
+
+impl Render for Popup {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        div().size_full().child(gpui::deferred(
+            gpui::anchored()
+                .position(self.at)
+                .child(div().debug_selector(|| "popup".into()).size(px(20.)).bg(gpui::black())),
+        ))
+    }
+}
+
+#[gpui::test]
+fn anchored_element_lands_on_the_device_pixel_it_was_given(cx: &mut TestAppContext) {
+    let at = point(px(10.5), px(20.5));
+    let (_, cx) = cx.add_window_view(move |_, _| Popup { at });
+    cx.run_until_parked();
+    assert_eq!(cx.update(|window, _| window.scale_factor()), 2.);
+    let popup = cx.debug_bounds("popup").expect("the popup is drawn");
+    assert_eq!(
+        popup.origin, at,
+        "half a logical pixel is a whole device pixel at scale 2 and must not be rounded away"
+    );
+}

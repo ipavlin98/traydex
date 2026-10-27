@@ -1,5 +1,6 @@
 mod files;
 mod images;
+pub mod mention;
 mod recycled;
 mod settings;
 mod snapshot;
@@ -127,7 +128,7 @@ impl Payload {
         match items {
             [] => None,
             [item] => match item.text.as_deref().filter(|text| !text.trim().is_empty()) {
-                Some(text) => Some(Payload::Text(text.to_owned())),
+                Some(text) => Some(Payload::Text(mention::plain(text).into_owned())),
                 None => Some(Payload::Paths(vec![item.path.clone()])),
             },
             items => Some(Payload::Paths(items.iter().map(|item| item.path.clone()).collect())),
@@ -177,6 +178,10 @@ impl Item {
             Kind::Link => "link",
             Kind::Note => "note",
         }
+    }
+
+    pub fn shown_text(&self) -> Option<std::borrow::Cow<'_, str>> {
+        self.text.as_deref().map(mention::plain)
     }
 
     pub fn editable(&self) -> bool {
@@ -243,7 +248,7 @@ fn squash(text: &str) -> String {
 }
 
 fn title_of(text: &str) -> String {
-    let title = squash(text);
+    let title = squash(&mention::plain(text));
     if title.chars().count() <= TITLE_LIMIT {
         return title;
     }

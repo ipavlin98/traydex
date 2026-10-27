@@ -119,8 +119,9 @@ panel; the arrow keys switch between them. The mouse wheel zooms into a photo, d
 
 <img src="docs/media/notes.webp" alt="Creating a note and finding it with search" width="100%">
 
-`Ctrl+N` creates a note that saves as you type. `/` searches the shelf, tolerating typos and text typed in the
-wrong keyboard layout.<br><br>
+`Ctrl+N` creates a note that saves as you type. Type `\` (or `@`) to link a file, picture or link from the shelf: hover the
+link to peek, click to open it. `/` searches the shelf, tolerating typos and text typed in the wrong keyboard
+layout.<br><br>
 
 </td>
 <td width="50%" valign="top">

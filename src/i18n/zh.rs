@@ -411,7 +411,7 @@ pub(super) static ZH: Strings = Strings {
     qr_copy: "复制图片",
     key_note: "新建笔记",
     new_note: "新建笔记",
-    note_placeholder: "开始输入…",
+    note_placeholder: "开始输入… 输入 \\ 可链接货架上的内容",
     add_ytdlp: "下载视频",
     add_ytdlp_hint: "需要 yt-dlp、ffmpeg 和 Deno（约 250 MB，需单独下载）",
     verb_ytdlp: "从链接下载视频或音频",
@@ -466,4 +466,9 @@ pub(super) static ZH: Strings = Strings {
     update_failed: "无法更新：{}",
     update_corrupted: "下载的更新已损坏",
     update_notify: "Traydex {} 已发布。打开 Traydex 即可更新",
+    mention_none: "没有找到",
+    mention_gone: "已从货架移除",
+    mention_hint: "单击打开 · Ctrl+单击在货架上查找",
+    back_to_note: "返回笔记",
+    cited_in: "被提及于：{}",
 };

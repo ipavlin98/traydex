@@ -39,7 +39,7 @@ impl Shelf {
         self.rows.set(rows);
     }
 
-    fn reveal_row(&self, row: usize) {
+    pub(super) fn reveal_row(&self, row: usize) {
         let rows = self.rows.get();
         let scroll = self.scroll(Page::Shelf);
         let view = f32::from(scroll.bounds().size.height);
@@ -137,7 +137,7 @@ impl Shelf {
         }
         let origin = origin.into();
         let count = items.len();
-        let texts: Option<Vec<&str>> = items.iter().map(|item| item.text.as_deref()).collect();
+        let texts: Option<Vec<_>> = items.iter().map(|item| item.shown_text()).collect();
         if let Some(texts) = texts {
             cx.write_to_clipboard(ClipboardItem::new_string(texts.join("\r\n")));
             log::debug!("Copied {count} item(s) as plain text");

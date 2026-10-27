@@ -86,6 +86,7 @@ fn text_tokens_meet_contrast_thresholds_on_their_backgrounds() {
             ("muted/danger-tint-surface", t.muted, over(t.danger_tint, t.surface), BODY),
             ("faint/bg", t.faint, t.bg, TERTIARY),
             ("faint/surface", t.faint, t.surface, TERTIARY),
+            ("faint/hover", t.faint, t.hover, TERTIARY),
             ("code_ink/code_paper", t.code_ink, t.code_paper, BODY),
         ];
         for (name, text, background, least) in pairs {

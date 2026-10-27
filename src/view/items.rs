@@ -259,7 +259,7 @@ impl Shelf {
                         .line_height(rem(line::CAPTION))
                         .text_color(t.muted)
                         .child(
-                            item.text.as_deref().unwrap_or_default().trim().chars().take(TILE_TEXT).collect::<String>(),
+                            item.shown_text().unwrap_or_default().trim().chars().take(TILE_TEXT).collect::<String>(),
                         ),
                 )
                 .child(div().absolute().left_0().right_0().bottom_0().h(rem(TILE_TEXT_FADE)).bg(fade(t.surface, 180.))),

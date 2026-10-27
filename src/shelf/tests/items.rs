@@ -748,3 +748,28 @@ fn drag_all_skips_missing_files(cx: &mut TestAppContext) {
     });
     assert_eq!(h.fake.calls().last(), Some(&Call::Drag(vec![ids[1].clone()])));
 }
+
+#[gpui::test]
+fn the_wheel_zooms_an_image_right_after_it_opens(cx: &mut TestAppContext) {
+    let mut h = open_with(cx, true, |sandbox, store, _| {
+        store.add_paths(vec![sandbox.file("фото.png", png(400, 300))]);
+    });
+    let photo = h.ids()[0].clone();
+    h.pending(|shelf, window, cx| shelf.show_preview(photo, window, cx));
+    h.settle();
+    h.cx.run_until_parked();
+    let center = h.center("preview-image");
+    h.read(|shelf| shelf.preview().expect("preview").frame.set(None));
+    h.cx.update(|window, _| window.refresh());
+    h.cx.run_until_parked();
+    h.cx.simulate_event(gpui::ScrollWheelEvent {
+        position: center,
+        delta: gpui::ScrollDelta::Lines(point(0., 3.)),
+        ..Default::default()
+    });
+    h.settle();
+    assert!(
+        h.read(|shelf| shelf.preview().expect("preview").zoom.zoomed()),
+        "the frame drawn before the area was measured still zooms, no click is needed first"
+    );
+}

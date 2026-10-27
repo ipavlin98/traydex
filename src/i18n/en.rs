@@ -411,7 +411,7 @@ pub(super) static EN: Strings = Strings {
     qr_copy: "Copy image",
     key_note: "Create a note",
     new_note: "New note",
-    note_placeholder: "Start typing…",
+    note_placeholder: "Start typing… Type \\ to link something from the shelf",
     add_ytdlp: "Download video",
     add_ytdlp_hint: "Needs yt-dlp, ffmpeg and Deno (about 250 MB, downloaded separately)",
     verb_ytdlp: "Video or audio from a link",
@@ -466,4 +466,9 @@ pub(super) static EN: Strings = Strings {
     update_failed: "Couldn't update: {}",
     update_corrupted: "The downloaded update is damaged",
     update_notify: "Traydex {} is available. Open Traydex to update",
+    mention_none: "Nothing found",
+    mention_gone: "Removed from the shelf",
+    mention_hint: "Click to open · Ctrl+click to find on the shelf",
+    back_to_note: "Back to the note",
+    cited_in: "Mentioned in: {}",
 };
