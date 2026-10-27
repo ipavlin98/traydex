@@ -84,7 +84,9 @@ check failed; automatic checks only write failures to the log.
   gaps between tiles don't accept drops.
 - Preview any card right in the panel: double-click (can be turned off in Settings, then a double-click opens the
   file), `Space` on the card under the cursor, or the eye button. Images (including animated GIF and SVG) fit the
-  window; text and code are shown with line numbers, the first 2 MB for large files; folders and ZIP archives as a
+  window; the mouse wheel zooms a raster image up to 16 times around the cursor, dragging moves the enlarged image
+  without uncovering its edges, a double-click zooms 3 times at the cursor or back to fit, and the next card starts
+  fitted again (SVG and images whose size can't be read don't zoom); text and code are shown with line numbers, the first 2 MB for large files; folders and ZIP archives as a
   grid of tiles with names and sizes; notes and links in full and editable right away. Everything else (PDF, Office
   documents, video, HTML and so on) opens with the same Windows preview handler as the Explorer preview pane. If
   there's no handler, you see a thumbnail or icon, the file type and an *Open* button.

@@ -108,7 +108,7 @@ Select several cards and drag them into a folder or an app. *Drag everything* mo
 <img src="docs/media/preview.webp" alt="Previewing images and documents inside Traydex" width="100%">
 
 Double-click a card or press `Space`. Images, text, code, folders, archives, PDF and Office files open inside the
-panel; the arrow keys switch between them.<br><br>
+panel; the arrow keys switch between them. The mouse wheel zooms into a photo, dragging moves it.<br><br>
 
 </td>
 </tr>

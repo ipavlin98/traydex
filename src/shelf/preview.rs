@@ -1,6 +1,6 @@
 use super::notes::Note;
 use super::{Page, Screen, Shelf, copy_id};
-use crate::preview::{self, Content, Loaded};
+use crate::preview::{self, Content, Loaded, Stage, Zoom};
 use crate::store::ItemId;
 use crate::system::{Embedded, Frame, Handler};
 use crate::theme::Theme;
@@ -20,6 +20,7 @@ pub struct Preview {
     pub host: Option<Rc<dyn Embedded>>,
     pub frame: Rc<Cell<Option<Frame>>>,
     pub note: Option<Note>,
+    pub zoom: Zoom,
 }
 
 fn colorref(color: Rgba) -> u32 {
@@ -84,6 +85,7 @@ impl Shelf {
                 host: None,
                 frame: Rc::default(),
                 note,
+                zoom: Zoom::default(),
             }),
             cx,
         );
@@ -177,6 +179,37 @@ impl Shelf {
             .and_then(|index| order.get(index));
         if let Some(next) = next {
             self.show_preview(next.clone(), window, cx);
+        }
+    }
+
+    pub fn zoom_preview(&mut self, notches: f32, at: Point<f32>, stage: Stage, cx: &mut Context<Self>) {
+        self.change_zoom(|zoom| zoom.wheel(notches, at, stage), cx);
+    }
+
+    pub fn toggle_zoom(&mut self, at: Point<f32>, stage: Stage, cx: &mut Context<Self>) {
+        self.change_zoom(|zoom| zoom.toggle(at, stage), cx);
+    }
+
+    pub fn grab_preview(&mut self, at: Point<f32>, cx: &mut Context<Self>) {
+        self.change_zoom(|zoom| zoom.grab(at), cx);
+    }
+
+    pub fn drag_preview(&mut self, at: Point<f32>, stage: Stage, cx: &mut Context<Self>) {
+        if self.preview_mut().is_some_and(|preview| preview.zoom.drag(at, stage)) {
+            cx.notify();
+        }
+    }
+
+    pub fn release_preview(&mut self, cx: &mut Context<Self>) {
+        if self.preview_mut().is_some_and(|preview| preview.zoom.release()) {
+            cx.notify();
+        }
+    }
+
+    fn change_zoom(&mut self, change: impl FnOnce(&mut Zoom), cx: &mut Context<Self>) {
+        if let Some(preview) = self.preview_mut() {
+            change(&mut preview.zoom);
+            cx.notify();
         }
     }
 

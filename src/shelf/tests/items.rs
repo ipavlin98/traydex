@@ -594,6 +594,19 @@ fn preview_ignores_stale_results(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
+fn image_zoom_starts_over_on_the_next_item(cx: &mut TestAppContext) {
+    let mut h = open_with(cx, true, notes(&["first", "second"]));
+    let ids = h.ids();
+    h.pending(|shelf, window, cx| shelf.show_preview(ids[0].clone(), window, cx));
+    let stage = crate::preview::Stage::new(size(800., 600.), size(400., 300.), 0.);
+    h.act(|shelf, _, cx| shelf.zoom_preview(2., point(100., 100.), stage, cx));
+    let zoomed = |h: &mut Harness| h.read(|shelf| shelf.preview().expect("preview").zoom.zoomed());
+    assert!(zoomed(&mut h));
+    h.pending(|shelf, window, cx| shelf.step_preview(1, window, cx));
+    assert!(!zoomed(&mut h));
+}
+
+#[gpui::test]
 fn preview_steps_within_bounds_and_opens_targets(cx: &mut TestAppContext) {
     let mut h = open_with(cx, true, notes(&["first", "second"]));
     let ids = h.ids();
