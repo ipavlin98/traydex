@@ -168,13 +168,7 @@ pub(super) fn feed(point: POINT) {
     let dpi = unsafe { GetDpiForSystem() }.max(96) as i32;
     let covered = || !window::visible() && fullscreen(monitor, screen);
     if DRAG_REVEAL.load(Ordering::Relaxed)
-        && reveals_drag(
-            distance(point, tip),
-            DRAG_ZONE * dpi / 96,
-            || buttons_down() && drag::unseen(),
-            || outer(tip, outward),
-            covered,
-        )
+        && reveals_drag(distance(point, tip), DRAG_ZONE * dpi / 96, drag::unseen, || outer(tip, outward), covered)
     {
         log::debug!("A drag entered the hot corner area");
         drag::mark_seen();
@@ -255,6 +249,7 @@ unsafe extern "system" fn foreground_changed(_: HWINEVENTHOOK, _: u32, front: HW
 pub(super) fn tick() {
     let mut point = POINT::default();
     if unsafe { GetCursorPos(&mut point) }.is_ok() {
+        drag::poll_press(point);
         feed(point);
     }
 }

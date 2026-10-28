@@ -167,6 +167,17 @@ fn drag_ending_inside_keeps_window_until_pointer_leaves(cx: &mut TestAppContext)
 }
 
 #[gpui::test]
+fn drag_keeps_window_while_buttons_look_released(cx: &mut TestAppContext) {
+    let mut h = open(cx, false);
+    h.send(Event::DragStart);
+    h.elapse(Duration::from_secs(1));
+    assert!(h.fake.state().visible, "an elevated drag source hides the held button from Traydex");
+    h.send(Event::DragEnd);
+    h.elapse(Duration::from_millis(30));
+    assert!(!h.fake.state().visible);
+}
+
+#[gpui::test]
 fn drag_with_auto_show_off_leaves_window_alone(cx: &mut TestAppContext) {
     let mut h = open_with(cx, false, |_, store, _| store.settings_mut().automatic = false);
     h.send(Event::DragStart);

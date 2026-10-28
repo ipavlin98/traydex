@@ -292,7 +292,22 @@ fn press_at(data: &MSLLHOOKSTRUCT) {
     if window::visible() && !window::contains(data.pt) {
         send(Event::PressOutside);
     }
-    let thread = unsafe { GetWindowThreadProcessId(WindowFromPoint(data.pt), None) };
+    press(thread_at(data.pt));
+}
+
+pub(super) fn poll_press(point: POINT) {
+    let thread = thread_at(point);
+    if PRESS.get().is_none() && external_drag(thread).is_some() {
+        log::debug!("A drag is running in a window the mouse hook doesn't see");
+        press(thread);
+    }
+}
+
+fn thread_at(point: POINT) -> u32 {
+    unsafe { GetWindowThreadProcessId(WindowFromPoint(point), None) }
+}
+
+fn press(thread: u32) {
     let previous = PRESS.get();
     PRESS.set(Some(Press {
         thread,
@@ -318,15 +333,16 @@ pub(super) fn tick() {
         return;
     };
     let shake = shake_level();
+    let source = external_drag(press.thread);
     let poll = Poll {
-        held: buttons_down(),
+        held: buttons_down() || source.is_some(),
         exporting: exporting(),
         automatic: AUTOMATIC.load(Ordering::Relaxed),
         shake,
         span: shake.span() * unsafe { GetDpiForSystem() }.max(96) as i32 / 96,
         now: Instant::now(),
     };
-    let (next, signal) = step(press, poll, || external_drag(press.thread), cursor_x);
+    let (next, signal) = step(press, poll, || source, cursor_x);
     match signal {
         Some(Signal::Start) => send(Event::DragStart),
         Some(Signal::End) => send(Event::DragEnd),
