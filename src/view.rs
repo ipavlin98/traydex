@@ -8,6 +8,7 @@ mod motion;
 mod password;
 mod preview;
 mod rename;
+mod scroll;
 mod settings;
 mod share;
 mod status;
@@ -16,6 +17,7 @@ mod title;
 mod widgets;
 
 use self::motion::{Enter, Motion};
+use self::scroll::glide;
 pub(crate) use self::tiles::STRIP_COVER;
 use self::widgets::{
     KEYS_SEARCH, Look, Marked, Tip, badge, badge_icon, bare_button, copy_button, highlighted, hint, hint_card, icon,
@@ -354,6 +356,7 @@ impl Shelf {
             .min_h_0()
             .flex()
             .flex_col()
+            .child(glide(mark, scroll.clone()))
             .child(content.flex_1().min_h_0().overflow_y_scroll().track_scroll(&scroll))
             .children(edge_fades(t, hidden_by(scroll)))
             .into_any_element()

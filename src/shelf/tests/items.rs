@@ -773,3 +773,29 @@ fn the_wheel_zooms_an_image_right_after_it_opens(cx: &mut TestAppContext) {
         "the frame drawn before the area was measured still zooms, no click is needed first"
     );
 }
+
+#[gpui::test]
+fn the_wheel_glides_the_list_by_exactly_one_notch(cx: &mut TestAppContext) {
+    const NOTCH: f32 = 60.;
+    let mut h = open_with(cx, true, |_, store, _| {
+        for index in 0..80 {
+            store.add_text(format!("note {index}")).expect("note");
+        }
+    });
+    let position = h.center("items");
+    let offset = |h: &mut Harness| h.read(|shelf| shelf.scroll(Page::Shelf).offset().y);
+    h.cx.simulate_event(gpui::ScrollWheelEvent {
+        position,
+        delta: gpui::ScrollDelta::Pixels(point(px(0.), px(-NOTCH))),
+        ..Default::default()
+    });
+    h.settle();
+    let first = offset(&mut h);
+    assert!(first < px(0.) && first > px(-NOTCH), "the first frame moves part of the way, got {first:?}");
+    for _ in 0..60 {
+        h.cx.executor().advance_clock(Duration::from_millis(16));
+        h.cx.update(|window, _| window.refresh());
+        h.settle();
+    }
+    assert_eq!(offset(&mut h), px(-NOTCH), "the list stops one notch down, not two");
+}

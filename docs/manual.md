@@ -143,6 +143,7 @@ check failed; automatic checks only write failures to the log.
 |---|---|
 | Show or hide the panel | `Ctrl+Shift+Space`, the tray icon or the hot corner |
 | Hide the panel | `Esc` or the cross in the title bar; `Esc` clears the selection first |
+| Scroll | The mouse wheel scrolls the shelf, the pages and folder and archive previews smoothly: each notch glides to its place, quick notches add up. Text previews and notes keep ordinary scrolling |
 | Move the window | Drag the title bar |
 | Resize | Drag an edge or a corner |
 | Add the clipboard contents | `Ctrl+V` or the *Ctrl V paste from clipboard* button on the shelf |
