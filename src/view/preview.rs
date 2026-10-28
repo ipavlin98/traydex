@@ -1,3 +1,4 @@
+use super::scroll::glide;
 use super::widgets::{
     Look, Marked, Tip, badge_icon, copy_button, disabled_button, grid, icon_button, leading_icon, measure, spinner,
     text_button,
@@ -165,7 +166,7 @@ fn entry_grid(t: Theme, preview: &Preview, entries: Arc<[Entry]>, width: f32) ->
     let width =
         if fills { (available - TILE_GAP * (columns - 1) as f32) / columns as f32 } else { TILE_WIDTH.min(available) };
     let room = width - TILE_PADDING * 2. - 2.;
-    uniform_list(SharedString::from(format!("entries-{}", preview.key)), rows, move |range, window, _| {
+    let list = uniform_list(SharedString::from(format!("entries-{}", preview.key)), rows, move |range, window, _| {
         range
             .map(|row| {
                 let start = row * columns;
@@ -187,8 +188,9 @@ fn entry_grid(t: Theme, preview: &Preview, entries: Arc<[Entry]>, width: f32) ->
     })
     .track_scroll(preview.grid.clone())
     .size_full()
-    .pt(rem(GRID_PADDING))
-    .into_any_element()
+    .pt(rem(GRID_PADDING));
+    let handle = preview.grid.0.borrow().base_handle.clone();
+    div().relative().size_full().child(glide("entry-grid", handle)).child(list).into_any_element()
 }
 
 fn notches(delta: ScrollDelta) -> f32 {
