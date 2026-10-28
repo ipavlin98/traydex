@@ -255,6 +255,7 @@ unsafe extern "system" fn foreground_changed(_: HWINEVENTHOOK, _: u32, front: HW
 pub(super) fn tick() {
     let mut point = POINT::default();
     if unsafe { GetCursorPos(&mut point) }.is_ok() {
+        drag::poll_press(point);
         feed(point);
     }
 }

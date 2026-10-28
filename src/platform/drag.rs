@@ -114,7 +114,11 @@ pub(super) fn mark_seen() {
 }
 
 pub fn buttons_down() -> bool {
-    unsafe { GetAsyncKeyState(VK_LBUTTON.0 as _) < 0 || GetAsyncKeyState(VK_RBUTTON.0 as _) < 0 }
+    left_down() || unsafe { GetAsyncKeyState(VK_RBUTTON.0 as _) } < 0
+}
+
+fn left_down() -> bool {
+    unsafe { GetAsyncKeyState(VK_LBUTTON.0 as _) < 0 }
 }
 
 pub(super) fn class_name(window: HWND) -> String {
@@ -266,8 +270,7 @@ fn right_press(dragging: bool, shown: bool, left_held: bool) -> RightPress {
 
 fn right_down(data: &MSLLHOOKSTRUCT) -> bool {
     let dragging = cancels(PRESS.get(), exporting());
-    let left_held = unsafe { GetAsyncKeyState(VK_LBUTTON.0 as _) } < 0;
-    match right_press(dragging, window::visible(), left_held) {
+    match right_press(dragging, window::visible(), left_down()) {
         RightPress::Pass => {
             press_at(data);
             false
@@ -292,7 +295,18 @@ fn press_at(data: &MSLLHOOKSTRUCT) {
     if window::visible() && !window::contains(data.pt) {
         send(Event::PressOutside);
     }
-    let thread = unsafe { GetWindowThreadProcessId(WindowFromPoint(data.pt), None) };
+    press(data.pt);
+}
+
+pub(super) fn poll_press(point: POINT) {
+    if PRESS.get().is_none() && left_down() {
+        log::debug!("Left button held over a window the mouse hook doesn't see");
+        press(point);
+    }
+}
+
+fn press(point: POINT) {
+    let thread = unsafe { GetWindowThreadProcessId(WindowFromPoint(point), None) };
     let previous = PRESS.get();
     PRESS.set(Some(Press {
         thread,
