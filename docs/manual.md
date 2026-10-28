@@ -374,6 +374,14 @@ GPUI 0.2.2 lives in `vendor/gpui` with nine patches, wired in through `[patch.cr
    (18.000002), the bitmap got an extra texel: the icon was stretched by half a pixel and drawn off its center, so the
    rotating spinner wobbled around its axis. The patch is `svg_raster_size` in `vendor/gpui/src/window.rs`; the
    regression test is `svg_bitmap_matches_whole_device_pixels_despite_float_noise` in `src/gpui_tests.rs`.
+10. **Pixel-fitted icons.** Icons are drawn on a 24-unit grid and shown at 14–20 px times the Windows and interface
+    scale, so their 1.75-unit lines used to fall between device pixels and spread over two half-bright ones. Before
+    rasterizing, `vendor/gpui/src/svg_renderer/hint.rs` moves straight horizontal and vertical lines so that their
+    whole pixels are solid (to a pixel center when a line is 1–2 pixels wide, to a pixel edge when 2–3 wide and for the
+    edges of fills) and moves every other point in proportion between them, like font hinting. Stroke widths stay as
+    they are, so icons keep their weight; shapes move by at most half a pixel. Icons with anything but
+    solid paths (gradients, images, text, clipping, masks, filters, group opacity) are rendered by resvg as before.
+    The regression test is `icon_lines_land_on_whole_device_pixels_at_any_scale` in `src/gpui_tests.rs`.
 
 ### Patch in `vendor/unrar`
 

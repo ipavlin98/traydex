@@ -96,6 +96,7 @@ pub use style::*;
 pub use styled::*;
 pub use subscription::*;
 use svg_renderer::*;
+pub use svg_renderer::svg_icon_mask;
 pub(crate) use tab_stop::*;
 pub use taffy::{AvailableSpace, LayoutId};
 #[cfg(any(test, feature = "test-support"))]
