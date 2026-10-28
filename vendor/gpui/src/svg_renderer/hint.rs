@@ -1,7 +1,9 @@
 //! Pixel fitting for icons: straight horizontal and vertical lines get their solid core on whole
 //! device pixels, and the rest of the outline moves along between them. Stroke widths stay as they
 //! are, so icons keep their weight.
-//! Only trees of solid paths are fitted; anything else is left to resvg.
+//! Only trees of solid paths that ask for crisp edges (`shape-rendering="crispEdges"`) are fitted,
+//! and they stay anti-aliased; anything else, such as a logo built from layers that must stay
+//! aligned, is left to resvg.
 
 use resvg::tiny_skia::{
     FillRule, Paint, Path, PathBuilder, PathSegment, Pixmap, Point, Stroke, StrokeDash, Transform,
@@ -116,7 +118,8 @@ fn collect<'a>(group: &'a usvg::Group, sources: &mut Vec<&'a usvg::Path>) -> boo
                 }
             }
             usvg::Node::Path(path) => {
-                if path.fill().is_some_and(|fill| !solid(fill.paint()))
+                if path.rendering_mode() != usvg::ShapeRendering::CrispEdges
+                    || path.fill().is_some_and(|fill| !solid(fill.paint()))
                     || path.stroke().is_some_and(|stroke| !solid(stroke.paint()))
                 {
                     return false;

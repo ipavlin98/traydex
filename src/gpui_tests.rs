@@ -758,6 +758,23 @@ fn icon_lines_land_on_whole_device_pixels_at_any_scale() {
 }
 
 #[test]
+fn logo_arrow_stays_centered_in_its_pentagon() {
+    use gpui::AssetSource as _;
+    let arrow = crate::icons::Assets.load("brand-arrow").expect("load").expect("the logo arrow");
+    for device in [18, 20, 22, 25] {
+        let side = device as usize * 2;
+        let (_, mask) = gpui::svg_icon_mask(&arrow, size(DevicePixels(side as i32), DevicePixels(side as i32)))
+            .expect("rasterized");
+        let stem = side * 3 / 8;
+        let row = &mask[stem * side..(stem + 1) * side];
+        let ink: f32 = row.iter().map(|alpha| f32::from(*alpha)).sum();
+        let middle = row.iter().enumerate().map(|(x, alpha)| x as f32 * f32::from(*alpha)).sum::<f32>() / ink;
+        let center = side as f32 / 2. - 0.5;
+        assert!((middle - center).abs() <= 0.25, "at {device} px the arrow stem isn't centered: {row:?}");
+    }
+}
+
+#[test]
 fn svg_bitmap_matches_whole_device_pixels_despite_float_noise() {
     let raster = svg_raster_size(size(px(18.000002), px(17.999878)).scale(1.));
     assert_eq!(

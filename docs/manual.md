@@ -379,9 +379,12 @@ GPUI 0.2.2 lives in `vendor/gpui` with nine patches, wired in through `[patch.cr
     rasterizing, `vendor/gpui/src/svg_renderer/hint.rs` moves straight horizontal and vertical lines so that their
     whole pixels are solid (to a pixel center when a line is 1–2 pixels wide, to a pixel edge when 2–3 wide and for the
     edges of fills) and moves every other point in proportion between them, like font hinting. Stroke widths stay as
-    they are, so icons keep their weight; shapes move by at most half a pixel. Icons with anything but
-    solid paths (gradients, images, text, clipping, masks, filters, group opacity) are rendered by resvg as before.
-    The regression test is `icon_lines_land_on_whole_device_pixels_at_any_scale` in `src/gpui_tests.rs`.
+    they are, so icons keep their weight; shapes move by at most half a pixel. Only SVGs that ask for it with
+    `shape-rendering="crispEdges"` are fitted (they stay anti-aliased): the line icons in `src/icons.rs` do, the logo
+    and the progress ring don't. The logo is two layers, and fitting each on its own pushed the arrow off the center
+    of the pentagon. Anything but solid paths (gradients, images, text, clipping, masks, filters, group opacity) is
+    rendered by resvg as before. The regression tests are `icon_lines_land_on_whole_device_pixels_at_any_scale` and
+    `logo_arrow_stays_centered_in_its_pentagon` in `src/gpui_tests.rs`.
 
 ### Patch in `vendor/unrar`
 

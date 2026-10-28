@@ -164,7 +164,7 @@ impl AssetSource for Assets {
             return Ok(Some(Cow::Owned(svg.into_bytes())));
         }
         Ok(shape(path).map(|shape| {
-            Cow::Owned(format!("<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'>{shape}</svg>").into_bytes())
+            Cow::Owned(format!("<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round' shape-rendering='crispEdges'>{shape}</svg>").into_bytes())
         }))
     }
 
