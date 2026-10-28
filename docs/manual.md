@@ -315,7 +315,7 @@ statically. Dependency versions are pinned in `Cargo.lock`. More on building and
 
 ### Patches in `vendor/gpui`
 
-GPUI 0.2.2 lives in `vendor/gpui` with nine patches, wired in through `[patch.crates-io]` in `Cargo.toml`.
+GPUI 0.2.2 lives in `vendor/gpui` with the patches below, wired in through `[patch.crates-io]` in `Cargo.toml`.
 
 1. **Pixel snapping.** All layout sizes are rounded to whole physical pixels, border widths to a whole number of
    pixels and at least one, and content offsets (scrolling, for example) to whole pixels. Identical elements are
@@ -323,14 +323,20 @@ GPUI 0.2.2 lives in `vendor/gpui` with nine patches, wired in through `[patch.cr
    `snap_border` and the offset snapping in `with_element_offset` in `vendor/gpui/src/window.rs`. Anchored popups no
    longer round their offset to whole logical pixels first (`prepaint` in `vendor/gpui/src/elements/anchored.rs`),
    so at 125% or 150% a popup lands on the same physical pixel as the element it opens from; the regression test is
-   `anchored_element_lands_on_the_device_pixel_it_was_given` in `src/gpui_tests.rs`.
+   `anchored_element_lands_on_the_device_pixel_it_was_given` in `src/gpui_tests.rs`. The hit test compares the cursor
+   with element edges in device pixels too (`hit_test` in `vendor/gpui/src/window.rs`), so the element that is drawn
+   under the cursor is the one that gets hovered and clicked; the regression test is
+   `hit_test_follows_device_pixels_at_fractional_edges`.
 2. **Mouse leave.** When the cursor leaves the window (`WM_MOUSELEAVE`, including when the window is hidden or
    covered), the Windows backend sends `PlatformInput::MouseExited`, as the macOS, X11 and Wayland backends do. The
    core then treats the cursor as outside the window: the hit test and tooltip checks return nothing until the next
    mouse event. Without it, hover and tooltips stayed after a quick mouse exit or after the window was hidden or
    covered. The patch is `handle_mouse_leave_msg` in `vendor/gpui/src/platform/windows/events.rs`, the
    `pointer_inside` field and `pointer_hit_test` in `vendor/gpui/src/window.rs`, and the tooltip checks in
-   `vendor/gpui/src/elements/div.rs`.
+   `vendor/gpui/src/elements/div.rs`. While the cursor is over the window, `WM_SETCURSOR` always sets the GPUI cursor,
+   not only when the window switches between having one and not, so a cursor left by Windows or another window is
+   replaced right away (`vendor/gpui/src/platform/windows/events.rs`). The regression test is
+   `pointer_leaving_the_window_clears_hover`.
 3. **Grab cursors.** On Windows, the `OpenHand` and `ClosedHand` cursors are shown as the system *Move* cursor;
    without the patch they were a plain arrow, since Windows has no hand cursor of its own. The patch is
    `load_cursor` in `vendor/gpui/src/platform/windows/util.rs`.
@@ -386,6 +392,37 @@ GPUI 0.2.2 lives in `vendor/gpui` with nine patches, wired in through `[patch.cr
     of the pentagon. Anything but solid paths (gradients, images, text, clipping, masks, filters, group opacity) is
     rendered by resvg as before. The regression tests are `icon_lines_land_on_whole_device_pixels_at_any_scale` and
     `logo_arrow_stays_centered_in_its_pentagon` in `src/gpui_tests.rs`.
+11. **Hover transitions.** With the `HoverTransition` global set to a duration, hover and group hover styles of
+    stateful elements fade instead of switching at once; Traydex sets it while interface animations are on. Colors
+    are mixed and ease out into their target, a transition reversed halfway starts from where it was and takes only
+    the time the distance left needs, opacity fades only for elements without a background of their own (a half
+    transparent panel would show what's beneath through it), and the other properties switch halfway. An element that
+    moved, for example while scrolling, takes its new hover state without fading, and hovering never changes the size
+    or position of anything. Without the global, hover styles apply instantly, as upstream. The patch is
+    `vendor/gpui/src/elements/hover.rs` and `hover_style` in `vendor/gpui/src/elements/div.rs`; the regression tests
+    are the `hover_fade_*`, `blended_hover_*` and `hover_transition_*` tests in `src/gpui_tests.rs`.
+12. **Cover-fitted images.** An image fitted to cover its element is painted only where the element is: the part
+    that overflows is cut off, and the corner radii round the element's corners, not the corners of the larger image.
+    `paint_image` takes the shown part next to the full bounds, and `crop_image` in `vendor/gpui/src/window.rs` picks
+    the texels; the regression test is `a_cover_fitted_image_is_cut_to_its_element_so_corners_round_the_element`.
+13. **Truncated text.** A text truncated with an ellipsis is measured again when its truncation width changes, so a
+    text capped by `max_w` ends with an ellipsis instead of being clipped mid-letter, and each measurement truncates
+    its own copy of the style runs, so a second pass doesn't break them. The cut never leaves a space or punctuation
+    before the ellipsis (`cut_before_ellipsis` in `vendor/gpui/src/text_system/line_wrapper.rs`, which Traydex also
+    uses for its own cuts). The patch is `vendor/gpui/src/elements/text.rs` and `line_wrapper.rs`; the regression
+    tests are the `truncated_text_*` tests and `truncation_never_leaves_a_space_or_punctuation_before_the_ellipsis`.
+14. **Topmost pop-ups.** `WindowKind::PopUp` windows are created with `WS_EX_TOPMOST`, since a background process
+    such as Traydex in the tray can't make a window topmost later. The patch is `window_styles` in
+    `vendor/gpui/src/platform/windows/window.rs`; the regression test is `popup_windows_are_created_topmost`.
+15. **Dragged value.** `App::active_drag_value` returns the value of the current drag if it has the given type, so a
+    view can lift the tile that is being dragged (`vendor/gpui/src/app.rs`); the regression test is
+    `active_drag_value_reports_the_dragged_value_until_release`.
+16. **Test and measurement support.** With the `test-support` feature, debug bounds are cleared with every frame, so a
+    headless test looking an element up by its mark (`cx.debug_bounds`) doesn't find one that is no longer drawn
+    (`debug_bounds_forget_elements_that_are_no_longer_drawn`).
+    With `ZED_MEASUREMENTS=1`, `log_timing` in `vendor/gpui/src/window.rs` writes when each frame and each opacity
+    change happens to stderr, which the E2E `--measure` option and the `motion` suite read. In debug builds,
+    `layout_line` checks that the style runs cover the whole text.
 
 ### Patch in `vendor/unrar`
 
