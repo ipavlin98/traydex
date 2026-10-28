@@ -27,7 +27,7 @@ Traydex again, and tray notifications aren't shown.
 With *Check for updates automatically* on (the default; off in the `--test-profile` profile), Traydex asks the
 GitHub API for the repository's releases a minute after startup and then every 24 hours while it runs. The button
 next to the version at the bottom of Settings checks right away and also reports when the version is current or the
-check failed; automatic checks only write failures to the log.
+check failed; automatic checks only write failures to the log. The version itself is a link to the Releases page.
 
 - **What fits this copy.** The architecture is the one Traydex was built for (x64, x86 or ARM64), the form is
   portable when `portable.txt` sits next to the exe and the installer otherwise, and the channel follows the running

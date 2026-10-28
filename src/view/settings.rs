@@ -537,7 +537,15 @@ impl Shelf {
             .gap(rem(space::XS))
             .text_size(rem(text::CAPTION))
             .text_color(t.faint)
-            .child(crate::PRODUCT)
+            .child(
+                div()
+                    .id("releases")
+                    .marked("releases")
+                    .cursor_pointer()
+                    .hover(move |s| s.text_color(t.muted))
+                    .child(crate::PRODUCT)
+                    .on_click(cx.safe_listener(|shelf, _, _, _| shelf.open_link(crate::update::RELEASES_PAGE))),
+            )
             .child(check.marked("check-updates"))
             .marked("version")
     }

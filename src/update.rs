@@ -16,6 +16,7 @@ use zip::ZipArchive;
 
 pub const WAIT_FLAG: &str = "--after-update";
 const RELEASES: &str = "https://api.github.com/repos/ipavlin98/traydex/releases?per_page=30";
+pub const RELEASES_PAGE: &str = "https://github.com/ipavlin98/traydex/releases";
 const ACCEPT: &str = "Accept: application/vnd.github+json";
 const CHECK_TIMEOUT: &str = "60";
 const SUMS: &str = "SHA256SUMS.txt";
