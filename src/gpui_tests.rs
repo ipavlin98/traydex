@@ -734,6 +734,30 @@ fn glyph_baseline_goes_to_the_nearest_pixel_row() {
 }
 
 #[test]
+fn icon_lines_land_on_whole_device_pixels_at_any_scale() {
+    use gpui::AssetSource as _;
+    const ROW: usize = 5;
+    let plus = crate::icons::Assets.load("plus").expect("load").expect("the plus icon");
+    for device in [14, 17, 18, 20, 21] {
+        let texels = DevicePixels(device * 2);
+        let (_, mask) = gpui::svg_icon_mask(&plus, size(texels, texels)).expect("rasterized");
+        let side = device as usize * 2;
+        let pixel = |x: usize, y: usize| -> u32 {
+            [(0, 0), (1, 0), (0, 1), (1, 1)]
+                .iter()
+                .map(|(dx, dy)| u32::from(mask[(y * 2 + dy) * side + x * 2 + dx]))
+                .sum::<u32>()
+                / 4
+        };
+        let row: Vec<u32> = (0..device as usize).map(|x| pixel(x, ROW)).collect();
+        assert!(
+            row.iter().any(|alpha| *alpha >= 250),
+            "at {device} px the vertical stroke of + is spread over {row:?} without a solid pixel"
+        );
+    }
+}
+
+#[test]
 fn svg_bitmap_matches_whole_device_pixels_despite_float_noise() {
     let raster = svg_raster_size(size(px(18.000002), px(17.999878)).scale(1.));
     assert_eq!(

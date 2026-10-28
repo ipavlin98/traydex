@@ -5,6 +5,8 @@ use std::{
     sync::{Arc, LazyLock},
 };
 
+mod hint;
+
 /// When rendering SVGs, we render them at twice the size to get a higher-quality result.
 pub const SMOOTH_SVG_SCALE_FACTOR: f32 = 2.;
 
@@ -65,40 +67,50 @@ impl SvgRenderer {
             return Ok(None);
         };
 
-        let pixmap = self.render_pixmap(&bytes, SvgSize::Size(params.size))?;
-
-        // Convert the pixmap's pixels into an alpha mask.
-        let size = Size::new(
-            DevicePixels(pixmap.width() as i32),
-            DevicePixels(pixmap.height() as i32),
-        );
-        let alpha_mask = pixmap
-            .pixels()
-            .iter()
-            .map(|p| p.alpha())
-            .collect::<Vec<_>>();
-        Ok(Some((size, alpha_mask)))
+        let tree = usvg::Tree::from_data(&bytes, &self.usvg_options)?;
+        Ok(Some(icon_mask(&tree, params.size)?))
     }
 
     pub fn render_pixmap(&self, bytes: &[u8], size: SvgSize) -> Result<Pixmap, usvg::Error> {
         let tree = usvg::Tree::from_data(bytes, &self.usvg_options)?;
-        let svg_size = tree.size();
         let scale = match size {
-            SvgSize::Size(size) => size.width.0 as f32 / svg_size.width(),
+            SvgSize::Size(size) => size.width.0 as f32 / tree.size().width(),
             SvgSize::ScaleFactor(scale) => scale,
         };
-
-        // Render the SVG to a pixmap with the specified width and height.
-        let mut pixmap = resvg::tiny_skia::Pixmap::new(
-            (svg_size.width() * scale) as u32,
-            (svg_size.height() * scale) as u32,
-        )
-        .ok_or(usvg::Error::InvalidSize)?;
-
+        let mut pixmap = blank(&tree, scale)?;
         let transform = resvg::tiny_skia::Transform::from_scale(scale, scale);
-
         resvg::render(&tree, transform, &mut pixmap.as_mut());
-
         Ok(pixmap)
     }
+}
+
+fn blank(tree: &usvg::Tree, scale: f32) -> Result<Pixmap, usvg::Error> {
+    let svg_size = tree.size();
+    Pixmap::new(
+        (svg_size.width() * scale) as u32,
+        (svg_size.height() * scale) as u32,
+    )
+    .ok_or(usvg::Error::InvalidSize)
+}
+
+/// Alpha mask of an icon drawn over `size` texels, `SMOOTH_SVG_SCALE_FACTOR` per device pixel,
+/// with its straight edges fitted to whole device pixels (see `hint`).
+pub fn svg_icon_mask(bytes: &[u8], size: Size<DevicePixels>) -> Result<(Size<DevicePixels>, Vec<u8>)> {
+    let tree = usvg::Tree::from_data(bytes, &usvg::Options::default())?;
+    icon_mask(&tree, size)
+}
+
+fn icon_mask(tree: &usvg::Tree, size: Size<DevicePixels>) -> Result<(Size<DevicePixels>, Vec<u8>)> {
+    let scale = size.width.0 as f32 / tree.size().width();
+    let mut pixmap = blank(tree, scale)?;
+    let device = scale / SMOOTH_SVG_SCALE_FACTOR;
+    if !hint::render(tree, device, SMOOTH_SVG_SCALE_FACTOR, &mut pixmap) {
+        let transform = resvg::tiny_skia::Transform::from_scale(scale, scale);
+        resvg::render(tree, transform, &mut pixmap.as_mut());
+    }
+    let size = Size::new(
+        DevicePixels(pixmap.width() as i32),
+        DevicePixels(pixmap.height() as i32),
+    );
+    Ok((size, pixmap.pixels().iter().map(|p| p.alpha()).collect()))
 }
