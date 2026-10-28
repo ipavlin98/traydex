@@ -168,7 +168,7 @@ check failed; automatic checks only write failures to the log.
 | Rename a note or a link | Click the title in the preview or press `F2` and edit; `Enter`, `Esc` or `Tab` go back to the text. An empty title brings back the automatic one |
 | Show the shelf as a list or a grid | The grid (or list) button next to the storage button, `Ctrl+G` |
 | Keep the panel from hiding | The pin button |
-| Theme, transparency and blur, auto-show, hot corner, autostart, context menu, preview on double-click, keep notes separate, delete to the Recycle Bin, watched folders, reset position and size, reset all settings | The settings button |
+| Theme, transparency, scale and blur, auto-show, hot corner, autostart, context menu, preview on double-click, keep notes separate, delete to the Recycle Bin, watched folders, reset position and size, reset all settings | The settings button |
 | Add or remove quick action tiles | The lightning button |
 | Run an action | Drop files, an image or text on a tile |
 | Add files from Explorer | Right click → *Send to Traydex shelf* |
@@ -217,6 +217,11 @@ supports. Unsupported formats show an error message.
 Window transparency (0–40%) and blurring what's behind the window are set in *Appearance*. Transparency applies to
 the whole window, text and tiles included. Blur is the system one (*Light*, Aero); Windows doesn't let apps set its
 strength. With 0% transparency blur is off.
+
+*Scale* in *Appearance* (90%, 100%, 110%, 125%, 150%, a drop-down list) enlarges or shrinks the whole interface:
+text, icons, spacing and the minimum window size. It's stored as `scale` (percent) in `shelf.json`. Versions before
+it stored a font size (`font_size`, 12–16 at 13 = 100%); on the first start such a value becomes the nearest scale
+(12 → 90%, 14 and 15 → 110%, 16 → 125%).
 
 The log of work and errors, including caught crashes and a detailed drag trace (debug level; change it with the
 `RUST_LOG` variable), goes to `%LOCALAPPDATA%\Traydex\logs`: the current file is `traydex_rCURRENT.log`, it rolls

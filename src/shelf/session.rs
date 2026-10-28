@@ -242,7 +242,7 @@ impl Shelf {
     }
 
     pub(crate) fn zoom(&self) -> f32 {
-        design::zoom(self.store.settings().font_size)
+        design::zoom(self.store.settings().scale)
     }
 
     pub(crate) fn sync_window(&mut self, window: &mut Window, cx: &App) {

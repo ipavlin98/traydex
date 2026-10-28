@@ -172,7 +172,7 @@ pub struct Strings {
     pub section_appearance: &'static str,
     pub theme: &'static str,
     pub transparency: &'static str,
-    pub font_size: &'static str,
+    pub scale: &'static str,
     pub blur: &'static str,
     pub blur_hint: &'static str,
     pub blur_locked: &'static str,

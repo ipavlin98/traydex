@@ -8,8 +8,10 @@ use serde::{Deserialize, Deserializer, Serialize};
 pub const DEFAULT_SIZE: (f32, f32) = (540., 540.);
 pub const MIN_SIZE: (f32, f32) = DEFAULT_SIZE;
 const MAX_TRANSPARENCY: u8 = 40;
-pub const FONT_SIZES: [u8; 5] = [12, 13, 14, 15, 16];
-const DEFAULT_FONT_SIZE: u8 = 13;
+pub const SCALES: [u16; 5] = [90, 100, 110, 125, 150];
+const DEFAULT_SCALE: u16 = 100;
+const LEGACY_FONT_SIZES: std::ops::RangeInclusive<u8> = 12..=16;
+const LEGACY_BASE_FONT_SIZE: f32 = 13.;
 const MAX_SIZE: f32 = 2000.;
 
 #[derive(Clone, Copy, PartialEq, Debug, Serialize, Deserialize)]
@@ -62,8 +64,10 @@ pub struct Settings {
     pub theme: ThemeMode,
     pub layout: Layout,
     pub transparency: u8,
-    #[serde(deserialize_with = "font_size")]
-    pub font_size: u8,
+    #[serde(deserialize_with = "scale")]
+    pub scale: u16,
+    #[serde(default, skip_serializing, deserialize_with = "legacy_font_size")]
+    font_size: Option<u8>,
     #[serde(deserialize_with = "blur")]
     pub blur: bool,
     pub window_animations: bool,
@@ -95,7 +99,8 @@ impl Default for Settings {
             theme: ThemeMode::default(),
             layout: Layout::default(),
             transparency: 0,
-            font_size: DEFAULT_FONT_SIZE,
+            scale: DEFAULT_SCALE,
+            font_size: None,
             blur: false,
             window_animations: false,
             interface_animations: false,
@@ -162,6 +167,12 @@ impl Settings {
         }
     }
 
+    pub(super) fn adopt_font_size(&mut self) {
+        if let Some(font_size) = self.font_size.take() {
+            self.scale = nearest_scale(font_size);
+        }
+    }
+
     pub fn window_size(&self) -> (f32, f32) {
         let (width, height) = self.size.unwrap_or(DEFAULT_SIZE);
         (width.clamp(MIN_SIZE.0, MAX_SIZE), height.clamp(MIN_SIZE.1, MAX_SIZE))
@@ -176,9 +187,22 @@ fn blur<'de, D: Deserializer<'de>>(deserializer: D) -> Result<bool, D::Error> {
     })
 }
 
-fn font_size<'de, D: Deserializer<'de>>(deserializer: D) -> Result<u8, D::Error> {
-    let size = serde_json::from_value(serde_json::Value::deserialize(deserializer)?).unwrap_or(DEFAULT_FONT_SIZE);
-    Ok(if FONT_SIZES.contains(&size) { size } else { DEFAULT_FONT_SIZE })
+fn scale<'de, D: Deserializer<'de>>(deserializer: D) -> Result<u16, D::Error> {
+    let scale = serde_json::from_value(serde_json::Value::deserialize(deserializer)?).unwrap_or(DEFAULT_SCALE);
+    Ok(if SCALES.contains(&scale) { scale } else { DEFAULT_SCALE })
+}
+
+fn legacy_font_size<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<u8>, D::Error> {
+    let size: Option<u8> = serde_json::from_value(serde_json::Value::deserialize(deserializer)?).ok();
+    Ok(size.filter(|size| LEGACY_FONT_SIZES.contains(size)))
+}
+
+fn nearest_scale(font_size: u8) -> u16 {
+    let percent = f32::from(font_size) / LEGACY_BASE_FONT_SIZE * 100.;
+    SCALES
+        .into_iter()
+        .min_by(|a, b| (f32::from(*a) - percent).abs().total_cmp(&(f32::from(*b) - percent).abs()))
+        .unwrap_or(DEFAULT_SCALE)
 }
 
 fn shake<'de, D: Deserializer<'de>>(deserializer: D) -> Result<ShakeLevel, D::Error> {

@@ -294,7 +294,7 @@ fn old_format_without_settings_uses_defaults() {
     );
     assert!(!store.settings.blur && !store.settings.window_animations && !store.settings.interface_animations);
     assert_eq!(store.settings.tile_input, TileInput::Clipboard);
-    assert_eq!(store.settings.font_size, 13);
+    assert_eq!(store.settings.scale, 100);
     assert!(!sandbox.join("root").join("shelf.broken.json").exists());
 }
 
@@ -314,12 +314,27 @@ fn shake_switch_from_older_versions_becomes_a_level() {
 }
 
 #[test]
-fn font_size_outside_the_choices_falls_back_to_the_default() {
-    for (value, expected) in [("15", 15), ("40", 13), ("-1", 13), ("\"big\"", 13), ("null", 13)] {
+fn scale_outside_the_choices_falls_back_to_the_default() {
+    for (value, expected) in [("125", 125), ("115", 100), ("-1", 100), ("\"big\"", 100), ("null", 100)] {
+        let sandbox = Sandbox::new();
+        shelf(&sandbox, &format!(r#"{{"items": [], "scale": {value}}}"#));
+        assert_eq!(sandbox.store().settings.scale, expected, "{value}");
+        assert!(!sandbox.join("root").join("shelf.broken.json").exists(), "{value}");
+    }
+}
+
+#[test]
+fn font_size_from_older_versions_becomes_the_nearest_scale() {
+    for (value, expected) in
+        [("12", 90), ("13", 100), ("14", 110), ("15", 110), ("16", 125), ("40", 100), ("\"big\"", 100)]
+    {
         let sandbox = Sandbox::new();
         shelf(&sandbox, &format!(r#"{{"items": [], "font_size": {value}}}"#));
-        assert_eq!(sandbox.store().settings.font_size, expected, "{value}");
+        let mut store = sandbox.store();
+        assert_eq!(store.settings.scale, expected, "{value}");
         assert!(!sandbox.join("root").join("shelf.broken.json").exists(), "{value}");
+        store.save().expect("save");
+        assert_eq!(sandbox.store().settings.scale, expected, "{value} survives a save without the old field");
     }
 }
 

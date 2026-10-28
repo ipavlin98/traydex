@@ -20,7 +20,7 @@ const SWITCHES: [&str; 10] = [
     "separate-notes",
     "check-updates-auto",
 ];
-const SEGMENTS: [&str; 5] = ["theme", "transparency", "font-size", "shake", "corner"];
+const SEGMENTS: [&str; 4] = ["theme", "transparency", "shake", "corner"];
 const CHIPS: [&str; 20] = [
     "add-folder",
     "add-run",
@@ -658,7 +658,9 @@ fn verify(check: &mut Check, scene: Scene, ids: &[ItemId]) {
             let controls: Vec<String> = names(SWITCHES, "switch:")
                 .into_iter()
                 .chain(names(SEGMENTS, "segmented:"))
-                .chain(["language", "tile-input", "check-updates", "watch-folder", "watched:0"].map(String::from))
+                .chain(
+                    ["scale", "language", "tile-input", "check-updates", "watch-folder", "watched:0"].map(String::from),
+                )
                 .collect();
             for control in &controls {
                 check.in_window(control, false);
@@ -961,10 +963,10 @@ fn verify(check: &mut Check, scene: Scene, ids: &[ItemId]) {
 }
 
 fn run(cx: &mut TestAppContext, scenes: &[Scene]) {
-    run_with_font(cx, scenes, store::Settings::default().font_size);
+    run_with_scale(cx, scenes, store::Settings::default().scale);
 }
 
-fn run_with_font(cx: &mut TestAppContext, scenes: &[Scene], font_size: u8) {
+fn run_with_scale(cx: &mut TestAppContext, scenes: &[Scene], scale: u16) {
     let mut failures = Vec::new();
     for language in Language::ALL {
         let _language = crate::testing::language(language);
@@ -972,7 +974,7 @@ fn run_with_font(cx: &mut TestAppContext, scenes: &[Scene], font_size: u8) {
             for (width, height) in SIZES {
                 let empty = matches!(scene, Scene::Empty);
                 let mut h = open_with(cx, true, move |sandbox, store, fake| {
-                    store.settings_mut().font_size = font_size;
+                    store.settings_mut().scale = scale;
                     if !empty {
                         rich(sandbox, store, fake);
                     }
@@ -991,7 +993,7 @@ fn run_with_font(cx: &mut TestAppContext, scenes: &[Scene], font_size: u8) {
                 let mut check = Check {
                     h: &mut h,
                     window,
-                    context: format!("{scene:?} {} {width}x{height} font {font_size}", language.native_name()),
+                    context: format!("{scene:?} {} {width}x{height} scale {scale}", language.native_name()),
                     failures: Vec::new(),
                 };
                 verify(&mut check, scene, &ids);
@@ -1034,9 +1036,9 @@ fn side_pages_keep_elements_inside_and_apart(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
-fn largest_font_keeps_elements_inside_and_apart(cx: &mut TestAppContext) {
-    let largest = store::FONT_SIZES.into_iter().max().expect("font sizes");
-    run_with_font(
+fn largest_scale_keeps_elements_inside_and_apart(cx: &mut TestAppContext) {
+    let largest = store::SCALES.into_iter().max().expect("scales");
+    run_with_scale(
         cx,
         &[Scene::List, Scene::Grid, Scene::Selection, Scene::Settings, Scene::Actions, Scene::Editor, Scene::Drop],
         largest,
@@ -1076,11 +1078,11 @@ fn result_pages_keep_elements_inside_and_apart(cx: &mut TestAppContext) {
 #[gpui::test]
 fn placeholders_keep_the_layout_of_the_result(cx: &mut TestAppContext) {
     let mut failures = Vec::new();
-    for (font_size, (width, height)) in store::FONT_SIZES.into_iter().flat_map(|font| SIZES.map(|size| (font, size))) {
+    for (scale, (width, height)) in store::SCALES.into_iter().flat_map(|scale| SIZES.map(|size| (scale, size))) {
         for opened in [Opened::Share, Opened::Hashes, Opened::Qr, Opened::Rename, Opened::Media] {
             let mut h = open_with(cx, true, move |sandbox, store, fake| {
                 rich(sandbox, store, fake);
-                store.settings_mut().font_size = font_size;
+                store.settings_mut().scale = scale;
             });
             h.cx.simulate_resize(size(px(width), px(height)));
             h.settle();
@@ -1104,8 +1106,7 @@ fn placeholders_keep_the_layout_of_the_result(cx: &mut TestAppContext) {
                     _ => false,
                 };
                 if !kept {
-                    failures
-                        .push(format!("{opened:?} {width}x{height} font {font_size} {mark}: {before:?} -> {after:?}"));
+                    failures.push(format!("{opened:?} {width}x{height} scale {scale} {mark}: {before:?} -> {after:?}"));
                 }
             }
             h.fake.drop_jobs();
@@ -1147,9 +1148,9 @@ fn empty_category_stays_in_place_when_the_layout_changes(cx: &mut TestAppContext
 
 #[gpui::test]
 fn scrolled_shelf_renders_the_rows_in_view(cx: &mut TestAppContext) {
-    for (grid, font_size) in [(false, 13), (true, 13), (false, 16), (true, 16)] {
+    for (grid, scale) in [(false, 100), (true, 100), (false, 150), (true, 150)] {
         let mut h = open_with(cx, true, move |_, store, _| {
-            store.settings_mut().font_size = font_size;
+            store.settings_mut().scale = scale;
             for index in 0..80 {
                 store.add_text(format!("note {index}")).expect("note");
             }
@@ -1173,15 +1174,15 @@ fn scrolled_shelf_renders_the_rows_in_view(cx: &mut TestAppContext) {
         let bottom = rendered.iter().map(|bounds| f32::from(bounds.bottom())).fold(f32::NEG_INFINITY, f32::max);
         assert!(
             top <= f32::from(area.top()) + EPS && bottom >= f32::from(area.bottom()) - EPS,
-            "grid {grid}, font {font_size}: rendered rows span {top}..{bottom}, the scrolled list shows {area:?}"
+            "grid {grid}, scale {scale}: rendered rows span {top}..{bottom}, the scrolled list shows {area:?}"
         );
-        assert!(rendered.len() < ids.len(), "grid {grid}, font {font_size}: rows far outside the list are not built");
+        assert!(rendered.len() < ids.len(), "grid {grid}, scale {scale}: rows far outside the list are not built");
     }
 }
 
-fn row_height(cx: &mut TestAppContext, font_size: u8) -> f32 {
+fn row_height(cx: &mut TestAppContext, scale: u16) -> f32 {
     let mut h = open_with(cx, true, move |_, store, _| {
-        store.settings_mut().font_size = font_size;
+        store.settings_mut().scale = scale;
         store.add_text("note".to_string()).expect("note");
     });
     h.cx.update(|window, _| window.refresh());
@@ -1191,10 +1192,10 @@ fn row_height(cx: &mut TestAppContext, font_size: u8) -> f32 {
 }
 
 #[gpui::test]
-fn font_size_scales_the_interface(cx: &mut TestAppContext) {
-    let regular = row_height(cx, 13);
-    let largest = row_height(cx, 16);
-    assert!((largest - regular * 16. / 13.).abs() < 1., "row {regular} at 13, {largest} at 16");
+fn scale_scales_the_interface(cx: &mut TestAppContext) {
+    let regular = row_height(cx, 100);
+    let largest = row_height(cx, 150);
+    assert!((largest - regular * 1.5).abs() < 1., "row {regular} at 100%, {largest} at 150%");
 }
 
 #[gpui::test]
