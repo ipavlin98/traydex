@@ -9,7 +9,7 @@ mod watched;
 
 pub use files::{is_archive, is_image, restore_note, save_virtual, set_aside, vacant};
 pub use images::{decode, dib_bytes, open_image, open_oriented, png_bytes, save_image, title, write_png};
-pub use settings::{Corner, DEFAULT_SIZE, FONT_SIZES, MIN_SIZE, Settings, ShakeLevel, TileInput};
+pub use settings::{Corner, DEFAULT_SIZE, MIN_SIZE, SCALES, Settings, ShakeLevel, TileInput};
 pub use snapshot::Snapshot;
 pub use storage::{Scratch, Storage, id};
 pub use watched::{Watched, list_folder};
@@ -380,6 +380,7 @@ impl Store {
 
     fn attached(mut self, storage: Storage) -> Self {
         self.storage = storage;
+        self.settings.adopt_font_size();
         for item in &mut self.items {
             item.managed = self.storage.owned(&item.path);
         }

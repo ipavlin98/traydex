@@ -60,7 +60,7 @@ pub(super) static EN: Strings = Strings {
     section_appearance: "APPEARANCE",
     theme: "Theme",
     transparency: "Transparency",
-    font_size: "Font size",
+    scale: "Scale",
     blur: "Blur",
     blur_hint: "Blurs what's behind the window. Works only with transparency",
     blur_locked: "Blur doesn't work together with window animation. To turn blur on, turn off “Window animation”",

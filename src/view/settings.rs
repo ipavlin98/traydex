@@ -7,7 +7,7 @@ use crate::design::{glyph, line, radius, rem, size, space, text};
 use crate::i18n::{self, Language, tr};
 use crate::keys::Command;
 use crate::shelf::{Dropdown, Page, SafeListener, Shelf};
-use crate::store::{Corner, FONT_SIZES, ShakeLevel, TileInput};
+use crate::store::{Corner, SCALES, ShakeLevel, TileInput};
 use crate::theme::{Theme, ThemeMode};
 use gpui::{prelude::*, *};
 use std::path::Path;
@@ -16,7 +16,6 @@ const PICKER_WIDTH: f32 = 152.;
 const MENU_WIDTH: f32 = 180.;
 const MENU_OFFSET: f32 = size::CONTROL + space::XS;
 const SHORTCUT_HEIGHT: f32 = 26.;
-const FONT_LABELS: [&str; 5] = ["12", "13", "14", "15", "16"];
 
 struct Picker<T: 'static> {
     menu: Dropdown,
@@ -28,6 +27,7 @@ struct Picker<T: 'static> {
 
 fn dropdown_name(menu: Dropdown) -> &'static str {
     match menu {
+        Dropdown::Scale => "scale",
         Dropdown::Language => "language",
         Dropdown::TileInput => "tile-input",
     }
@@ -82,11 +82,6 @@ impl Shelf {
             (40, None, "40%", false),
         ];
         self.segmented(t, "transparency", self.store().settings().transparency, options, Self::set_transparency, cx)
-    }
-
-    fn font_size_picker(&self, t: Theme, cx: &mut Context<Self>) -> Div {
-        let options = FONT_SIZES.into_iter().zip(FONT_LABELS).map(|(size, label)| (size, None, label, false)).collect();
-        self.segmented(t, "font-size", self.store().settings().font_size, options, Self::set_font_size, cx)
     }
 
     fn corner_drag_switch(&self, t: Theme, cx: &mut Context<Self>) -> Stateful<Div> {
@@ -228,6 +223,17 @@ impl Shelf {
         )
     }
 
+    fn scale_picker(&self, t: Theme, cx: &mut Context<Self>) -> Div {
+        let picker = Picker {
+            menu: Dropdown::Scale,
+            current: self.store().settings().scale,
+            options: &SCALES,
+            label: |scale| div().child(format!("{scale}%")),
+            pick: Self::set_scale,
+        };
+        self.dropdown(t, picker, cx)
+    }
+
     fn language_picker(&self, t: Theme, cx: &mut Context<Self>) -> Div {
         let picker = Picker {
             menu: Dropdown::Language,
@@ -328,7 +334,7 @@ impl Shelf {
         section(t, tr().section_appearance)
             .child(setting(t, query, tr().theme, None).child(self.theme_switcher(t, cx)))
             .child(setting(t, query, tr().transparency, None).child(self.transparency_picker(t, cx)))
-            .child(setting(t, query, tr().font_size, None).child(self.font_size_picker(t, cx)))
+            .child(setting(t, query, tr().scale, None).child(self.scale_picker(t, cx)))
             .child(
                 setting(t, query, tr().blur, Some(tr().blur_hint)).child(
                     self.setting_switch(t, "blur", settings.blurred(), Self::toggle_blur, cx)

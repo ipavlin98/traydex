@@ -1,14 +1,18 @@
 use super::*;
 
 #[gpui::test]
-fn larger_font_size_is_saved_and_grows_the_minimum_window(cx: &mut TestAppContext) {
+fn larger_scale_is_saved_and_grows_the_minimum_window(cx: &mut TestAppContext) {
     let mut h = open(cx, true);
     let (width, height) = h.min_size();
-    h.act(|shelf, _, cx| shelf.set_font_size(16, cx));
-    assert_eq!(h.saved().settings().font_size, 16);
+    h.act(|shelf, _, cx| {
+        shelf.toggle_menu(Dropdown::Scale, cx);
+        shelf.set_scale(125, cx);
+    });
+    assert_eq!(h.saved().settings().scale, 125);
+    assert_eq!(h.read(|shelf| shelf.menu.open()), None, "picking a scale closes the menu");
     let (wider, taller) = h.min_size();
-    assert!((wider - width * 16. / 13.).abs() < 0.01, "{wider} after {width}");
-    assert!((taller - height * 16. / 13.).abs() < 0.01, "{taller} after {height}");
+    assert!((wider - width * 1.25).abs() < 0.01, "{wider} after {width}");
+    assert!((taller - height * 1.25).abs() < 0.01, "{taller} after {height}");
 }
 
 #[gpui::test]

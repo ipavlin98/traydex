@@ -60,7 +60,7 @@ pub(super) static ES: Strings = Strings {
     section_appearance: "APARIENCIA",
     theme: "Tema",
     transparency: "Transparencia",
-    font_size: "Tamaño de fuente",
+    scale: "Escala",
     blur: "Desenfoque",
     blur_hint: "Desenfoca lo que hay detrás de la ventana. Solo funciona con transparencia",
     blur_locked: "El desenfoque no es compatible con la animación de la ventana. Para activarlo, desactiva «Animación de la ventana»",

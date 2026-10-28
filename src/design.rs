@@ -89,8 +89,8 @@ pub fn scale(window: &gpui::Window) -> f32 {
     window.scale_factor() * f32::from(window.rem_size()) / BASE
 }
 
-pub fn zoom(font_size: u8) -> f32 {
-    f32::from(font_size) / text::BODY
+pub fn zoom(scale: u16) -> f32 {
+    f32::from(scale) / 100.
 }
 
 pub fn device(logical: f32, scale: f32) -> f32 {

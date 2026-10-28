@@ -60,7 +60,7 @@ pub(super) static ZH: Strings = Strings {
     section_appearance: "外观",
     theme: "主题",
     transparency: "透明度",
-    font_size: "字体大小",
+    scale: "缩放",
     blur: "模糊",
     blur_hint: "模糊窗口后方的内容。仅在开启透明度时生效",
     blur_locked: "模糊与窗口动画不兼容。要开启模糊，请关闭“窗口动画”",

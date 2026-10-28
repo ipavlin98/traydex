@@ -60,7 +60,7 @@ pub(super) static FR: Strings = Strings {
     section_appearance: "APPARENCE",
     theme: "Thème",
     transparency: "Transparence",
-    font_size: "Taille de police",
+    scale: "Échelle",
     blur: "Flou",
     blur_hint: "Floute ce qui se trouve derrière la fenêtre. Fonctionne uniquement avec la transparence",
     blur_locked: "Le flou n'est pas compatible avec l'animation de la fenêtre. Pour l'activer, désactivez « Animation de la fenêtre »",

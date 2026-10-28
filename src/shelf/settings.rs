@@ -10,6 +10,7 @@ const HOVER_TIME: Duration = Duration::from_millis(150);
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum Dropdown {
+    Scale,
     Language,
     TileInput,
 }
@@ -89,7 +90,7 @@ impl Shelf {
         if differs(old, &new, |s| s.theme) {
             self.apply_theme(cx);
         }
-        if differs(old, &new, |s| s.font_size) {
+        if differs(old, &new, |s| s.scale) {
             self.fit(cx);
         }
         if differs(old, &new, |s| s.interface_animations) {
@@ -157,8 +158,9 @@ impl Shelf {
         self.update_settings(|settings| settings.transparency = transparency, cx);
     }
 
-    pub fn set_font_size(&mut self, font_size: u8, cx: &mut Context<Self>) {
-        self.update_settings(|settings| settings.font_size = font_size, cx);
+    pub fn set_scale(&mut self, scale: u16, cx: &mut Context<Self>) {
+        self.menu.close();
+        self.update_settings(|settings| settings.scale = scale, cx);
     }
 
     pub fn toggle_blur(&mut self, cx: &mut Context<Self>) {

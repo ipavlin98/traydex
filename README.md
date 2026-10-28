@@ -152,8 +152,8 @@ Wi-Fi.<br><br>
 
 <img src="docs/media/customize.webp" alt="Switching layout, theme and language" width="100%">
 
-List or grid view, light or dark theme, transparency and blur, smooth scrolling. Available in English, Russian, Chinese,
-Hindi, Spanish and French.<br><br>
+List or grid view, light or dark theme, transparency and blur, interface scale from 90% to 150%, smooth scrolling.
+Available in English, Russian, Chinese, Hindi, Spanish and French.<br><br>
 
 </td>
 </tr>
