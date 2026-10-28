@@ -111,6 +111,7 @@ pub(super) static ZH: Strings = Strings {
     clear_confirm: "清空 Traydex？原文件不受影响",
     clear_confirm_pinned: "清空 Traydex？已置顶的项目会保留",
     remove_confirm: "仅存于 Traydex 的文件将被永久删除",
+    remove_cited: "有笔记引用了它，这些链接将失效",
     delete: "删除",
     cancel: "取消",
     clear: "清空",

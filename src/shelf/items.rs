@@ -234,13 +234,21 @@ impl Shelf {
     }
 
     pub(super) fn ask_remove(&mut self, keys: &HashSet<ItemId>, cx: &mut Context<Self>) -> bool {
-        let lost = !self.store.settings().recycle
-            && self.store.items().iter().any(|item| keys.contains(&item.id) && item.only_in_storage());
-        if lost {
+        let ask = self.removal_loses_files(keys) || self.cited_elsewhere(keys);
+        if ask {
             self.confirming = Some(Confirm::Remove(keys.clone()));
             cx.notify();
         }
-        lost
+        ask
+    }
+
+    pub(crate) fn removal_loses_files(&self, keys: &HashSet<ItemId>) -> bool {
+        !self.store.settings().recycle
+            && self.store.items().iter().any(|item| keys.contains(&item.id) && item.only_in_storage())
+    }
+
+    fn cited_elsewhere(&self, keys: &HashSet<ItemId>) -> bool {
+        keys.iter().any(|key| self.catalog.citing(key).iter().any(|note| !keys.contains(note)))
     }
 
     pub(super) fn drop_items(&mut self, keys: &HashSet<ItemId>, cx: &mut Context<Self>) {

@@ -111,6 +111,7 @@ pub(super) static EN: Strings = Strings {
     clear_confirm: "Clear Traydex? Your files stay where they are",
     clear_confirm_pinned: "Clear Traydex? Pinned items stay",
     remove_confirm: "Files only in Traydex will be deleted for good",
+    remove_cited: "Notes link here, those links will break",
     delete: "Delete",
     cancel: "Cancel",
     clear: "Clear",

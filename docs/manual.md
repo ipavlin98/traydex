@@ -118,7 +118,9 @@ check failed; automatic checks only write failures to the log.
   the arrow returns to the note with the caret where it was, the cross goes to the shelf. `Ctrl`+click closes the note
   and shows the card on the shelf, selected. Dragging a chip out works like dragging its card. `Ctrl+V` of files or a
   screenshot and dropping files on an open note put them on the shelf and mentions to them at the caret; text is
-  pasted as text. A chip of a card removed from the shelf turns grey and says so; restoring the card from the Recycle
+  pasted as text. Removing a card that another note mentions (with the cross, `Delete` or the *Selected* bar) first
+  asks at the bottom of the window, since those links would break; removing the card together with every note that
+  mentions it goes at once. A chip of a card removed from the shelf turns grey and says so; restoring the card from the Recycle
   Bin brings it back. The preview of a card mentioned in notes shows the newest such note at the right of its bottom
   bar (the tooltip lists all of them); with several notes the wheel over it switches to the next or previous one at
   once, with its position next to it, and a click opens the note shown at the mention. In the stored text a mention is

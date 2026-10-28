@@ -111,6 +111,7 @@ pub(super) static HI: Strings = Strings {
     clear_confirm: "Traydex खाली करें? आपकी फ़ाइलें अपनी जगह रहेंगी",
     clear_confirm_pinned: "Traydex खाली करें? पिन किए आइटम बने रहेंगे",
     remove_confirm: "सिर्फ़ Traydex वाली फ़ाइलें हमेशा के लिए हटेंगी",
+    remove_cited: "नोट्स इससे जुड़े हैं, वे लिंक टूट जाएँगे",
     delete: "हटाएँ",
     cancel: "रद्द करें",
     clear: "खाली करें",

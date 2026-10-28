@@ -107,6 +107,24 @@ fn a_mention_of_a_removed_card_says_so_and_keeps_the_note_open(cx: &mut TestAppC
 }
 
 #[gpui::test]
+fn removing_a_mentioned_card_asks_first_unless_its_notes_go_too(cx: &mut TestAppContext) {
+    let mut h = open_with(cx, true, files(&[REPORT]));
+    let (note, report) = mention_report(&mut h);
+    h.keys("escape");
+    h.act(|shelf, _, cx| shelf.remove(&report, cx));
+    assert!(h.read(|shelf| matches!(&shelf.confirming, Some(Confirm::Remove(keys)) if keys.contains(&report))));
+    h.keys("escape");
+    assert!(h.read(|shelf| shelf.store.item(&report).is_some()), "cancelling keeps the card");
+    h.act(|shelf, _, cx| {
+        shelf.toggle(&report, cx);
+        shelf.toggle(&note, cx);
+        shelf.remove_selected(cx);
+    });
+    assert!(h.read(|shelf| shelf.confirming.is_none()), "no note is left with a broken link");
+    assert!(h.read(|shelf| shelf.store.item(&report).is_none() && shelf.store.item(&note).is_none()));
+}
+
+#[gpui::test]
 fn files_pasted_or_dropped_into_a_note_land_on_the_shelf_and_in_the_text(cx: &mut TestAppContext) {
     let mut h = open(cx, true);
     let invoice = h.sandbox.file("счёт мой.pdf", "x");

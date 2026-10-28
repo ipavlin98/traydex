@@ -111,6 +111,7 @@ pub(super) static RU: Strings = Strings {
     clear_confirm: "Очистить Traydex? Сами файлы останутся на месте",
     clear_confirm_pinned: "Очистить Traydex? Закреплённое останется",
     remove_confirm: "Файлы только из Traydex удалятся навсегда",
+    remove_cited: "На это ссылаются заметки, ссылки сломаются",
     delete: "Удалить",
     cancel: "Отмена",
     clear: "Очистить",
