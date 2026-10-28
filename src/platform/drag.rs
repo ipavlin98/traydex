@@ -114,11 +114,7 @@ pub(super) fn mark_seen() {
 }
 
 pub fn buttons_down() -> bool {
-    left_down() || unsafe { GetAsyncKeyState(VK_RBUTTON.0 as _) } < 0
-}
-
-fn left_down() -> bool {
-    unsafe { GetAsyncKeyState(VK_LBUTTON.0 as _) < 0 }
+    unsafe { GetAsyncKeyState(VK_LBUTTON.0 as _) < 0 || GetAsyncKeyState(VK_RBUTTON.0 as _) < 0 }
 }
 
 pub(super) fn class_name(window: HWND) -> String {
@@ -270,7 +266,8 @@ fn right_press(dragging: bool, shown: bool, left_held: bool) -> RightPress {
 
 fn right_down(data: &MSLLHOOKSTRUCT) -> bool {
     let dragging = cancels(PRESS.get(), exporting());
-    match right_press(dragging, window::visible(), left_down()) {
+    let left_held = unsafe { GetAsyncKeyState(VK_LBUTTON.0 as _) } < 0;
+    match right_press(dragging, window::visible(), left_held) {
         RightPress::Pass => {
             press_at(data);
             false
@@ -295,18 +292,22 @@ fn press_at(data: &MSLLHOOKSTRUCT) {
     if window::visible() && !window::contains(data.pt) {
         send(Event::PressOutside);
     }
-    press(data.pt);
+    press(thread_at(data.pt));
 }
 
 pub(super) fn poll_press(point: POINT) {
-    if PRESS.get().is_none() && left_down() {
-        log::debug!("Left button held over a window the mouse hook doesn't see");
-        press(point);
+    let thread = thread_at(point);
+    if PRESS.get().is_none() && external_drag(thread).is_some() {
+        log::debug!("A drag is running in a window the mouse hook doesn't see");
+        press(thread);
     }
 }
 
-fn press(point: POINT) {
-    let thread = unsafe { GetWindowThreadProcessId(WindowFromPoint(point), None) };
+fn thread_at(point: POINT) -> u32 {
+    unsafe { GetWindowThreadProcessId(WindowFromPoint(point), None) }
+}
+
+fn press(thread: u32) {
     let previous = PRESS.get();
     PRESS.set(Some(Press {
         thread,
@@ -332,15 +333,16 @@ pub(super) fn tick() {
         return;
     };
     let shake = shake_level();
+    let source = external_drag(press.thread);
     let poll = Poll {
-        held: buttons_down(),
+        held: buttons_down() || source.is_some(),
         exporting: exporting(),
         automatic: AUTOMATIC.load(Ordering::Relaxed),
         shake,
         span: shake.span() * unsafe { GetDpiForSystem() }.max(96) as i32 / 96,
         now: Instant::now(),
     };
-    let (next, signal) = step(press, poll, || external_drag(press.thread), cursor_x);
+    let (next, signal) = step(press, poll, || source, cursor_x);
     match signal {
         Some(Signal::Start) => send(Event::DragStart),
         Some(Signal::End) => send(Event::DragEnd),

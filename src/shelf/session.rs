@@ -443,7 +443,11 @@ impl Shelf {
     }
 
     fn should_stay(&self) -> bool {
-        self.session.picking || self.desktop.exporting() || self.desktop.buttons_down() || self.desktop.pointer_inside()
+        self.session.picking
+            || self.session.dragging
+            || self.desktop.exporting()
+            || self.desktop.buttons_down()
+            || self.desktop.pointer_inside()
     }
 
     fn settle(&mut self, cx: &mut Context<Self>) {
