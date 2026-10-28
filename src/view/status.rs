@@ -115,7 +115,8 @@ impl Shelf {
                 Confirm::Update(release) => {
                     (fill(tr().update_available, &release.version).into(), tr().update_install, 3)
                 }
-                Confirm::Remove(_) => (tr().remove_confirm.into(), tr().delete, 4),
+                Confirm::Remove(keys) if self.removal_loses_files(keys) => (tr().remove_confirm.into(), tr().delete, 4),
+                Confirm::Remove(_) => (tr().remove_cited.into(), tr().delete, 4),
             };
             let (cancel, look) = match confirm {
                 Confirm::Update(_) => (tr().later, Look::Primary),
