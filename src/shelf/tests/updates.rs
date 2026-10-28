@@ -111,3 +111,18 @@ fn automatic_checks_stop_when_turned_off(cx: &mut TestAppContext) {
     assert!(!h.fake.calls().iter().any(|call| matches!(call, Call::Output(_))));
     assert_eq!(offered(&mut h), None);
 }
+
+#[gpui::test]
+fn the_version_in_settings_opens_the_releases_page(cx: &mut TestAppContext) {
+    let mut h = open(cx, true);
+    h.act(|shelf, _, cx| shelf.toggle_page(Page::Settings, cx));
+    h.settle();
+    h.act(|shelf, window, _| {
+        let scroll = shelf.scroll(Page::Settings);
+        scroll.set_offset(point(px(0.), -scroll.max_offset().height));
+        window.refresh();
+    });
+    h.settle();
+    click(&mut h, "releases");
+    assert!(h.fake.calls().contains(&Call::ShellOpen("https://github.com/ipavlin98/traydex/releases".into())));
+}
