@@ -2,6 +2,16 @@
 
 Notable changes in each release. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.5.1-alpha] — 2026-10-28
+
+- Removing a card that a note mentions asks first, since the note's link to it would break.
+- The mouse wheel scrolls the shelf, the pages and folder and archive previews smoothly instead of jumping.
+- Settings: *Font size* became *Scale*, a drop-down list from 90% to 150% that enlarges the whole interface. A font
+  size chosen before carries over as the nearest scale.
+- The version at the bottom of Settings opens the Releases page on GitHub.
+- Line icons are sharp at any Windows and interface scale: their lines land on whole screen pixels instead of blurring
+  across two.
+
 ## [0.5.0-alpha] — 2026-10-27
 
 - The window opened by the hot corner takes keyboard focus even when another app is in front, so typed text no
@@ -85,6 +95,7 @@ First public release.
 - Preview, notes, search with typo and keyboard-layout tolerance, list and grid views.
 - Light and dark themes, transparency and blur, six languages.
 
+[0.5.1-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.5.1-alpha
 [0.5.0-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.5.0-alpha
 [0.4.0-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.4.0-alpha
 [0.3.6-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.3.6-alpha
