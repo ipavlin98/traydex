@@ -391,14 +391,20 @@ focus) and keeps grayscale text antialiasing instead of upstream's ClearType in 
    rasterizing, `vendor/gpui/src/svg_renderer/hint.rs` moves straight horizontal and vertical lines so that their
    whole pixels are solid (to a pixel center when a line is 1–2 pixels wide, to a pixel edge when 2–3 wide and for the
    edges of fills) and moves every other point in proportion between them, like font hinting. Stroke widths stay as
-   they are, so icons keep their weight; shapes move by at most half a pixel. Only SVGs that ask for it with
+   they are, so icons keep their weight. Snapping each line on its own broke symmetry: when the middle of a tray fell
+   on a pixel edge, its walls landed on both sides of it equally but the one-pixel arrow between them could only go
+   half a pixel to the right. So, like font hinters, the fitter first finds the axis between the outermost lines,
+   snaps that axis (to a pixel center when a line lies on it and is 1–2 pixels wide), and places every pair of equal
+   lines mirrored around it at a whole number of pixels from it; the arrow and the tray move together, and lines
+   without a mirror image snap on their own. Only SVGs that ask for it with
    `shape-rendering="crispEdges"` are fitted (they stay anti-aliased): the line icons in `src/icons.rs` do, the logo
    and the progress ring don't. The logo is two layers, and fitting each on its own pushed the arrow off the center
    of the pentagon. Zero-length segments (the closing `z` of a circle, or of a path that ends where it starts) aren't
    taken for lines: they used to pull one side of a ring or a closed outline out of place. Anything but solid paths
    (gradients, images, text, clipping, masks, filters, group opacity) is rendered by resvg as before. The patch is
    `icon_mask` and `svg_icon_mask` in `vendor/gpui/src/svg_renderer.rs`; the regression tests are
-   `icon_lines_land_on_whole_device_pixels_at_any_scale`, `closed_curves_stay_centered_after_pixel_fitting` and
+   `icon_lines_land_on_whole_device_pixels_at_any_scale`, `closed_curves_stay_centered_after_pixel_fitting`,
+   `arrow_stays_centered_in_its_tray_after_pixel_fitting` and
    `logo_arrow_stays_centered_in_its_pentagon` in `src/gpui_tests.rs`.
 10. **Hover transitions.** With the `HoverTransition` global set to a duration, hover and group hover styles of
     stateful elements fade instead of switching at once; Traydex sets it while interface animations are on. Colors
