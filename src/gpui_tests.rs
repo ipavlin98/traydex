@@ -737,6 +737,39 @@ fn icon_lines_land_on_whole_device_pixels_at_any_scale() {
 }
 
 #[test]
+fn closed_curves_stay_centered_after_pixel_fitting() {
+    use gpui::AssetSource as _;
+    let stop = crate::icons::Assets.load("stop").expect("load").expect("the stop icon");
+    for device in [14, 16, 17, 18, 20, 21, 24] {
+        let side = device * 2;
+        let texels = DevicePixels(side as i32);
+        let (_, mask) = gpui::svg_icon_mask(&stop, size(texels, texels)).expect("rasterized");
+        let row = &mask[side * side / 2..side * (side / 2 + 1)];
+        let column: Vec<u8> = mask.iter().skip(side / 2).step_by(side).copied().collect();
+        for (line, direction) in [(row, "sideways"), (column.as_slice(), "up or down")] {
+            let mut strokes: Vec<(f32, f32)> = Vec::new();
+            for (x, alpha) in line.iter().enumerate().filter(|(_, alpha)| **alpha > 0) {
+                if x == 0 || line[x - 1] == 0 {
+                    strokes.push((0., 0.));
+                }
+                if let Some((sum, ink)) = strokes.last_mut() {
+                    *sum += x as f32 * f32::from(*alpha);
+                    *ink += f32::from(*alpha);
+                }
+            }
+            let centers: Vec<f32> = strokes.iter().map(|(sum, ink)| sum / ink).collect();
+            let [ring, square, other_square, other_ring] = centers[..] else {
+                panic!("at {device} px expected ring, square, square, ring {direction}: {line:?}")
+            };
+            assert!(
+                ((square - ring) - (other_ring - other_square)).abs() <= 0.25,
+                "at {device} px the ring of stop is squeezed {direction}: {line:?}"
+            );
+        }
+    }
+}
+
+#[test]
 fn logo_arrow_stays_centered_in_its_pentagon() {
     use gpui::AssetSource as _;
     let arrow = crate::icons::Assets.load("brand-arrow").expect("load").expect("the logo arrow");
