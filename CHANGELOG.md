@@ -2,6 +2,11 @@
 
 Notable changes in each release. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.6.1-alpha] — 2026-10-29
+
+- A scrolled tile strip or tab row no longer shows a one-pixel strip of the hidden tile beside its scroll button
+  at fractional display scaling.
+
 ## [0.6.0-alpha] — 2026-10-29
 
 - Dragging files, text or images out of an app run as administrator now brings the panel up too.
@@ -106,6 +111,7 @@ First public release.
 - Preview, notes, search with typo and keyboard-layout tolerance, list and grid views.
 - Light and dark themes, transparency and blur, six languages.
 
+[0.6.1-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.6.1-alpha
 [0.6.0-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.6.0-alpha
 [0.5.1-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.5.1-alpha
 [0.5.0-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.5.0-alpha
