@@ -147,14 +147,25 @@ pub(crate) fn round_stroke_to_device_pixel(logical: f32, scale_factor: f32) -> f
     }
 }
 
+/// Steps per device pixel that a position is resolved to before rounding.
+const DEVICE_PIXEL_PRECISION: f32 = 256.;
+
+/// Drops float noise below 1/256 of a device pixel: an edge on a whole device pixel (657.00006 at
+/// 125%) must floor and ceil to that pixel, as rounding does, or a clip reaches one pixel past the
+/// backgrounds painted up to the same edge.
+#[inline]
+pub(crate) fn settle_device_pixels(device_pixels: f32) -> f32 {
+    (device_pixels * DEVICE_PIXEL_PRECISION).round() / DEVICE_PIXEL_PRECISION
+}
+
 #[inline]
 pub(crate) fn floor_to_device_pixel(logical: f32, scale_factor: f32) -> f32 {
-    (logical * scale_factor).floor()
+    settle_device_pixels(logical * scale_factor).floor()
 }
 
 #[inline]
 pub(crate) fn ceil_to_device_pixel(logical: f32, scale_factor: f32) -> f32 {
-    (logical * scale_factor).ceil()
+    settle_device_pixels(logical * scale_factor).ceil()
 }
 
 #[cfg(test)]

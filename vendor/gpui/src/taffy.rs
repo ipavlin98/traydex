@@ -3,7 +3,7 @@ use crate::{
     Style, Window, size,
     util::{
         ceil_to_device_pixel, round_stroke_to_device_pixel,
-        round_to_device_pixel,
+        round_to_device_pixel, settle_device_pixels,
     },
 };
 use collections::{FxHashMap, FxHashSet};
@@ -409,15 +409,12 @@ impl From<LayoutId> for NodeId {
     }
 }
 
-/// Steps per device pixel that an edge is resolved to before rounding.
-const EDGE_PRECISION: f32 = 256.;
-
 /// Rounds an edge to a whole device pixel, half pixels up as `round_to_device_pixel` does. Float
 /// noise from summing flex shares (97.499998 for 97.5) must not push an edge that sits on a half
 /// pixel to the other side of the tie than its parent's edge, or equal paddings would differ by a
 /// pixel.
 fn snap_edge(device_pixels: f32) -> f32 {
-    ((device_pixels * EDGE_PRECISION).round() / EDGE_PRECISION).round()
+    settle_device_pixels(device_pixels).round()
 }
 
 fn snap_measured_size_to_device_pixels(size: Size<Pixels>, scale_factor: f32) -> Size<f32> {

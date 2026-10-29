@@ -670,6 +670,40 @@ fn half_device_pixels_round_up(cx: &mut TestAppContext) {
     assert_eq!(width, px(10.5), "20.5 device pixels keep their 21st pixel, as Traydex is designed at 125%");
 }
 
+struct Clip {
+    mask: Rc<Cell<Option<Bounds<gpui::ScaledPixels>>>>,
+}
+
+impl Render for Clip {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        let mask = self.mask.clone();
+        canvas(
+            |_, _, _| {},
+            move |_, _, window, _| {
+                let right: f32 = std::iter::repeat_n(0.1, 10).sum();
+                let bounds = gpui::ContentMask { bounds: rect(0., 0., right, 1.) };
+                window.with_content_mask(Some(bounds), |window| mask.set(Some(window.snapped_content_mask().bounds)));
+            },
+        )
+        .size_full()
+    }
+}
+
+#[gpui::test]
+fn clip_on_a_whole_device_pixel_ends_where_painted_edges_end(cx: &mut TestAppContext) {
+    let mask = Rc::default();
+    let shared = Rc::clone(&mask);
+    let (_, cx) = cx.add_window_view(move |_, _| Clip { mask: shared });
+    cx.run_until_parked();
+    assert_eq!(cx.update(|window, _| window.scale_factor()), 2.);
+    let clip = mask.get().expect("the clip is painted");
+    assert_eq!(
+        clip.right(),
+        gpui::ScaledPixels(2.),
+        "1 px reached with float noise is 2 device pixels, so the clip must not take a third"
+    );
+}
+
 struct Segments {
     offset: f32,
 }
