@@ -389,8 +389,10 @@ GPUI 0.2.2 lives in `vendor/gpui` with the patches below, wired in through `[pat
     they are, so icons keep their weight; shapes move by at most half a pixel. Only SVGs that ask for it with
     `shape-rendering="crispEdges"` are fitted (they stay anti-aliased): the line icons in `src/icons.rs` do, the logo
     and the progress ring don't. The logo is two layers, and fitting each on its own pushed the arrow off the center
-    of the pentagon. Anything but solid paths (gradients, images, text, clipping, masks, filters, group opacity) is
-    rendered by resvg as before. The regression tests are `icon_lines_land_on_whole_device_pixels_at_any_scale` and
+    of the pentagon. Zero-length segments (the closing `z` of a circle, or of a path that ends where it starts) aren't
+    taken for lines: they used to pull one side of a ring or a closed outline out of place. Anything but solid paths (gradients,
+    images, text, clipping, masks, filters, group opacity) is rendered by resvg as before. The regression tests are
+    `icon_lines_land_on_whole_device_pixels_at_any_scale`, `closed_curves_stay_centered_after_pixel_fitting` and
     `logo_arrow_stays_centered_in_its_pentagon` in `src/gpui_tests.rs`.
 11. **Hover transitions.** With the `HoverTransition` global set to a duration, hover and group hover styles of
     stateful elements fade instead of switching at once; Traydex sets it while interface animations are on. Colors

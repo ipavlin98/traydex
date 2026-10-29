@@ -164,10 +164,11 @@ fn stems(shapes: &[Shape]) -> (Vec<(f32, f32)>, Vec<(f32, f32)>) {
         let width = shape.width.unwrap_or(0.);
         let (mut start, mut last) = (Point::zero(), Point::zero());
         let mut edge = |from: Point, to: Point| {
-            if (from.x - to.x).abs() < EPSILON {
+            let (across, along) = ((from.x - to.x).abs(), (from.y - to.y).abs());
+            if across < EPSILON && along >= EPSILON {
                 columns.push((to.x, snap(to.x, width)));
             }
-            if (from.y - to.y).abs() < EPSILON {
+            if along < EPSILON && across >= EPSILON {
                 rows.push((to.y, snap(to.y, width)));
             }
         };
