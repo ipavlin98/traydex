@@ -157,6 +157,34 @@ fn snap(at: f32, width: f32) -> f32 {
     }
 }
 
+/// Where `stems`, each a position with its line width, should land. Stems mirrored around the
+/// middle of the outermost two, like the walls of a tray around its arrow, land mirrored around one
+/// place on the half-pixel grid, so a symmetric icon stays symmetric. A stem on that axis decides
+/// whether it is a pixel center or edge; the rest snap on their own.
+fn placed(stems: &[(f32, f32)]) -> Vec<(f32, f32)> {
+    let (Some(first), Some(last)) = (stems.first(), stems.last()) else {
+        return Vec::new();
+    };
+    let axis = (first.0 + last.0) / 2.;
+    let center = match stems.iter().find(|stem| (stem.0 - axis).abs() < EPSILON) {
+        Some(&(at, width)) => snap(at, width),
+        None => (axis * 2.).round() / 2.,
+    };
+    let mirrored = |(at, width): (f32, f32)| {
+        stems.iter().any(|other| (other.0 + at - 2. * axis).abs() < EPSILON && (other.1 - width).abs() < EPSILON)
+    };
+    stems
+        .iter()
+        .map(|&(at, width)| {
+            if !mirrored((at, width)) {
+                return (at, snap(at, width));
+            }
+            let near = snap(center - (at - axis).abs(), width);
+            (at, if at < axis { near } else { 2. * center - near })
+        })
+        .collect()
+}
+
 /// Positions of straight vertical and horizontal edges with where each should land.
 fn stems(shapes: &[Shape]) -> (Vec<(f32, f32)>, Vec<(f32, f32)>) {
     let (mut columns, mut rows) = (Vec::new(), Vec::new());
@@ -166,10 +194,10 @@ fn stems(shapes: &[Shape]) -> (Vec<(f32, f32)>, Vec<(f32, f32)>) {
         let mut edge = |from: Point, to: Point| {
             let (across, along) = ((from.x - to.x).abs(), (from.y - to.y).abs());
             if across < EPSILON && along >= EPSILON {
-                columns.push((to.x, snap(to.x, width)));
+                columns.push((to.x, width));
             }
             if along < EPSILON && across >= EPSILON {
-                rows.push((to.y, snap(to.y, width)));
+                rows.push((to.y, width));
             }
         };
         for segment in shape.path.segments() {
@@ -191,7 +219,7 @@ fn stems(shapes: &[Shape]) -> (Vec<(f32, f32)>, Vec<(f32, f32)>) {
         stems.sort_by(|a, b| a.0.total_cmp(&b.0));
         stems.dedup_by(|b, a| (b.0 - a.0).abs() < EPSILON);
     }
-    (columns, rows)
+    (placed(&columns), placed(&rows))
 }
 
 /// Moves `at` the way the stems around it moved: stems themselves land where they snap, points

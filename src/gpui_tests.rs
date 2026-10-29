@@ -736,6 +736,20 @@ fn icon_lines_land_on_whole_device_pixels_at_any_scale() {
     }
 }
 
+fn stroke_centers(line: &[u8]) -> Vec<f32> {
+    let mut strokes: Vec<(f32, f32)> = Vec::new();
+    for (x, alpha) in line.iter().enumerate().filter(|(_, alpha)| **alpha > 0) {
+        if x == 0 || line[x - 1] == 0 {
+            strokes.push((0., 0.));
+        }
+        if let Some((sum, ink)) = strokes.last_mut() {
+            *sum += x as f32 * f32::from(*alpha);
+            *ink += f32::from(*alpha);
+        }
+    }
+    strokes.iter().map(|(sum, ink)| sum / ink).collect()
+}
+
 #[test]
 fn closed_curves_stay_centered_after_pixel_fitting() {
     use gpui::AssetSource as _;
@@ -747,23 +761,41 @@ fn closed_curves_stay_centered_after_pixel_fitting() {
         let row = &mask[side * side / 2..side * (side / 2 + 1)];
         let column: Vec<u8> = mask.iter().skip(side / 2).step_by(side).copied().collect();
         for (line, direction) in [(row, "sideways"), (column.as_slice(), "up or down")] {
-            let mut strokes: Vec<(f32, f32)> = Vec::new();
-            for (x, alpha) in line.iter().enumerate().filter(|(_, alpha)| **alpha > 0) {
-                if x == 0 || line[x - 1] == 0 {
-                    strokes.push((0., 0.));
-                }
-                if let Some((sum, ink)) = strokes.last_mut() {
-                    *sum += x as f32 * f32::from(*alpha);
-                    *ink += f32::from(*alpha);
-                }
-            }
-            let centers: Vec<f32> = strokes.iter().map(|(sum, ink)| sum / ink).collect();
+            let centers = stroke_centers(line);
             let [ring, square, other_square, other_ring] = centers[..] else {
                 panic!("at {device} px expected ring, square, square, ring {direction}: {line:?}")
             };
             assert!(
                 ((square - ring) - (other_ring - other_square)).abs() <= 0.25,
                 "at {device} px the ring of stop is squeezed {direction}: {line:?}"
+            );
+        }
+    }
+}
+
+#[test]
+fn arrow_stays_centered_in_its_tray_after_pixel_fitting() {
+    use gpui::AssetSource as _;
+    const TRAY_WALLS: usize = 17;
+    for (name, shaft) in [("drop", 6), ("upload", 12)] {
+        let icon = crate::icons::Assets.load(name).expect("load").expect("the icon");
+        for device in [14, 15, 16, 17, 18, 20, 21, 22, 24, 25] {
+            let side = device * 2;
+            let texels = DevicePixels(side as i32);
+            let (_, mask) = gpui::svg_icon_mask(&icon, size(texels, texels)).expect("rasterized");
+            let row = |units: usize| {
+                let y = side * units / 24;
+                &mask[y * side..(y + 1) * side]
+            };
+            let [shaft] = stroke_centers(row(shaft))[..] else {
+                panic!("at {device} px expected only the shaft of {name}: {:?}", row(shaft))
+            };
+            let [left, right] = stroke_centers(row(TRAY_WALLS))[..] else {
+                panic!("at {device} px expected two tray walls of {name}: {:?}", row(TRAY_WALLS))
+            };
+            assert!(
+                ((shaft - left) - (right - shaft)).abs() <= 0.25,
+                "at {device} px the shaft of {name} is off the middle of its tray: {left} {shaft} {right}"
             );
         }
     }

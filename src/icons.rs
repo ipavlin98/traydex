@@ -19,7 +19,9 @@ fn shape(name: &str) -> Option<&'static str> {
         "image" => {
             "<rect x='3' y='4' width='18' height='16' rx='2'/><circle cx='9' cy='9.5' r='1.5'/><path d='m21 16-5-5-9 9'/>"
         }
-        "text" => "<path d='M5 6h14M5 10h14M5 14h10M5 18h7'/>",
+        "text" => {
+            "<rect x='8' y='2' width='8' height='4' rx='1'/><path d='M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2'/><path d='M9 12v-1h6v1M11 17h2M12 11v6'/>"
+        }
         "note" => {
             "<path d='M7.5 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3.5'/><path d='M7 7.5h6M7 11.5h4'/><path d='M18.13 11.87a1.84 1.84 0 0 1 2.6 2.6L14.5 20.7l-3.47.93.93-3.47Z'/>"
         }
@@ -124,9 +126,9 @@ fn brand(name: &str) -> Option<&'static str> {
 pub fn inset(name: &str) -> f32 {
     match name {
         "folder" | "image" | "alert" | "note" => 2.125,
-        "upload" | "search" => 3.125,
+        "upload" | "search" | "text" => 3.125,
         "link" => 3.3,
-        "file" | "file-archive" | "text" | "check" => 4.125,
+        "file" | "file-archive" | "check" => 4.125,
         "chevron-left" => 8.125,
         _ => 0.,
     }
