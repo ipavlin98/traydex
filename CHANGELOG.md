@@ -2,6 +2,17 @@
 
 Notable changes in each release. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.6.0-alpha] — 2026-10-29
+
+- Dragging files, text or images out of an app run as administrator now brings the panel up too.
+- Icons with closed outlines (circles, rounded frames, the eye, the drag grip and others) are no longer lopsided at
+  some Windows and interface scales.
+- Moved to a current GPUI (gpui-unofficial 1.25.3, from Zed 1.25.3): the interface engine is a year newer and
+  brings its upstream fixes for text, images and pixel-exact drawing.
+- Symmetric icons stay symmetric at every Windows and interface scale: the arrows in the drop zone and the
+  drag-all bar sit exactly in the middle of their trays instead of half a pixel to the right.
+- Text cards have a new icon, a clipboard with a "T", so they no longer look like a list of lines.
+
 ## [0.5.1-alpha] — 2026-10-28
 
 - Removing a card that a note mentions asks first, since the note's link to it would break.
@@ -95,6 +106,7 @@ First public release.
 - Preview, notes, search with typo and keyboard-layout tolerance, list and grid views.
 - Light and dark themes, transparency and blur, six languages.
 
+[0.6.0-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.6.0-alpha
 [0.5.1-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.5.1-alpha
 [0.5.0-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.5.0-alpha
 [0.4.0-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.4.0-alpha
