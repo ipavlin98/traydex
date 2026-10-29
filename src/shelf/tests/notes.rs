@@ -6,7 +6,7 @@ fn note_area(h: &mut Harness) -> Entity<TextArea> {
 
 fn focus_note(h: &mut Harness) {
     let area = note_area(h);
-    h.act(|_, window, cx| area.read(cx).focus(window));
+    h.act(|_, window, cx| area.update(cx, |input, cx| input.focus(window, cx)));
 }
 
 fn shelf_focused(h: &mut Harness) -> bool {

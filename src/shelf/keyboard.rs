@@ -65,7 +65,7 @@ impl Shelf {
             }
             if key == "escape" {
                 if self.search_input().read(cx).text().is_empty() {
-                    window.focus(&self.focus);
+                    window.focus(&self.focus, cx);
                 } else {
                     self.clear_current_search(cx);
                 }
@@ -84,7 +84,7 @@ impl Shelf {
             match key {
                 "escape" => {
                     self.leave_preview(cx);
-                    window.focus(&self.focus);
+                    window.focus(&self.focus, cx);
                 }
                 "f2" | "tab" => self.focus_title(window, cx),
                 _ => return,
@@ -96,7 +96,7 @@ impl Shelf {
         let grid = self.store.settings().layout == Layout::Grid;
         match key {
             _ if slash && !control && self.searchable() => {
-                self.search_input().read(cx).focus(window);
+                self.search_input().update(cx, |input, cx| input.focus(window, cx));
                 cx.stop_propagation();
                 cx.notify();
             }

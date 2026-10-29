@@ -37,7 +37,7 @@ fn open<'a>(cx: &'a mut TestAppContext, text: &str) -> (Entity<TextArea>, &'a mu
     let (host, cx) =
         cx.add_window_view(move |_, cx| Host { area: cx.new(|cx| TextArea::new(&text, "Пусто", cx)) });
     let area = cx.update(|_, cx| host.read(cx).area.clone());
-    cx.update(|window, cx| area.read(cx).focus(window));
+    cx.update(|window, cx| area.update(cx, |input, cx| input.focus(window, cx)));
     cx.run_until_parked();
     (area, cx)
 }

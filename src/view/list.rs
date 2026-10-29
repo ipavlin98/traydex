@@ -82,7 +82,7 @@ impl Shelf {
             .on_mouse_down(
                 MouseButton::Left,
                 cx.safe_listener(|shelf, event: &MouseDownEvent, window, cx| {
-                    window.focus(shelf.focus_handle());
+                    window.focus(shelf.focus_handle(), cx);
                     shelf.press_all(event);
                     cx.stop_propagation();
                 }),

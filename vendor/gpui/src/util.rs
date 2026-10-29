@@ -7,8 +7,6 @@ use std::{
     time::Duration,
 };
 
-pub use util::*;
-
 /// A helper trait for building complex objects with imperative conditionals in a fluent style.
 pub trait FluentBuilder {
     /// Imperatively modify self with the given closure.
@@ -112,21 +110,6 @@ impl<T: Future> Future for WithTimeout<T> {
     }
 }
 
-#[cfg(any(test, feature = "test-support"))]
-/// Uses smol executor to run a given future no longer than the timeout specified.
-/// Note that this won't "rewind" on `cx.executor().advance_clock` call, truly waiting for the timeout to elapse.
-pub async fn smol_timeout<F, T>(timeout: Duration, f: F) -> Result<T, ()>
-where
-    F: Future<Output = T>,
-{
-    let timer = async {
-        smol::Timer::after(timeout).await;
-        Err(())
-    };
-    let future = async move { Ok(f.await) };
-    smol::future::FutureExt::race(timer, future).await
-}
-
 /// Increment the given atomic counter if it is not zero.
 /// Return the new value of the counter.
 pub(crate) fn atomic_incr_if_not_zero(counter: &AtomicUsize) -> usize {
@@ -142,11 +125,93 @@ pub(crate) fn atomic_incr_if_not_zero(counter: &AtomicUsize) -> usize {
     }
 }
 
+/// Rounds to the nearest integer with 0.5 ties toward zero.
+#[inline]
+pub(crate) fn round_half_toward_zero(value: f32) -> f32 {
+    (value.abs() - 0.5).ceil().copysign(value)
+}
+
+/// Rounds to the nearest device pixel with half pixels going up, so a length of 2.5 device pixels
+/// (2 px at 125%) keeps the third pixel it had before upstream rounded halves toward zero.
+#[inline]
+pub(crate) fn round_to_device_pixel(logical: f32, scale_factor: f32) -> f32 {
+    (logical * scale_factor).round()
+}
+
+#[inline]
+pub(crate) fn round_stroke_to_device_pixel(logical: f32, scale_factor: f32) -> f32 {
+    if logical == 0.0 {
+        0.0
+    } else {
+        round_to_device_pixel(logical.max(0.0), scale_factor).max(1.0)
+    }
+}
+
+#[inline]
+pub(crate) fn floor_to_device_pixel(logical: f32, scale_factor: f32) -> f32 {
+    (logical * scale_factor).floor()
+}
+
+#[inline]
+pub(crate) fn ceil_to_device_pixel(logical: f32, scale_factor: f32) -> f32 {
+    (logical * scale_factor).ceil()
+}
+
 #[cfg(test)]
 mod tests {
     use crate::TestAppContext;
 
     use super::*;
+
+    #[test]
+    fn test_round_half_toward_zero() {
+        // Midpoint ties go toward zero
+        assert_eq!(round_half_toward_zero(0.5), 0.0);
+        assert_eq!(round_half_toward_zero(1.5), 1.0);
+        assert_eq!(round_half_toward_zero(2.5), 2.0);
+        assert_eq!(round_half_toward_zero(-0.5), 0.0);
+        assert_eq!(round_half_toward_zero(-1.5), -1.0);
+        assert_eq!(round_half_toward_zero(-2.5), -2.0);
+
+        // Non-midpoint values round to nearest
+        assert_eq!(round_half_toward_zero(1.5001), 2.0);
+        assert_eq!(round_half_toward_zero(1.4999), 1.0);
+        assert_eq!(round_half_toward_zero(-1.5001), -2.0);
+        assert_eq!(round_half_toward_zero(-1.4999), -1.0);
+
+        // Integers are unchanged
+        assert_eq!(round_half_toward_zero(0.0), 0.0);
+        assert_eq!(round_half_toward_zero(3.0), 3.0);
+        assert_eq!(round_half_toward_zero(-3.0), -3.0);
+    }
+
+    #[test]
+    fn test_device_pixel_helpers() {
+        // Snap rounds half pixels up: 1.0 * 1.5 = 1.5 goes to 2.0.
+        assert_eq!(round_to_device_pixel(1.0, 1.5), 2.0);
+        // Below the tie rounds down, above rounds up.
+        assert_eq!(round_to_device_pixel(0.3, 2.0), 1.0);
+        assert_eq!(round_to_device_pixel(1.4, 1.0), 1.0);
+        assert_eq!(round_to_device_pixel(1.6, 1.0), 2.0);
+
+        // Stroke uses snap, but clamps non-zero input up to at least 1dp.
+        assert_eq!(round_stroke_to_device_pixel(0.0, 1.0), 0.0);
+        assert_eq!(round_stroke_to_device_pixel(0.4, 1.0), 1.0);
+        assert_eq!(round_stroke_to_device_pixel(0.5, 1.0), 1.0);
+        assert_eq!(round_stroke_to_device_pixel(1.0, 1.5), 2.0);
+        assert_eq!(round_stroke_to_device_pixel(1.6, 1.0), 2.0);
+
+        // Cover's near edge floors, far edge ceils. Together they form a strict superset.
+        assert_eq!(floor_to_device_pixel(0.3, 2.0), 0.0);
+        assert_eq!(ceil_to_device_pixel(0.3, 2.0), 1.0);
+        assert_eq!(floor_to_device_pixel(2.1, 1.0), 2.0);
+        assert_eq!(ceil_to_device_pixel(2.1, 1.0), 3.0);
+
+        // Integer device-pixel inputs are stable under all three.
+        assert_eq!(round_to_device_pixel(2.0, 2.0), 4.0);
+        assert_eq!(floor_to_device_pixel(2.0, 2.0), 4.0);
+        assert_eq!(ceil_to_device_pixel(2.0, 2.0), 4.0);
+    }
 
     #[gpui::test]
     async fn test_with_timeout(cx: &mut TestAppContext) {

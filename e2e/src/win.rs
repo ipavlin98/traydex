@@ -529,10 +529,11 @@ pub fn shell_verb(verb: &str, file: &Path) -> anyhow::Result<()> {
         ..Default::default()
     };
     unsafe { ShellExecuteExW(&mut info)? };
-    if !info.hProcess.is_invalid() {
+    let process = info.hProcess;
+    if !process.is_invalid() {
         unsafe {
-            WaitForSingleObject(info.hProcess, 15_000);
-            let _ = CloseHandle(info.hProcess);
+            WaitForSingleObject(process, 15_000);
+            let _ = CloseHandle(process);
         }
     }
     Ok(())

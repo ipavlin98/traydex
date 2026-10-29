@@ -144,7 +144,7 @@ impl Shelf {
         if let Screen::Rename(renaming) = &mut self.screen {
             renaming.rule = rule;
             if rule == Rule::Name {
-                renaming.name.read(cx).focus(window);
+                renaming.name.update(cx, |input, cx| input.focus(window, cx));
             }
             self.replan(cx);
         }

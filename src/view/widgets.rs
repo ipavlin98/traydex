@@ -357,13 +357,20 @@ pub(super) fn notice(
         .child(mark);
     let text = div()
         .marked(format!("{name}:text"))
-        .flex_grow()
+        .flex_grow_1()
         .min_w_0()
         .text_size(rem(NOTICE_TEXT))
         .line_height(rem(NOTICE_LINE))
         .child(text.into());
-    let lead =
-        div().ml(rem(-indent)).flex_grow().min_w_0().flex().items_start().gap(rem(NOTICE_GAP)).child(mark).child(text);
+    let lead = div()
+        .ml(rem(-indent))
+        .flex_grow_1()
+        .min_w_0()
+        .flex()
+        .items_start()
+        .gap(rem(NOTICE_GAP))
+        .child(mark)
+        .child(text);
     let trailing = div()
         .marked(format!("{name}:action"))
         .flex_shrink_0()

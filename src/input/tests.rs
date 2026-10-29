@@ -24,7 +24,7 @@ fn open<'a>(
     cx.update(|window, cx| {
         cx.subscribe(&input, move |_, _: &Changed, _| *changed.borrow_mut() += 1).detach();
         cx.subscribe(&input, move |_, _: &Submitted, _| *submitted.borrow_mut() += 1).detach();
-        input.read(cx).focus(window);
+        input.update(cx, |input, cx| input.focus(window, cx));
     });
     cx.run_until_parked();
     (input, cx, events)
@@ -282,7 +282,7 @@ fn double_click_selects_a_word_and_triple_click_everything(cx: &mut TestAppConte
 fn losing_focus_scrolls_a_long_text_back_to_its_start(cx: &mut TestAppContext) {
     let (input, cx, _) = open(cx, &"слово ".repeat(300), false);
     assert!(cx.update(|_, cx| input.read(cx).scroll) > px(0.), "the focused input shows the caret at the end");
-    cx.update(|window, _| window.blur());
+    cx.update(|window, cx| window.blur(cx));
     cx.run_until_parked();
     assert_eq!(cx.update(|_, cx| input.read(cx).scroll), px(0.));
 }

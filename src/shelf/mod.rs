@@ -126,7 +126,7 @@ impl Shelf {
         cx: &mut Context<Self>,
     ) -> Self {
         let focus = cx.focus_handle();
-        focus.focus(window);
+        focus.focus(window, cx);
         cx.spawn(async move |this, cx| {
             let mut events = events;
             while let Some(event) = events.next().await {
@@ -164,9 +164,9 @@ impl Shelf {
                     shelf.guarded(cx, |shelf, cx| shelf.dismiss(false, cx));
                 }
             }),
-            cx.on_focus_lost(window, |shelf, window, _| {
+            cx.on_focus_lost(window, |shelf, window, cx| {
                 log::debug!("Input focus lost, returning it to the shelf");
-                window.focus(&shelf.focus);
+                window.focus(&shelf.focus, cx);
             }),
             cx.subscribe(&search, |shelf, _, _: &Changed, cx| {
                 shelf.selection.reset();

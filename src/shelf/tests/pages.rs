@@ -409,7 +409,7 @@ fn page_search_keeps_the_shelf_search_and_resets_when_leaving_the_page(cx: &mut 
     h.cx.simulate_input("alpha");
     h.settle();
     h.act(|shelf, window, cx| {
-        window.focus(&shelf.focus);
+        window.focus(&shelf.focus, cx);
         shelf.toggle_page(Page::Settings, cx);
     });
     h.keys("/");
@@ -420,14 +420,14 @@ fn page_search_keeps_the_shelf_search_and_resets_when_leaving_the_page(cx: &mut 
     assert_eq!(page_search(&mut h), "");
     let tile = h.tile(0);
     h.act(|shelf, window, cx| {
-        window.focus(&shelf.focus);
+        window.focus(&shelf.focus, cx);
         shelf.toggle_page(Page::Actions, cx);
     });
     h.keys("/");
     h.cx.simulate_input("zip");
     h.act(|shelf, window, cx| shelf.open_editor(tile, None, window, cx));
     h.act(|shelf, window, cx| {
-        window.focus(&shelf.focus);
+        window.focus(&shelf.focus, cx);
         shelf.escape(cx);
     });
     assert!(h.read(|shelf| shelf.page() == Page::Actions));
@@ -448,7 +448,7 @@ fn page_search_scrolls_the_first_match_into_view(cx: &mut TestAppContext) {
     let mut h = open(cx, true);
     h.cx.simulate_resize(size(px(NARROW_SIZE.0), px(NARROW_SIZE.1)));
     h.act(|shelf, window, cx| {
-        window.focus(&shelf.focus);
+        window.focus(&shelf.focus, cx);
         shelf.toggle_page(Page::Settings, cx);
     });
     let last = "switch:separate-notes";

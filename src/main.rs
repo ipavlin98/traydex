@@ -75,7 +75,15 @@ fn main() {
     if !sent.is_empty() {
         platform::send(system::Event::Receive(sent));
     }
-    Application::new().with_assets(icons::Assets).run(move |cx: &mut App| {
+    let windows = match gpui_windows::WindowsPlatform::new(false) {
+        Ok(windows) => windows,
+        Err(error) => {
+            log::error!("{error:#}");
+            return;
+        }
+    };
+    Application::with_platform(std::rc::Rc::new(windows)).with_assets(icons::Assets).run(move |cx: &mut App| {
+        cx.set_text_rendering_mode(TextRenderingMode::Grayscale);
         let saved = store::Store::load();
         i18n::set(saved.settings().language.unwrap_or_else(i18n::Language::system));
         let (width, height) = saved.settings().window_size();
@@ -91,6 +99,7 @@ fn main() {
                 window_background: WindowBackgroundAppearance::Opaque,
                 focus: !hidden,
                 show: false,
+                inactive_frame_interval: None,
                 ..Default::default()
             },
             move |window, cx| {

@@ -148,7 +148,7 @@ fn scrolled(preview: &Preview, cx: &App) -> Option<Hidden> {
             let list = preview.list.clone();
             Some(Rc::new(move |top| {
                 let offset = -list.scroll_px_offset_for_scrollbar().y;
-                if top { offset } else { list.max_offset_for_scrollbar().height - offset }
+                if top { offset } else { list.max_offset_for_scrollbar().y - offset }
             }))
         }
         Content::Entries(entries) if !entries.is_empty() => {
@@ -186,7 +186,7 @@ fn entry_grid(t: Theme, preview: &Preview, entries: Arc<[Entry]>, width: f32) ->
             })
             .collect()
     })
-    .track_scroll(preview.grid.clone())
+    .track_scroll(&preview.grid)
     .size_full()
     .pt(rem(GRID_PADDING));
     let handle = preview.grid.0.borrow().base_handle.clone();

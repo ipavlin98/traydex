@@ -113,7 +113,7 @@ pub(super) type Hidden = Rc<dyn Fn(bool) -> Pixels>;
 pub(super) fn hidden_by(scroll: ScrollHandle) -> Hidden {
     Rc::new(move |top| {
         let offset = -scroll.offset().y;
-        if top { offset } else { scroll.max_offset().height - offset }
+        if top { offset } else { scroll.max_offset().y - offset }
     })
 }
 
@@ -176,7 +176,7 @@ fn cover(
 }
 
 fn lane_edges(scroll: &ScrollHandle) -> [bool; 2] {
-    let (offset, max) = (-scroll.offset().x, scroll.max_offset().width);
+    let (offset, max) = (-scroll.offset().x, scroll.max_offset().x);
     Edge::BOTH.map(|edge| edge.hidden(offset, max))
 }
 

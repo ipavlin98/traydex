@@ -110,7 +110,8 @@ pub(super) fn paint_backs(chips: &[Painted], t: Theme, window: &mut Window) {
 pub(super) fn paint_icons(chips: &[Painted], t: Theme, window: &mut Window, cx: &App) {
     for chip in chips {
         let color = if chip.missing { t.faint } else { t.accent_text };
-        let painted = window.paint_svg(chip.icon, chip.name.into(), TransformationMatrix::unit(), color.into(), cx);
+        let painted =
+            window.paint_svg(chip.icon, chip.name.into(), None, TransformationMatrix::unit(), color.into(), cx);
         if let Err(error) = painted {
             log::warn!("Couldn't paint the {} icon of a mention: {error:#}", chip.name);
         }

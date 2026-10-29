@@ -8,7 +8,7 @@ Single working build: `target\debug\traydex.exe`. Never call `cargo` directly (n
 - `.\build.ps1`: build.
 - `-Run`: closes running Traydex, starts fresh debug build hidden in tray (`--autostart`), no window popup.
 - `-Lint`: `cargo fmt --all` + `cargo clippy --workspace --all-targets -- -D warnings`. Non-zero = unfinished work.
-- `-Test [filter]`: `cargo test` (unit, integration, headless GPUI, `vendor/gpui` patch regressions). No real windows/input/registry/user data. Filter = substring of test names.
+- `-Test [filter]`: `cargo test` (unit, integration, headless GPUI, `vendor/gpui`/`vendor/gpui_windows` patch regressions). No real windows/input/registry/user data. Filter = substring of test names.
 - Task fully done → `-Lint` and `-Test` once each; if `e2e/`, element marks or `diagnostics.json` changed, also `-E2E list` (builds runner only, no desktop). All pass → `-Run`, then report. Not after intermediate edits. Standing requirement.
 - No release builds (`cargo build --release`, `-Release`) unless user explicitly asks. Public releases are built only by GitHub Actions (`.github/workflows/release.yml`); `dist/` is not in git.
 
@@ -19,10 +19,10 @@ Public GitHub repo; contributors and their AI assistants follow this file.
 - CI (`.github/workflows/ci.yml`, windows-latest): `cargo fmt --check`, clippy `-D warnings`, `cargo test`, all `--locked`. Same as `-Lint` + `-Test`; keep them equal. Plus `cargo test` for `i686-pc-windows-msvc` and `aarch64-pc-windows-msvc`.
 - Targets: x64, x86, ARM64. Code builds on all three: no `isize`-specific casts for Win32 pointer-sized values (`as _`), no references into packed structs (`NOTIFYICONDATAW`, `SHFILEINFOW`; assign/copy whole fields). Locally: `cargo check --target i686-pc-windows-msvc` (x86 MSVC tools are installed, ARM64 aren't).
 - Release assets (`release.yml`): per arch `Traydex-<version>-<arch>-setup.exe` (Inno Setup, `packaging/traydex.iss`, per-user) and `-portable.zip` (`packaging/portable.txt` beside the exe switches data to `data\`, see `Profile::portable_beside`), plus `SHA256SUMS.txt`.
-- `vendor/unrar`, `vendor/unrar_sys`: crates.io copies with `extern "system"` for UnRAR (stdcall on x86). Keep the patch when updating.
+- `vendor/unrar`, `vendor/unrar_sys`: crates.io copies with `extern "system"` for UnRAR (stdcall on x86) and `advapi32` linked by `unrar_sys`. Keep the patches when updating.
 - Docs, kept in sync with behavior:
   - `README.md` (English) and `README.ru.md` (Russian): user-facing overview, same structure. Change one → change the other.
-  - `docs/manual.md`: full reference of every feature, setting, storage detail and `vendor/gpui`/`vendor/unrar` patch.
+  - `docs/manual.md`: full reference of every feature, setting, storage detail and `vendor/gpui`/`vendor/gpui_windows`/`vendor/unrar` patch.
   - `docs/plugins.md`: plugin protocol.
 - Language: everything in the repo is English except `README.ru.md` and the app translations (`src/i18n`, installer messages in `packaging/traydex.iss`). Cyrillic in tests is test data (non-ASCII paths, transliteration, layout), keep it.
   - `docs/media/*.webp`: demo clips (lossless animated WebP: GIF palettes distort the accent colors); don't regenerate or add unasked.
@@ -121,7 +121,7 @@ Standing requirements for all new code. Feature works but breaks rules = not don
 - Fix clippy findings in code. Silence only proven false positives, narrowest item, `#[expect(clippy::lint, reason = "why")]`. Never crate-wide `allow`, reasonless `#[allow(...)]`, raised thresholds. Warning pointing at design smell (too many args, complex type) → fix design (struct, type alias).
 
 ### Before finishing
-- `-Lint` passes: formatted, zero clippy/compiler warnings in workspace (`vendor/gpui` warnings not ours).
+- `-Lint` passes: formatted, zero clippy/compiler warnings in workspace (`vendor/gpui*` warnings not ours).
 - Re-read diff against this section, fix before reporting:
   - Win32 outside `platform`/`os.rs`;
   - index instead of ID;
@@ -159,7 +159,7 @@ By change kind:
   - Mark what can really overflow/overlap (long translations, narrow window, many items), not every icon.
 - **New color or text/background pair**: `Theme` tokens only; add pair to contrast test `src/theme/tests.rs` (body text ≥ 4.5:1).
 - **New UI strings**: every `i18n` language (`every_language_defines_every_string`).
-- **`vendor/gpui` change**: regression test in `src/gpui_tests.rs`.
+- **`vendor/gpui` or `vendor/gpui_windows` change**: regression test in `src/gpui_tests.rs`.
 - **No test**: spacing/styling without new behavior (visual checks/snapshots catch); behavior-preserving refactors (existing tests stay green).
 
 How:
