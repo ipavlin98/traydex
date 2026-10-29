@@ -69,7 +69,7 @@ pub fn recognize(image: &RgbaImage, language: &str) -> Result<String> {
             image.width() as i32,
             image.height() as i32,
         )?;
-        let result = engine.RecognizeAsync(&bitmap)?.get()?;
+        let result = engine.RecognizeAsync(&bitmap)?.join()?;
         let lines = result.Lines()?;
         let mut text = Vec::new();
         for index in 0..lines.Size()? {
@@ -82,7 +82,7 @@ pub fn recognize(image: &RgbaImage, language: &str) -> Result<String> {
 fn read_stream(stream: &InMemoryRandomAccessStream) -> Result<Vec<u8>> {
     let size = stream.Size()? as u32;
     let reader = DataReader::CreateDataReader(&stream.GetInputStreamAt(0)?)?;
-    reader.LoadAsync(size)?.get()?;
+    reader.LoadAsync(size)?.join()?;
     let mut bytes = vec![0; size as usize];
     reader.ReadBytes(&mut bytes)?;
     Ok(bytes)
@@ -94,11 +94,11 @@ pub fn render_pdf(path: &Path, each: &mut (dyn FnMut(RgbaImage) -> Result<()> + 
         let source = InMemoryRandomAccessStream::new()?;
         let writer = DataWriter::CreateDataWriter(&source)?;
         writer.WriteBytes(&bytes)?;
-        writer.StoreAsync()?.get()?;
-        writer.FlushAsync()?.get()?;
+        writer.StoreAsync()?.join()?;
+        writer.FlushAsync()?.join()?;
         writer.DetachStream()?;
         source.Seek(0)?;
-        let document = PdfDocument::LoadFromStreamAsync(&source)?.get().map_err(|_| anyhow!(tr().pdf_unreadable))?;
+        let document = PdfDocument::LoadFromStreamAsync(&source)?.join().map_err(|_| anyhow!(tr().pdf_unreadable))?;
         for index in 0..document.PageCount()?.min(PDF_PAGES) {
             let page = document.GetPage(index)?;
             let size = page.Size()?;
@@ -107,7 +107,7 @@ pub fn render_pdf(path: &Path, each: &mut (dyn FnMut(RgbaImage) -> Result<()> + 
             options.SetDestinationWidth((size.Width * scale).round() as u32)?;
             options.SetDestinationHeight((size.Height * scale).round() as u32)?;
             let rendered = InMemoryRandomAccessStream::new()?;
-            page.RenderWithOptionsToStreamAsync(&rendered, &options)?.get()?;
+            page.RenderWithOptionsToStreamAsync(&rendered, &options)?.join()?;
             each(image::load_from_memory(&read_stream(&rendered)?)?.into_rgba8())?;
         }
         Ok(())

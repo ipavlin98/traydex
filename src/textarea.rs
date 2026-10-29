@@ -115,8 +115,8 @@ impl TextArea {
         self.edit.text()
     }
 
-    pub fn focus(&self, window: &mut Window) {
-        window.focus(&self.focus);
+    pub fn focus(&self, window: &mut Window, cx: &mut App) {
+        window.focus(&self.focus, cx);
     }
 
     pub fn focused(&self, window: &Window) -> bool {
@@ -327,7 +327,7 @@ impl TextArea {
     }
 
     fn mouse_down(&mut self, event: &MouseDownEvent, window: &mut Window, cx: &mut Context<Self>) {
-        window.focus(&self.focus);
+        window.focus(&self.focus, cx);
         if self.press_chip(event.position, cx) {
             return cx.stop_propagation();
         }
@@ -516,7 +516,7 @@ fn paint(
             window.paint_quad(fill(*selection, t.selection));
         }
         if let Some(placeholder) = &frame.placeholder {
-            let _ = placeholder.paint(origin, line_height, window, cx);
+            let _ = placeholder.paint(origin, line_height, TextAlign::Left, None, window, cx);
         }
         for row in &frame.layout.rows {
             let top = origin.y + row.top;

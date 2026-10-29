@@ -309,7 +309,7 @@ impl Shelf {
             .collect();
         let offset = -f32::from(strip.offset().x);
         let target = edge.page(offset, view.size.width.into(), &tiles, cover);
-        let target = target.min(strip.max_offset().width.into()).max(0.);
+        let target = target.min(strip.max_offset().x.into()).max(0.);
         strip.set_offset(point(px(-target), px(0.)));
         cx.notify();
     }
@@ -391,7 +391,7 @@ impl Shelf {
             .and_then(|editor| editor.inputs.iter().find(|(field, _)| Some(*field) == focus))
             .map(|(_, input)| input.clone());
         if let Some(input) = input {
-            input.read(cx).focus(window);
+            input.update(cx, |input, cx| input.focus(window, cx));
         }
     }
 

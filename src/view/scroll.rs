@@ -33,7 +33,7 @@ pub(super) fn glide(id: impl Into<ElementId>, handle: ScrollHandle) -> impl Into
             let view = window.current_view();
             let line = window.line_height();
             window.on_mouse_event(move |event: &ScrollWheelEvent, phase, window, cx| {
-                let max = listened.max_offset().height;
+                let max = listened.max_offset().y;
                 if phase != DispatchPhase::Capture || !hitbox.should_handle_scroll(window) || max <= px(0.) {
                     return;
                 }

@@ -171,7 +171,7 @@ fn plugin_settings_get_editor_fields_and_are_saved(cx: &mut TestAppContext) {
     assert_eq!(keys, ["quality", "target"], "a toggle needs no text field");
 
     let (_, quality) = fields.first().expect("quality field").clone();
-    h.act(|_, window, cx| quality.read(cx).focus(window));
+    h.act(|_, window, cx| quality.update(cx, |input, cx| input.focus(window, cx)));
     h.cx.simulate_input("90 %");
     h.act(|shelf, _, cx| shelf.set_value(tile, "keep", Value::Bool(true), cx));
     let folder = h.sandbox.folder("Готовые фото");
@@ -189,7 +189,7 @@ fn plugin_settings_get_editor_fields_and_are_saved(cx: &mut TestAppContext) {
 fn clicks_around_the_uninstall_button_up_to_the_card_border_are_taken_by_the_button(cx: &mut TestAppContext) {
     let mut h = open_with(cx, true, with_plugin);
     h.act(|shelf, window, cx| {
-        window.focus(&shelf.focus);
+        window.focus(&shelf.focus, cx);
         shelf.toggle_page(Page::Actions, cx);
     });
     h.keys("/");

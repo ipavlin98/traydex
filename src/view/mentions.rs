@@ -26,17 +26,17 @@ fn floating(t: Theme) -> Div {
         .bg(t.surface)
 }
 
-fn place(around: Bounds<Pixels>, height: f32, window: &Window) -> (Point<Pixels>, gpui::Corner) {
+fn place(around: Bounds<Pixels>, height: f32, window: &Window) -> (Point<Pixels>, gpui::Anchor) {
     let gap = scaled(GAP, window);
     let below = around.bottom() + gap;
     if below + scaled(height + GAP, window) <= window.viewport_size().height {
-        (point(around.left(), below), gpui::Corner::TopLeft)
+        (point(around.left(), below), gpui::Anchor::TopLeft)
     } else {
-        (point(around.left(), around.top() - gap), gpui::Corner::BottomLeft)
+        (point(around.left(), around.top() - gap), gpui::Anchor::BottomLeft)
     }
 }
 
-fn floated(element: impl IntoElement, at: (Point<Pixels>, gpui::Corner)) -> Deferred {
+fn floated(element: impl IntoElement, at: (Point<Pixels>, gpui::Anchor)) -> Deferred {
     deferred(anchored().position(at.0).anchor(at.1).snap_to_window_with_margin(px(space::XS)).child(element))
         .with_priority(1)
 }

@@ -315,122 +315,130 @@ statically. Dependency versions are pinned in `Cargo.lock`. More on building and
 
 ### Patches in `vendor/gpui`
 
-GPUI 0.2.2 lives in `vendor/gpui` with the patches below, wired in through `[patch.crates-io]` in `Cargo.toml`.
+GPUI comes from [gpui-unofficial](https://github.com/gpui-archipelago/gpui-unofficial) 1.25.3, the crates.io release
+of GPUI from Zed 1.25.3. Two of its crates are vendored with the patches below: `gpui-unofficial` in `vendor/gpui` and
+the Windows backend `gpui-windows-gpui-unofficial` in `vendor/gpui_windows`, both wired in through
+`[patch.crates-io]` in `Cargo.toml`. Traydex creates the Windows platform itself (`gpui_windows::WindowsPlatform` in
+`src/main.rs`), so the other backends aren't built. Upstream GPUI already snaps layout, borders and painted primitives
+to device pixels, rounds glyph baselines to the nearest pixel row, crops cover-fitted images, measures truncated text
+again and creates pop-ups topmost, so the older Traydex patches for these were dropped. Traydex itself turns off
+upstream's 30 FPS limit for inactive windows (`inactive_frame_interval`, since the panel animates while shown without
+focus) and keeps grayscale text antialiasing instead of upstream's ClearType in opaque windows
+(`set_text_rendering_mode` in `src/main.rs`).
 
-1. **Pixel snapping.** All layout sizes are rounded to whole physical pixels, border widths to a whole number of
-   pixels and at least one, and content offsets (scrolling, for example) to whole pixels. Identical elements are
-   drawn identically and symmetrically at any Windows scale. The patch is `snap` in `vendor/gpui/src/taffy.rs`, and
-   `snap_border` and the offset snapping in `with_element_offset` in `vendor/gpui/src/window.rs`. Anchored popups no
-   longer round their offset to whole logical pixels first (`prepaint` in `vendor/gpui/src/elements/anchored.rs`),
-   so at 125% or 150% a popup lands on the same physical pixel as the element it opens from; the regression test is
-   `anchored_element_lands_on_the_device_pixel_it_was_given` in `src/gpui_tests.rs`. The hit test compares the cursor
-   with element edges in device pixels too (`hit_test` in `vendor/gpui/src/window.rs`), so the element that is drawn
-   under the cursor is the one that gets hovered and clicked; the regression test is
-   `hit_test_follows_device_pixels_at_fractional_edges`.
+1. **Pixel snapping.** Half device pixels round up, as before the move to upstream GPUI, which rounds them toward
+   zero: at 125% a 2 px token is 2.5 device pixels, and rounding it down made the whole interface a pixel denser here
+   and there (`round_to_device_pixel` in `vendor/gpui/src/util.rs`, `pixel_snap_f64` and the glyph baseline in
+   `paint_glyph` in `vendor/gpui/src/window.rs`; the regression test is `half_device_pixels_round_up`). A layout edge
+   is resolved to 1/256 of a device pixel before it is rounded (`snap_edge` in `vendor/gpui/src/taffy.rs`): float
+   noise from summing flex shares (97.499998 for 97.5) pushed an edge on a half pixel to the other side of the tie
+   than its parent's edge, so equal paddings differed by a pixel
+   (`children_split_inside_a_fractionally_placed_parent_keep_equal_padding` in `src/gpui_tests.rs`). Content offsets (scrolling, for example) are whole device pixels (`with_element_offset` in
+   `vendor/gpui/src/window.rs`), so text moves together with the boxes around it. Anchored popups don't round their
+   offset to whole logical pixels first (`prepaint` in `vendor/gpui/src/elements/anchored.rs`), so at 125% or 150% a
+   popup lands on the same physical pixel as the element it opens from
+   (`anchored_element_lands_on_the_device_pixel_it_was_given`). The hit test compares the cursor with element edges
+   in device pixels, rounded the way painting rounds them (`hit_test` in `vendor/gpui/src/window.rs`), so the element
+   drawn under the cursor is the one that gets hovered and clicked
+   (`hit_test_follows_device_pixels_at_fractional_edges`).
 2. **Mouse leave.** When the cursor leaves the window (`WM_MOUSELEAVE`, including when the window is hidden or
    covered), the Windows backend sends `PlatformInput::MouseExited`, as the macOS, X11 and Wayland backends do. The
    core then treats the cursor as outside the window: the hit test and tooltip checks return nothing until the next
    mouse event. Without it, hover and tooltips stayed after a quick mouse exit or after the window was hidden or
-   covered. The patch is `handle_mouse_leave_msg` in `vendor/gpui/src/platform/windows/events.rs`, the
-   `pointer_inside` field and `pointer_hit_test` in `vendor/gpui/src/window.rs`, and the tooltip checks in
-   `vendor/gpui/src/elements/div.rs`. While the cursor is over the window, `WM_SETCURSOR` always sets the GPUI cursor,
-   not only when the window switches between having one and not, so a cursor left by Windows or another window is
-   replaced right away (`vendor/gpui/src/platform/windows/events.rs`). The regression test is
+   covered. The patch is `handle_mouse_leave_msg` in `vendor/gpui_windows/src/events.rs`, the `pointer_inside` field
+   and `pointer_hit_test` in `vendor/gpui/src/window.rs`, and the tooltip checks in `vendor/gpui/src/elements/div.rs`.
+   While the cursor is over the window, `WM_SETCURSOR` always sets the GPUI cursor, not only when the window switches
+   between having one and not, so a cursor left by Windows or another window is replaced right away
+   (`handle_cursor_changed` in `vendor/gpui_windows/src/events.rs`). The regression test is
    `pointer_leaving_the_window_clears_hover`.
 3. **Grab cursors.** On Windows, the `OpenHand` and `ClosedHand` cursors are shown as the system *Move* cursor;
    without the patch they were a plain arrow, since Windows has no hand cursor of its own. The patch is
-   `load_cursor` in `vendor/gpui/src/platform/windows/util.rs`.
+   `load_cursor` in `vendor/gpui_windows/src/util.rs`.
 4. **Child windows on top.** The DirectComposition layer GPUI draws into is attached below child windows
-   (`CreateTargetForHwnd(hwnd, false)` in `vendor/gpui/src/platform/windows/directx_renderer.rs`); otherwise the
-   window of a system preview handler ended up under the panel content and wasn't visible.
+   (`CreateTargetForHwnd(hwnd, false)` in `vendor/gpui_windows/src/directx_renderer.rs`); otherwise the window of a
+   system preview handler ended up under the panel content and wasn't visible.
 5. **Transparency and light blur.** `Window::set_opacity` sets the opacity of a DirectComposition effect group
    (`IDCompositionEffectGroup`) over the GPUI layer and reapplies it after a device loss; the
    `WindowBackgroundAppearance::LightBlurred` background turns on the system `ACCENT_ENABLE_BLURBEHIND` blur on
-   Windows, while the existing `Blurred` stays Acrylic. The patch is `set_opacity` in
-   `vendor/gpui/src/platform/windows/directx_renderer.rs`, `vendor/gpui/src/platform/windows/window.rs`,
-   `vendor/gpui/src/platform.rs` and `vendor/gpui/src/window.rs`.
-6. **Tooltips.** A tooltip hides as soon as the cursor leaves its element, including onto the tooltip itself.
-   Previously visibility was checked against the rectangle remembered when the tooltip appeared, and only when the
-   window was redrawn, while mouse moves redraw the window only when some element changes its hover look. So the
-   tooltip stayed until something else redrew and didn't notice that its element was covered or moved. Now every
-   element remembers its hit area each frame (`tooltip_source` in `InteractiveElementState`), the tooltip checks it
-   against the hit test of the frame being drawn, and a change of the element under the cursor redraws the window
-   while a tooltip is visible. The tooltip also appears under the cursor (22 px below its tip, aligned to the left)
-   instead of right next to it at the bottom right, where the cursor covered it. The patch is
-   `vendor/gpui/src/elements/div.rs`, and `draw_roots`, `prepaint_tooltip` and `dispatch_mouse_event` in
+   Windows, while `Blurred` stays Acrylic and upstream's Mica backgrounds are untouched. The patch is `set_opacity` in
+   `vendor/gpui_windows/src/directx_renderer.rs` and `vendor/gpui_windows/src/window.rs`, `PlatformWindow` and
+   `WindowBackgroundAppearance` in `vendor/gpui/src/platform.rs`, and `Window::set_opacity` in
    `vendor/gpui/src/window.rs`.
-7. **Line breaking.** Lines wrap by the Unicode UAX #14 algorithm (the `unicode-linebreak` crate) instead of the old
-   rule "break before any character not on a short list of letters", which could break a line before a closing
-   bracket, split Hindi words and start a line with a Chinese comma. On top of UAX #14 there are typographic rules:
-   one-letter words (and two-letter Cyrillic ones) and numbers stay with the next word, and a dash doesn't start a
-   line. The patch is `vendor/gpui/src/text_system/line_breaks.rs`, `compute_wrap_boundaries` in `line_layout.rs`
-   and `wrap_line` in `line_wrapper.rs`; the regression test is `text_wraps_at_grammatical_line_breaks` in
+6. **Tooltips.** A tooltip hides as soon as the cursor leaves its element, including onto the tooltip itself.
+   Upstream checks visibility against the rectangle remembered when the tooltip appeared, and only when the window is
+   redrawn, while mouse moves redraw the window only when some element changes its hover look. So the tooltip stayed
+   until something else redrew and didn't notice that its element was covered or moved. Now every element remembers
+   its hit area each frame (`tooltip_source` in `InteractiveElementState`), the tooltip checks it against the hit test
+   of the frame being drawn, and a change of the element under the cursor redraws the window while a tooltip is
+   visible. The tooltip also appears under the cursor (22 px below its tip, aligned to the left) instead of right
+   next to it at the bottom right, where the cursor covered it. The patch is `vendor/gpui/src/elements/div.rs`, and
+   `draw_roots`, `prepaint_tooltip` and `dispatch_mouse_event` in `vendor/gpui/src/window.rs`.
+7. **Line breaking.** Lines wrap by the Unicode UAX #14 algorithm (the `unicode-linebreak` crate) instead of
+   upstream's list of "word characters", which still breaks a line before an opening bracket, splits Hindi words and
+   starts a line with a Chinese comma. On top of UAX #14 there are typographic rules: one-letter words (and two-letter
+   Cyrillic ones) and numbers stay with the next word, and a dash doesn't start a line. The patch is
+   `vendor/gpui/src/text_system/line_breaks.rs`, `compute_wrap_boundaries` in `line_layout.rs`, and `wrap_line` and
+   `truncate_wrapped_line` in `line_wrapper.rs`; the regression test is `text_wraps_at_grammatical_line_breaks` in
    `src/gpui_tests.rs`.
 8. **Text centering.** A line of text is placed so that its capital letters sit in the middle of the line height
-   (like `TextLineBounds="TrimToCapHeight"` in WinUI or `text-box-trim` in CSS). Upstream GPUI centered the whole
+   (like `TextLineBounds="TrimToCapHeight"` in WinUI or `text-box-trim` in CSS). Upstream GPUI centers the whole
    ascent-to-descent box, and since Segoe UI has a much taller ascent than descent, letters sat about a pixel low in
    buttons, key caps and fields. The patch is `baseline_offset` in `vendor/gpui/src/text_system.rs`, which
-   `paint_line` in `vendor/gpui/src/text_system/line.rs` now uses; the regression test is
-   `baseline_offset_leaves_equal_room_above_capitals_and_below_baseline` in `src/gpui_tests.rs`. On Windows glyphs
-   have no vertical subpixel variants, and upstream dropped the fraction of the baseline, lifting text by up to a
-   device pixel; `glyph_placement` in `vendor/gpui/src/window.rs` puts the baseline on the nearest pixel row
-   instead, so capitals stay within half a pixel of the middle. Its test is
-   `glyph_baseline_goes_to_the_nearest_pixel_row`.
-9. **Icon bitmaps.** An SVG icon is rasterized at twice its size in device pixels, rounded to the nearest texel.
-   Upstream rounded up, and since a whole-pixel layout size comes back from logical pixels with float noise
-   (18.000002), the bitmap got an extra texel: the icon was stretched by half a pixel and drawn off its center, so the
-   rotating spinner wobbled around its axis. The patch is `svg_raster_size` in `vendor/gpui/src/window.rs`; the
-   regression test is `svg_bitmap_matches_whole_device_pixels_despite_float_noise` in `src/gpui_tests.rs`.
-10. **Pixel-fitted icons.** Icons are drawn on a 24-unit grid and shown at 14–20 px times the Windows and interface
-    scale, so their 1.75-unit lines used to fall between device pixels and spread over two half-bright ones. Before
-    rasterizing, `vendor/gpui/src/svg_renderer/hint.rs` moves straight horizontal and vertical lines so that their
-    whole pixels are solid (to a pixel center when a line is 1–2 pixels wide, to a pixel edge when 2–3 wide and for the
-    edges of fills) and moves every other point in proportion between them, like font hinting. Stroke widths stay as
-    they are, so icons keep their weight; shapes move by at most half a pixel. Only SVGs that ask for it with
-    `shape-rendering="crispEdges"` are fitted (they stay anti-aliased): the line icons in `src/icons.rs` do, the logo
-    and the progress ring don't. The logo is two layers, and fitting each on its own pushed the arrow off the center
-    of the pentagon. Zero-length segments (the closing `z` of a circle, or of a path that ends where it starts) aren't
-    taken for lines: they used to pull one side of a ring or a closed outline out of place. Anything but solid paths (gradients,
-    images, text, clipping, masks, filters, group opacity) is rendered by resvg as before. The regression tests are
-    `icon_lines_land_on_whole_device_pixels_at_any_scale`, `closed_curves_stay_centered_after_pixel_fitting` and
-    `logo_arrow_stays_centered_in_its_pentagon` in `src/gpui_tests.rs`.
-11. **Hover transitions.** With the `HoverTransition` global set to a duration, hover and group hover styles of
+   `paint_line` in `vendor/gpui/src/text_system/line.rs` uses; the regression test is
+   `baseline_offset_leaves_equal_room_above_capitals_and_below_baseline` in `src/gpui_tests.rs`.
+9. **Pixel-fitted icons.** Icons are drawn on a 24-unit grid and shown at 14–20 px times the Windows and interface
+   scale, so their 1.75-unit lines used to fall between device pixels and spread over two half-bright ones. Before
+   rasterizing, `vendor/gpui/src/svg_renderer/hint.rs` moves straight horizontal and vertical lines so that their
+   whole pixels are solid (to a pixel center when a line is 1–2 pixels wide, to a pixel edge when 2–3 wide and for the
+   edges of fills) and moves every other point in proportion between them, like font hinting. Stroke widths stay as
+   they are, so icons keep their weight; shapes move by at most half a pixel. Only SVGs that ask for it with
+   `shape-rendering="crispEdges"` are fitted (they stay anti-aliased): the line icons in `src/icons.rs` do, the logo
+   and the progress ring don't. The logo is two layers, and fitting each on its own pushed the arrow off the center
+   of the pentagon. Zero-length segments (the closing `z` of a circle, or of a path that ends where it starts) aren't
+   taken for lines: they used to pull one side of a ring or a closed outline out of place. Anything but solid paths
+   (gradients, images, text, clipping, masks, filters, group opacity) is rendered by resvg as before. The patch is
+   `icon_mask` and `svg_icon_mask` in `vendor/gpui/src/svg_renderer.rs`; the regression tests are
+   `icon_lines_land_on_whole_device_pixels_at_any_scale`, `closed_curves_stay_centered_after_pixel_fitting` and
+   `logo_arrow_stays_centered_in_its_pentagon` in `src/gpui_tests.rs`.
+10. **Hover transitions.** With the `HoverTransition` global set to a duration, hover and group hover styles of
     stateful elements fade instead of switching at once; Traydex sets it while interface animations are on. Colors
     are mixed and ease out into their target, a transition reversed halfway starts from where it was and takes only
     the time the distance left needs, opacity fades only for elements without a background of their own (a half
     transparent panel would show what's beneath through it), and the other properties switch halfway. An element that
-    moved, for example while scrolling, takes its new hover state without fading, and hovering never changes the size
-    or position of anything. Without the global, hover styles apply instantly, as upstream. The patch is
-    `vendor/gpui/src/elements/hover.rs` and `hover_style` in `vendor/gpui/src/elements/div.rs`; the regression tests
-    are the `hover_fade_*`, `blended_hover_*` and `hover_transition_*` tests in `src/gpui_tests.rs`.
-12. **Cover-fitted images.** An image fitted to cover its element is painted only where the element is: the part
-    that overflows is cut off, and the corner radii round the element's corners, not the corners of the larger image.
-    `paint_image` takes the shown part next to the full bounds, and `crop_image` in `vendor/gpui/src/window.rs` picks
-    the texels; the regression test is `a_cover_fitted_image_is_cut_to_its_element_so_corners_round_the_element`.
-13. **Truncated text.** A text truncated with an ellipsis is measured again when its truncation width changes, so a
-    text capped by `max_w` ends with an ellipsis instead of being clipped mid-letter, and each measurement truncates
-    its own copy of the style runs, so a second pass doesn't break them. The cut never leaves a space or punctuation
-    before the ellipsis (`cut_before_ellipsis` in `vendor/gpui/src/text_system/line_wrapper.rs`, which Traydex also
-    uses for its own cuts). The patch is `vendor/gpui/src/elements/text.rs` and `line_wrapper.rs`; the regression
-    tests are the `truncated_text_*` tests and `truncation_never_leaves_a_space_or_punctuation_before_the_ellipsis`.
-14. **Topmost pop-ups.** `WindowKind::PopUp` windows are created with `WS_EX_TOPMOST`, since a background process
-    such as Traydex in the tray can't make a window topmost later. The patch is `window_styles` in
-    `vendor/gpui/src/platform/windows/window.rs`; the regression test is `popup_windows_are_created_topmost`.
-15. **Dragged value.** `App::active_drag_value` returns the value of the current drag if it has the given type, so a
+    moved, for example while scrolling, takes its new hover state without fading. Hovering never changes the size or
+    position of anything: upstream applies the whole remembered hover style during layout, the patch only its text
+    color and decoration. The hover state remembered for the next frame is the one just painted, so leaving an element
+    that became hoverable under a still cursor redraws it. Without the global, hover styles apply instantly, as
+    upstream. The patch is `vendor/gpui/src/elements/hover.rs`, and `hover_style`, `compute_style_internal` and the
+    hover listeners in `vendor/gpui/src/elements/div.rs`; the regression tests are the `hover_fade_*`,
+    `blended_hover_*` and other `hover_*` tests in `src/gpui_tests.rs`.
+11. **Ellipsis.** A text cut at its end never leaves a space or punctuation before the ellipsis, including the
+    Unicode dashes and quotes that upstream keeps (`cut_before_ellipsis` in
+    `vendor/gpui/src/text_system/line_wrapper.rs`, which Traydex also uses for its own cuts); the regression tests are
+    the `truncated_text_*` tests and `truncation_never_leaves_a_space_or_punctuation_before_the_ellipsis`.
+12. **Dragged value.** `App::active_drag_value` returns the value of the current drag if it has the given type, so a
     view can lift the tile that is being dragged (`vendor/gpui/src/app.rs`); the regression test is
     `active_drag_value_reports_the_dragged_value_until_release`.
-16. **Test and measurement support.** With the `test-support` feature, debug bounds are cleared with every frame, so a
-    headless test looking an element up by its mark (`cx.debug_bounds`) doesn't find one that is no longer drawn
-    (`debug_bounds_forget_elements_that_are_no_longer_drawn`).
-    With `ZED_MEASUREMENTS=1`, `log_timing` in `vendor/gpui/src/window.rs` writes when each frame and each opacity
-    change happens to stderr, which the E2E `--measure` option and the `motion` suite read. In debug builds,
-    `layout_line` checks that the style runs cover the whole text.
+13. **Tasks during modal loops.** A task that runs a modal loop (Traydex starts its OLE drag out of the window from
+    one) no longer blocks the other tasks until it returns: the Windows dispatcher clears its "wake message posted"
+    flag when it starts running tasks, so a task dispatched meanwhile posts a new message that the modal loop
+    dispatches, as with GPUI 0.2.2. Without it, the shelf didn't follow the cursor over the tiles while dragging a
+    card onto one. The patch is `run_foreground_task` in `vendor/gpui_windows/src/platform.rs`; it is covered by the
+    E2E `dnd/shelf-to-tile` scenario, since headless tests don't use the Windows dispatcher.
+14. **Measurement support.** With `ZED_MEASUREMENTS=1`, `log_timing` in `vendor/gpui/src/window.rs` writes when each
+    frame and each opacity change happens to stderr, which the E2E `--measure` option and the `motion` suite read. In
+    debug builds, `layout_line` checks that the style runs cover the whole text.
 
-### Patch in `vendor/unrar`
+The vendored crates leave out upstream's examples and test fonts, so their `Cargo.toml` lists no examples;
+`vendor/gpui` adds the `unicode-linebreak` dependency.
 
-The `unrar` and `unrar_sys` crates live in `vendor/` with one change: UnRAR functions and callbacks are declared
-`extern "system"` instead of `extern "C"`. On x64 and ARM64 the two are the same, but on 32-bit Windows the library
-exports them as `stdcall`, and without the change the x86 build doesn't link.
+### Patches in `vendor/unrar`
+
+The `unrar` and `unrar_sys` crates live in `vendor/` with two changes. UnRAR functions and callbacks are declared
+`extern "system"` instead of `extern "C"`: on x64 and ARM64 the two are the same, but on 32-bit Windows the library
+exports them as `stdcall`, and without the change the x86 build doesn't link. And `vendor/unrar_sys/build.rs` links
+`advapi32`, which UnRAR's random number source (`CryptGenRandom`) needs; the crate relied on another dependency to
+link it.
 
 ### Releases
 

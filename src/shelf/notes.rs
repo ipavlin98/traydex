@@ -35,7 +35,7 @@ impl Shelf {
         self.items_changed(cx);
         self.show_preview(key, window, cx);
         if let Some(note) = self.note() {
-            note.area.read(cx).focus(window);
+            note.area.update(cx, |input, cx| input.focus(window, cx));
         }
     }
 
@@ -132,13 +132,13 @@ impl Shelf {
     pub(super) fn focus_title(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if let Some(title) = self.note().map(|note| note.title.clone()) {
             title.update(cx, |title, cx| title.select_all(cx));
-            title.read(cx).focus(window);
+            title.update(cx, |input, cx| input.focus(window, cx));
         }
     }
 
     pub(super) fn focus_note(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if let Some(note) = self.note() {
-            note.area.read(cx).focus(window);
+            note.area.update(cx, |input, cx| input.focus(window, cx));
         }
     }
 }

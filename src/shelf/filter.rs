@@ -149,7 +149,7 @@ impl Shelf {
             return;
         }
         let offset = scroll.offset();
-        let target = (offset.y + shift).clamp(-scroll.max_offset().height, px(0.));
+        let target = (offset.y + shift).clamp(-scroll.max_offset().y, px(0.));
         scroll.set_offset(point(offset.x, target));
         cx.notify();
     }

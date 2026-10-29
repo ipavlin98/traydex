@@ -218,7 +218,7 @@ impl Shelf {
             .children(options)
             .enter(SharedString::from(format!("{name}-menu-enter")), Motion::Drop, self.animated());
         div().absolute().top(rem(MENU_OFFSET)).right_0().child(
-            deferred(anchored().anchor(gpui::Corner::TopRight).snap_to_window_with_margin(px(space::XS)).child(menu))
+            deferred(anchored().anchor(gpui::Anchor::TopRight).snap_to_window_with_margin(px(space::XS)).child(menu))
                 .with_priority(1),
         )
     }

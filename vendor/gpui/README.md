@@ -1,66 +1,114 @@
-# Welcome to GPUI!
+<!-- gpui-archipelago:generated -->
+# gpui-unofficial
 
-GPUI is a hybrid immediate and retained mode, GPU accelerated, UI framework
-for Rust, designed to support a wide variety of applications.
+_Zed's GPU-accelerated UI framework_
 
-## Getting Started
+Part of **[gpui-archipelago](https://gpui-archipelago.github.io/)** (aka **GPUI-lago** — "jee pyu ay la go"):
+unofficial, automated builds of [Zed](https://github.com/zed-industries/zed)'s
+GPUI crates, published to crates.io.
 
-GPUI is still in active development as we work on the Zed code editor, and is still pre-1.0. There will often be breaking changes between versions. You'll also need to use the latest version of stable Rust and be on macOS or Linux. Add the following to your `Cargo.toml`:
+This package is the published build of `gpui`, generated from zed
+`v1.25.3` (`8dd255c3eafb5231056fe4e6f601cedd011f1c93`) at version `1.25.3`.
 
-```toml
-gpui = { version = "*" }
+- **Website and project** — <https://gpui-archipelago.github.io/>
+- **Source and release automation** — <https://github.com/gpui-archipelago/gpui-unofficial>
+- **Original crate** — <https://github.com/zed-industries/zed/tree/v1.25.3/crates/gpui>
+
+## Install
+
+```sh
+cargo add gpui-unofficial
 ```
 
- - [Ownership and data flow](src/_ownership_and_data_flow.rs)
+The main framework crate. It pulls in the platform facade and the host backend.
 
-Everything in GPUI starts with an `Application`. You can create one with `Application::new()`, and kick off your application by passing a callback to `Application::run()`. Inside this callback, you can create a new window with `App::open_window()`, and register your first root view. See [gpui.rs](https://www.gpui.rs/) for a complete example.
+## Usage
 
-### Dependencies
+The package is named `gpui-unofficial`; its library target is `gpui`, so
+source keeps `use gpui::*`. Start an application through the platform facade.
+The platform package is `gpui-platform-gpui-unofficial`; alias it as
+`gpui_platform` so the upstream code shape keeps working:
 
-GPUI has various system dependencies that it needs in order to work.
+```toml
+[dependencies]
+gpui-unofficial = "1.25.3"
+gpui_platform = { package = "gpui-platform-gpui-unofficial", version = "1.25.3" }
+```
 
-#### macOS
+```rust,no_run
+use gpui::*;
 
-On macOS, GPUI uses Metal for rendering. In order to use Metal, you need to do the following:
+struct Hello;
 
-- Install [Xcode](https://apps.apple.com/us/app/xcode/id497799835?mt=12) from the macOS App Store, or from the [Apple Developer](https://developer.apple.com/download/all/) website. Note this requires a developer account.
+impl Render for Hello {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        div().child("Hello, GPUI!")
+    }
+}
 
-> Ensure you launch Xcode after installing, and install the macOS components, which is the default option.
+fn main() {
+    gpui_platform::application().run(|cx: &mut App| {
+        cx.open_window(WindowOptions::default(), |_, cx| cx.new(|_| Hello))
+            .unwrap();
+    });
+}
+```
 
-- Install [Xcode command line tools](https://developer.apple.com/xcode/resources/)
+The host backend is selected through `gpui_platform`; `gpui-unofficial`
+already enables the platform features it needs.
 
-  ```sh
-  xcode-select --install
-  ```
+## Versioning
 
-- Ensure that the Xcode command line tools are using your newly installed copy of Xcode:
+Versions mirror Zed's release tags: zed `v1.25.3` publishes as `1.25.3`.
+Because the version is taken verbatim from Zed's semver, an already-published
+version cannot be replaced; a fix has to wait for the next Zed release.
 
-  ```sh
-  sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
-  ```
+## Release notes and API changes
 
-## The Big Picture
+- **Release notes** — <https://github.com/gpui-archipelago/gpui-release-notes/issues/3>
+- **GPUI fork map** — <https://gpui-archipelago.github.io/map/>
+- **API surface changes for `gpui-unofficial`** — <https://gpui-archipelago.github.io/map/#/changes?p=gpui-unofficial>
+- **What this project changes on top of Zed** — <https://github.com/gpui-archipelago/gpui-unofficial/blob/main/docs/upstream-patches.md>
 
-GPUI offers three different [registers](<https://en.wikipedia.org/wiki/Register_(sociolinguistics)>) depending on your needs:
+## The archipelago
 
-- State management and communication with `Entity`'s. Whenever you need to store application state that communicates between different parts of your application, you'll want to use GPUI's entities. Entities are owned by GPUI and are only accessible through an owned smart pointer similar to an `Rc`. See the `app::context` module for more information.
+Every fork is an island. There's no mainland and no one's building one, so the
+islands have to find each other. Here they can.
 
-- High level, declarative UI with views. All UI in GPUI starts with a view. A view is simply an `Entity` that can be rendered, by implementing the `Render` trait. At the start of each frame, GPUI will call this render method on the root view of a given window. Views build a tree of `elements`, lay them out and style them with a tailwind-style API, and then give them to GPUI to turn into pixels. See the `div` element for an all purpose swiss-army knife of rendering.
+Ideally, Zed would have published GPUI as a stable, versioned crate, but that
+didn't happen. Various people forked it instead, and each fork ended up solving
+a different part of the problem:
 
-- Low level, imperative UI with Elements. Elements are the building blocks of UI in GPUI, and they provide a nice wrapper around an imperative API that provides as much flexibility and control as you need. Elements have total control over how they and their child elements are rendered and can be used for making efficient views into large lists, implement custom layouting for a code editor, and anything else you can think of. See the `element` module for more information.
+- **gpui-unofficial** — publishes up-to-date crates on crates.io, which covers
+  distribution. Currently needs a maintainer.
+- **gpui-kit** — Longbridge's shadow distribution: republishes upstream Zed
+  crates to crates.io as `gpui-pre` under its own namespace, fronted by a
+  `gpui-kit` facade over `gpui-base`, `gpui-component`, and `gpui-shell` —
+  Jason Lee's answer to 315 days without an official release.
+- **gpui-ce** — a community fork working to accelerate testing of upstream
+  features and maintain a faster-moving community version, publishing crates
+  for standalone desktop apps.
+- **Kael** — forked from GPUI direct; selectively tracks upstream while building
+  out general-purpose features (gradients, webviews, form controls, component
+  library).
+- **WGPUI** — GPUI ported to a single cross-platform backend (wgpu + winit)
+  instead of per-platform code — leaner, and features land across Windows,
+  macOS, Linux, and WebAssembly in one code path. `WgpuSurface` lets you embed
+  raw wgpu render passes (3D, game engines, custom shaders, anything) directly
+  in your UI tree, making WGPUI suitable as a shell for 3D applications and
+  mixed-mode interfaces.
 
-Each of these registers has one or more corresponding contexts that can be accessed from all GPUI services. This context is your main interface to GPUI, and is used extensively throughout the framework.
+## Provenance and licence
 
-## Other Resources
+Derived from Zed's GPUI and published as `gpui-unofficial` under `Apache-2.0`.
+This is an unofficial project, not affiliated with or maintained by Zed
+Industries. For issues with the upstream crate, see the
+[Zed repository](https://github.com/zed-industries/zed).
 
-In addition to the systems above, GPUI provides a range of smaller services that are useful for building complex applications:
-
-- Actions are user-defined structs that are used for converting keystrokes into logical operations in your UI. Use this for implementing keyboard shortcuts, such as cmd-q. See the `action` module for more information.
-
-- Platform services, such as `quit the app` or `open a URL` are available as methods on the `app::App`.
-
-- An async executor that is integrated with the platform's event loop. See the `executor` module for more information.,
-
-- The `[gpui::test]` macro provides a convenient way to write tests for your GPUI applications. Tests also have their own kind of context, a `TestAppContext` which provides ways of simulating common platform input. See `app::test_context` and `test` modules for more details.
-
-Currently, the best way to learn about these APIs is to read the Zed source code, ask us about it at a fireside hack, or drop a question in the [Zed Discord](https://zed.dev/community-links). We're working on improving the documentation, creating more examples, and will be publishing more guides to GPUI on our [blog](https://zed.dev/blog).
+    source:          https://github.com/gpui-archipelago/gpui-unofficial
+    upstream:        https://github.com/zed-industries/zed
+    upstream tag:    v1.25.3
+    upstream commit: 8dd255c3eafb5231056fe4e6f601cedd011f1c93
+    crate:           gpui-unofficial
+    original:        gpui
+    version:         1.25.3

@@ -23,14 +23,14 @@ impl Shelf {
         }
         if let Some(window) = cx.active_window() {
             cx.defer(move |cx| {
-                let _ = window.update(cx, |_, window, cx| password.read(cx).focus(window));
+                let _ = window.update(cx, |_, window, cx| password.update(cx, |input, cx| input.focus(window, cx)));
             });
         }
     }
 
-    pub(super) fn focus_password(&self, window: &mut Window, cx: &App) {
+    pub(super) fn focus_password(&self, window: &mut Window, cx: &mut App) {
         if let Some(unlocking) = self.unlocking() {
-            unlocking.password.read(cx).focus(window);
+            unlocking.password.update(cx, |input, cx| input.focus(window, cx));
         }
     }
 

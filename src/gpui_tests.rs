@@ -2,8 +2,8 @@ use gpui::{
     AbsoluteLength, AnyView, AppContext, Bounds, Context, DevicePixels, Entity, Hitbox, HitboxBehavior, HoverFade,
     HoverTransition, Hsla, InteractiveElement, IntoElement, Modifiers, MouseButton, MouseExitEvent, ParentElement,
     Pixels, Point, Render, SharedString, StatefulInteractiveElement, Style, Styled, TestAppContext, TextRun,
-    Visibility, VisualTestContext, Window, blend_hover, canvas, crop_image, div, font, glyph_placement, point,
-    prelude::FluentBuilder, px, relative, size, svg_raster_size,
+    Visibility, VisualTestContext, Window, blend_hover, canvas, div, font, point, prelude::FluentBuilder, px, relative,
+    size,
 };
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -380,26 +380,6 @@ fn revealed_panels_with_a_background_switch_whole_instead_of_ghosting() {
     assert_eq!(blend_hover(&resting, &hovered, 0.9).visibility, Visibility::Visible);
 }
 
-#[test]
-fn a_cover_fitted_image_is_cut_to_its_element_so_corners_round_the_element() {
-    let texels = size(DevicePixels(200), DevicePixels(100));
-    let element = Bounds::new(point(px(0.), px(0.)), size(px(100.), px(100.)));
-    let full = Bounds::new(point(px(-50.), px(0.)), size(px(200.), px(100.)));
-    let (painted, taken) = crop_image(full, element, texels);
-    assert_eq!(painted, element);
-    assert_eq!(
-        taken,
-        Bounds::new(point(DevicePixels(50), DevicePixels(0)), size(DevicePixels(100), DevicePixels(100)))
-    );
-
-    let fine = size(DevicePixels(1000), DevicePixels(500));
-    let element = Bounds::new(point(px(0.3), px(0.)), size(px(99.5), px(100.)));
-    let (painted, _) = crop_image(full, element, fine);
-    let texel = 0.2;
-    assert!(painted.left() <= element.left() && element.left() - painted.left() < px(texel), "{painted:?}");
-    assert!(painted.right() >= element.right() && painted.right() - element.right() < px(texel), "{painted:?}");
-}
-
 struct Revealed {
     hoverable: bool,
 }
@@ -651,7 +631,7 @@ fn truncation_never_leaves_a_space_or_punctuation_before_the_ellipsis(cx: &mut T
     cx.update(|cx| {
         let mut wrapper = cx.text_system().line_wrapper(style.clone(), px(12.));
         for width in 1..400 {
-            let mut runs = vec![TextRun {
+            let runs = vec![TextRun {
                 len: text.len(),
                 font: style.clone(),
                 color: Hsla::default(),
@@ -659,7 +639,8 @@ fn truncation_never_leaves_a_space_or_punctuation_before_the_ellipsis(cx: &mut T
                 underline: None,
                 strikethrough: None,
             }];
-            let shown = wrapper.truncate_line(text.into(), px(width as f32), "…", &mut runs);
+            let (shown, runs) =
+                wrapper.truncate_line(text.into(), px(width as f32), "…", &runs, gpui::TruncateFrom::End);
             assert_eq!(runs.iter().map(|run| run.len).sum::<usize>(), shown.len(), "runs cover {shown:?}");
             let Some(kept) = shown.strip_suffix('…') else {
                 continue;
@@ -672,12 +653,21 @@ fn truncation_never_leaves_a_space_or_punctuation_before_the_ellipsis(cx: &mut T
     });
 }
 
-#[test]
-fn popup_windows_are_created_topmost() {
-    use windows::Win32::UI::WindowsAndMessaging::WS_EX_TOPMOST;
-    let topmost = |kind| gpui::windows_extended_style(kind) & WS_EX_TOPMOST.0 != 0;
-    assert!(topmost(gpui::WindowKind::PopUp), "a background process can't make it topmost later");
-    assert!(!topmost(gpui::WindowKind::Normal));
+struct HalfPixel;
+
+impl Render for HalfPixel {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        div().child(div().debug_selector(|| "box".into()).w(px(10.25)).h(px(10.)))
+    }
+}
+
+#[gpui::test]
+fn half_device_pixels_round_up(cx: &mut TestAppContext) {
+    let (_, cx) = cx.add_window_view(|_, _| HalfPixel);
+    cx.run_until_parked();
+    assert_eq!(cx.update(|window, _| window.scale_factor()), 2.);
+    let width = cx.debug_bounds("box").expect("the box is painted").size.width;
+    assert_eq!(width, px(10.5), "20.5 device pixels keep their 21st pixel, as Traydex is designed at 125%");
 }
 
 struct Segments {
@@ -720,17 +710,6 @@ fn baseline_offset_leaves_equal_room_above_capitals_and_below_baseline(cx: &mut 
         let (above, below) = (f32::from(baseline - cap_height), f32::from(line - baseline));
         assert!((above - below).abs() < 1e-3, "{above} above the capitals, {below} below the baseline");
     });
-}
-
-#[test]
-fn glyph_baseline_goes_to_the_nearest_pixel_row() {
-    let row = |y: f32| f64::from(glyph_placement(point(px(0.), px(y)), 1.25).0.y);
-    assert_eq!(row(638.35), 798., "797.94 device pixels");
-    assert_eq!(row(638.1), 798., "797.63 device pixels");
-    assert_eq!(row(638.), 798., "797.5 device pixels");
-    assert_eq!(row(637.9), 797., "797.38 device pixels");
-    let (pixel, variant) = glyph_placement(point(px(10.3), px(20.)), 1.25);
-    assert_eq!((f64::from(pixel.x), variant.x, variant.y), (12., 3, 0), "12.875 keeps its horizontal subpixel variant");
 }
 
 #[test]
@@ -805,16 +784,6 @@ fn logo_arrow_stays_centered_in_its_pentagon() {
         let center = side as f32 / 2. - 0.5;
         assert!((middle - center).abs() <= 0.25, "at {device} px the arrow stem isn't centered: {row:?}");
     }
-}
-
-#[test]
-fn svg_bitmap_matches_whole_device_pixels_despite_float_noise() {
-    let raster = svg_raster_size(size(px(18.000002), px(17.999878)).scale(1.));
-    assert_eq!(
-        (raster.width, raster.height),
-        (DevicePixels(36), DevicePixels(36)),
-        "18 device pixels at 2x supersampling"
-    );
 }
 
 struct Popup {

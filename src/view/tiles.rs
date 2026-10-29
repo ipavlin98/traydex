@@ -260,7 +260,7 @@ impl Shelf {
             .relative()
             .map(|d| match look.fit {
                 Fit::Even => d.flex_1().min_w_0().justify_center(),
-                Fit::Grow => d.flex_grow().flex_shrink_0().justify_center(),
+                Fit::Grow => d.flex_grow_1().flex_shrink_0().justify_center(),
                 Fit::Scroll => d.flex_shrink_0(),
             })
             .h_full()

@@ -98,7 +98,7 @@ fn encode(payload: &Payload) -> (u16, Vec<u8>) {
 fn data_object(payload: &Payload) -> windows::core::Result<IDataObject> {
     let data: IDataObject = unsafe { SHCreateDataObject(None, None, None::<&IDataObject>)? };
     let (format, bytes) = encode(payload);
-    let handle = global(&bytes).ok_or_else(windows::core::Error::from_win32)?;
+    let handle = global(&bytes).ok_or_else(windows::core::Error::from_thread)?;
     let format = FORMATETC {
         cfFormat: format,
         ptd: std::ptr::null_mut(),

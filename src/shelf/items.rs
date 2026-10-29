@@ -53,7 +53,7 @@ impl Shelf {
         } else {
             return;
         };
-        let target = target.clamp(0., f32::from(scroll.max_offset().height).max(0.));
+        let target = target.clamp(0., f32::from(scroll.max_offset().y).max(0.));
         scroll.set_offset(point(px(0.), px(-target)));
     }
 

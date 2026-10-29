@@ -92,7 +92,7 @@ pub fn label(text: SharedString, backdrop: Rgba) -> impl IntoElement {
             move |bounds, line, window, cx| {
                 let area = overdrawn(bounds);
                 window.with_content_mask(Some(ContentMask { bounds: area }), |window| {
-                    let _ = line.paint(bounds.origin, bounds.size.height, window, cx);
+                    let _ = line.paint(bounds.origin, bounds.size.height, TextAlign::Left, None, window, cx);
                     paint_fades(area, (false, line.width > bounds.size.width), backdrop, window);
                 });
             },
@@ -153,8 +153,8 @@ impl TextInput {
         cx.notify();
     }
 
-    pub fn focus(&self, window: &mut Window) {
-        window.focus(&self.focus);
+    pub fn focus(&self, window: &mut Window, cx: &mut App) {
+        window.focus(&self.focus, cx);
     }
 
     pub fn select_all(&mut self, cx: &mut Context<Self>) {
@@ -261,7 +261,7 @@ impl TextInput {
     }
 
     fn mouse_down(&mut self, event: &MouseDownEvent, window: &mut Window, cx: &mut Context<Self>) {
-        window.focus(&self.focus);
+        window.focus(&self.focus, cx);
         self.selecting = true;
         let index = self.index_at(event.position);
         match event.click_count {
@@ -459,7 +459,7 @@ impl Render for TextInput {
                                 window.paint_quad(fill(selection, t.selection));
                             }
                             let origin = point(bounds.left() - frame.scroll, bounds.top());
-                            let _ = frame.line.paint(origin, bounds.size.height, window, cx);
+                            let _ = frame.line.paint(origin, bounds.size.height, TextAlign::Left, None, window, cx);
                             if let Some(backdrop) = backdrop {
                                 paint_fades(area, frame.fades, backdrop(&t), window);
                             }

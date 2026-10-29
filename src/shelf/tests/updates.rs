@@ -119,7 +119,7 @@ fn the_version_in_settings_opens_the_releases_page(cx: &mut TestAppContext) {
     h.settle();
     h.act(|shelf, window, _| {
         let scroll = shelf.scroll(Page::Settings);
-        scroll.set_offset(point(px(0.), -scroll.max_offset().height));
+        scroll.set_offset(point(px(0.), -scroll.max_offset().y));
         window.refresh();
     });
     h.settle();

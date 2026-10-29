@@ -47,8 +47,9 @@ The short version:
 - Visual sizes come from `src/design.rs`, colors from `Theme`.
 - Write a test when it can catch a real bug; a bug fix starts with a failing test.
 
-GPUI is vendored in `vendor/gpui` with a few patches; they are described in the
-[manual](docs/manual.md#patches-in-vendorgpui). A change there needs a regression test in `src/gpui_tests.rs`.
+GPUI (gpui-unofficial) is vendored in `vendor/gpui` and its Windows backend in `vendor/gpui_windows`, with a few
+patches; they are described in the [manual](docs/manual.md#patches-in-vendorgpui). A change there needs a regression
+test in `src/gpui_tests.rs`.
 
 ## Pull requests
 

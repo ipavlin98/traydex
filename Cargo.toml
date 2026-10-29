@@ -7,10 +7,11 @@ build = "build.rs"
 [dependencies]
 anyhow = "1"
 futures = "0.3"
-gpui = { version = "=0.2.2", default-features = false, features = ["windows-manifest"] }
-windows = { version = "0.61", features = ["Win32_Foundation", "Win32_System_Com", "Win32_System_Ole", "Win32_System_Memory", "Win32_System_DataExchange", "Win32_System_LibraryLoader", "Win32_System_Threading", "Win32_System_JobObjects", "Win32_Security", "Win32_UI_Accessibility", "Win32_UI_Shell", "Win32_UI_Shell_PropertiesSystem", "Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse", "Win32_Graphics_Gdi", "Win32_Graphics_Dwm", "Win32_UI_HiDpi", "Win32_Globalization", "Win32_NetworkManagement_IpHelper", "Win32_NetworkManagement_Ndis", "Win32_Networking_WinSock", "Win32_System_Registry", "Win32_System_Rpc", "Win32_System_SystemServices", "Win32_System_Com_StructuredStorage", "Win32_System_WindowsProgramming", "Win32_Storage_FileSystem", "Win32_UI_Shell_Common", "Foundation", "Foundation_Collections", "Media_Ocr", "Graphics_Imaging", "Storage_Streams", "Data_Pdf", "Globalization"] }
+gpui = { package = "gpui-unofficial", version = "=1.25.3", default-features = false, features = ["windows-manifest"] }
+gpui_windows = { package = "gpui-windows-gpui-unofficial", version = "=1.25.3", default-features = false }
+windows = { version = "0.62", features = ["Win32_Foundation", "Win32_System_Com", "Win32_System_Ole", "Win32_System_Memory", "Win32_System_DataExchange", "Win32_System_LibraryLoader", "Win32_System_Threading", "Win32_System_JobObjects", "Win32_Security", "Win32_UI_Accessibility", "Win32_UI_Shell", "Win32_UI_Shell_PropertiesSystem", "Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse", "Win32_Graphics_Gdi", "Win32_Graphics_Dwm", "Win32_UI_HiDpi", "Win32_Globalization", "Win32_NetworkManagement_IpHelper", "Win32_NetworkManagement_Ndis", "Win32_Networking_WinSock", "Win32_System_Registry", "Win32_System_Rpc", "Win32_System_SystemServices", "Win32_System_Com_StructuredStorage", "Win32_System_WindowsProgramming", "Win32_Storage_FileSystem", "Win32_UI_Shell_Common", "Foundation", "Foundation_Collections", "Media_Ocr", "Graphics_Imaging", "Storage_Streams", "Data_Pdf", "Globalization"] }
 raw-window-handle = "0.6"
-windows-core = "0.61"
+windows-core = "0.62"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "webp", "bmp", "ico"] }
@@ -21,7 +22,7 @@ tar = "0.4"
 bzip2 = "0.6"
 lzma-rust2 = { version = "0.21", default-features = false, features = ["std", "xz"] }
 zstd = "0.13"
-usvg = { version = "0.45", default-features = false }
+usvg = { version = "0.46", default-features = false }
 log = "0.4"
 flexi_logger = { version = "0.31", default-features = false }
 qrcodegen = "1.8"
@@ -33,7 +34,7 @@ mozjpeg = { version = "0.10", default-features = false }
 webp = { version = "0.3", default-features = false }
 
 [dev-dependencies]
-gpui = { version = "=0.2.2", default-features = false, features = ["windows-manifest", "test-support"] }
+gpui = { package = "gpui-unofficial", version = "=1.25.3", default-features = false, features = ["windows-manifest", "test-support"] }
 sevenz-rust2 = { version = "0.23", default-features = false, features = ["aes256", "compress"] }
 
 [build-dependencies]
@@ -54,7 +55,10 @@ opt-level = 1
 [profile.dev.package."*"]
 opt-level = 2
 
-[profile.dev.package.gpui]
+[profile.dev.package.gpui-unofficial]
+opt-level = 2
+
+[profile.dev.package.gpui-windows-gpui-unofficial]
 opt-level = 2
 
 [profile.release]
@@ -65,6 +69,7 @@ strip = true
 members = ["e2e"]
 
 [patch.crates-io]
-gpui = { path = "vendor/gpui" }
+gpui-unofficial = { path = "vendor/gpui" }
+gpui-windows-gpui-unofficial = { path = "vendor/gpui_windows" }
 unrar = { path = "vendor/unrar" }
 unrar_sys = { path = "vendor/unrar_sys" }

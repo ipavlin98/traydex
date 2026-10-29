@@ -174,7 +174,7 @@ impl Shelf {
             return false;
         };
         area.update(cx, |area, cx| area.place_cursor(back.cursor, cx));
-        area.read(cx).focus(window);
+        area.update(cx, |input, cx| input.focus(window, cx));
         true
     }
 
@@ -198,7 +198,7 @@ impl Shelf {
         self.show_preview(note, window, cx);
         if let Some(area) = self.note().map(|note| note.area.clone()) {
             area.update(cx, |area, cx| area.reveal_mention(id, cx));
-            area.read(cx).focus(window);
+            area.update(cx, |input, cx| input.focus(window, cx));
         }
     }
 

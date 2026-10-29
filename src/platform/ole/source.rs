@@ -237,7 +237,7 @@ fn medium_from_bytes(bytes: &[u8]) -> windows::core::Result<STGMEDIUM> {
         let ptr = GlobalLock(handle);
         if ptr.is_null() {
             let _ = GlobalFree(Some(handle));
-            return Err(windows::core::Error::from_win32());
+            return Err(windows::core::Error::from_thread());
         }
         std::ptr::copy_nonoverlapping(bytes.as_ptr(), ptr as _, bytes.len());
         let _ = GlobalUnlock(handle);

@@ -45,7 +45,7 @@ impl Shelf {
         cx: &mut Context<Self>,
     ) -> impl Fn(&MouseDownEvent, &mut Window, &mut App) + 'static {
         cx.safe_listener(|shelf, _: &MouseDownEvent, window, cx| {
-            shelf.search_input().read(cx).focus(window);
+            shelf.search_input().update(cx, |input, cx| input.focus(window, cx));
             window.prevent_default();
             cx.stop_propagation();
             cx.notify();
@@ -80,7 +80,7 @@ impl Shelf {
                     .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
                     .on_click(cx.safe_listener(|shelf, _, window, cx| {
                         shelf.clear_current_search(cx);
-                        shelf.search_input().read(cx).focus(window);
+                        shelf.search_input().update(cx, |input, cx| input.focus(window, cx));
                     }))
                     .into_any_element(),
             );
