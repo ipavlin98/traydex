@@ -3355,8 +3355,9 @@ impl Window {
         )
     }
 
+    /// The current content mask in whole device pixels, as primitives are clipped to it.
     #[inline]
-    fn snapped_content_mask(&self) -> ContentMask<ScaledPixels> {
+    pub fn snapped_content_mask(&self) -> ContentMask<ScaledPixels> {
         ContentMask {
             bounds: self.cover_bounds(self.content_mask().bounds),
         }

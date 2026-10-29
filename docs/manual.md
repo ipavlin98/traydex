@@ -333,7 +333,11 @@ focus) and keeps grayscale text antialiasing instead of upstream's ClearType in 
    is resolved to 1/256 of a device pixel before it is rounded (`snap_edge` in `vendor/gpui/src/taffy.rs`): float
    noise from summing flex shares (97.499998 for 97.5) pushed an edge on a half pixel to the other side of the tie
    than its parent's edge, so equal paddings differed by a pixel
-   (`children_split_inside_a_fractionally_placed_parent_keep_equal_padding` in `src/gpui_tests.rs`). Content offsets (scrolling, for example) are whole device pixels (`with_element_offset` in
+   (`children_split_inside_a_fractionally_placed_parent_keep_equal_padding` in `src/gpui_tests.rs`). Clips widen to
+   whole device pixels with the same tolerance (`settle_device_pixels` in `vendor/gpui/src/util.rs`): at 125% an edge
+   on a whole pixel came out as 657.00006 and its clip took the 658th pixel, which the backgrounds painted up to the
+   same edge leave uncovered, so a scrolled tile showed a one-pixel strip beside the scroll button
+   (`clip_on_a_whole_device_pixel_ends_where_painted_edges_end`; `Window::snapped_content_mask` is public for it). Content offsets (scrolling, for example) are whole device pixels (`with_element_offset` in
    `vendor/gpui/src/window.rs`), so text moves together with the boxes around it. Anchored popups don't round their
    offset to whole logical pixels first (`prepaint` in `vendor/gpui/src/elements/anchored.rs`), so at 125% or 150% a
    popup lands on the same physical pixel as the element it opens from
