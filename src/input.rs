@@ -1,5 +1,5 @@
 use crate::design::{self, line, radius, rem, size, space};
-use crate::textarea::{EditBuffer, head, step, word_around};
+use crate::textarea::{Edit, EditBuffer, History, head, step, word_around};
 use crate::theme::{Theme, ThemeMode, fade};
 use gpui::{prelude::*, *};
 use std::ops::Range;
@@ -33,6 +33,7 @@ pub struct Submitted;
 pub struct TextInput {
     focus: FocusHandle,
     edit: EditBuffer,
+    history: History,
     placeholder: SharedString,
     secret: bool,
     bare: bool,
@@ -108,6 +109,7 @@ impl TextInput {
         Self {
             focus: cx.focus_handle(),
             edit: EditBuffer::new(text, end),
+            history: History::default(),
             placeholder: placeholder.into(),
             secret,
             bare: false,
@@ -150,6 +152,7 @@ impl TextInput {
     pub fn set_text(&mut self, text: String, cx: &mut Context<Self>) {
         let end = text.len();
         self.edit.reset(text, end..end);
+        self.history = History::default();
         cx.notify();
     }
 
@@ -163,6 +166,7 @@ impl TextInput {
 
     fn select(&mut self, range: Range<usize>, cx: &mut Context<Self>) {
         self.edit.select(range);
+        self.history.interrupt();
         cx.notify();
     }
 
@@ -180,19 +184,32 @@ impl TextInput {
 
     fn move_to(&mut self, offset: usize, cx: &mut Context<Self>) {
         self.edit.move_to(offset);
+        self.history.interrupt();
         cx.notify();
     }
 
     fn select_to(&mut self, offset: usize, cx: &mut Context<Self>) {
         self.edit.select_to(offset);
+        self.history.interrupt();
         cx.notify();
     }
 
-    fn replace(&mut self, range: Range<usize>, text: &str, cx: &mut Context<Self>) {
+    fn replace(&mut self, range: Range<usize>, text: &str, edit: Edit, cx: &mut Context<Self>) {
         let text: String = text.chars().filter(|c| !c.is_control()).collect();
+        if range.is_empty() && text.is_empty() {
+            return;
+        }
+        self.history.remember(edit, &self.edit);
         self.edit.replace(range, &text);
         cx.emit(Changed);
         cx.notify();
+    }
+
+    fn restore(&mut self, redo: bool, cx: &mut Context<Self>) {
+        if self.history.restore(redo, &mut self.edit) {
+            cx.emit(Changed);
+            cx.notify();
+        }
     }
 
     fn erase(&mut self, forward: bool, words: bool, cx: &mut Context<Self>) {
@@ -201,7 +218,7 @@ impl TextInput {
             let edge = step(self.text(), cursor, forward, words);
             self.select_to(edge, cx);
         }
-        self.replace(self.edit.selected(), "", cx);
+        self.replace(self.edit.selected(), "", Edit::Erasing, cx);
     }
 
     fn index_at(&self, position: Point<Pixels>) -> usize {
@@ -236,6 +253,9 @@ impl TextInput {
             "home" => self.move_to(0, cx),
             "end" => self.move_to(end, cx),
             "a" if control => self.select_all(cx),
+            "z" if control && shift => self.restore(true, cx),
+            "z" if control => self.restore(false, cx),
+            "y" if control => self.restore(true, cx),
             "c" | "x" if control => {
                 if !self.secret
                     && let Some(text) = self.text().get(selected.clone()).filter(|text| !text.is_empty())
@@ -243,13 +263,13 @@ impl TextInput {
                     let text = text.to_string();
                     cx.write_to_clipboard(ClipboardItem::new_string(text));
                     if keys.key == "x" {
-                        self.replace(selected, "", cx);
+                        self.replace(selected, "", Edit::Other, cx);
                     }
                 }
             }
             "v" if control => {
                 if let Some(text) = cx.read_from_clipboard().and_then(|item| item.text()) {
-                    self.replace(selected, text.trim(), cx);
+                    self.replace(selected, text.trim(), Edit::Other, cx);
                 }
             }
             "enter" if self.edit.marked().is_none() => cx.emit(Submitted),
@@ -380,7 +400,8 @@ impl EntityInputHandler for TextInput {
         cx: &mut Context<Self>,
     ) {
         let range = self.edit.target(range.as_ref());
-        self.replace(range, text, cx);
+        let edit = if text.chars().any(char::is_whitespace) { Edit::Other } else { Edit::Typing };
+        self.replace(range, text, edit, cx);
     }
 
     fn replace_and_mark_text_in_range(
@@ -392,6 +413,9 @@ impl EntityInputHandler for TextInput {
         cx: &mut Context<Self>,
     ) {
         let range = self.edit.target(range.as_ref());
+        if self.edit.marked().is_none() {
+            self.history.remember(Edit::Other, &self.edit);
+        }
         self.edit.mark(range, text, selected);
         cx.emit(Changed);
         cx.notify();
