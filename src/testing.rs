@@ -241,6 +241,7 @@ type Streamer = Box<dyn FnMut(&Invocation) -> io::Result<Output> + Send>;
 
 pub struct State {
     pub calls: Vec<Call>,
+    pub animation_effects: bool,
     pub visible: bool,
     pub inside: bool,
     pub buttons: bool,
@@ -295,6 +296,7 @@ impl Fake {
         Self {
             state: Mutex::new(State {
                 calls: Vec::new(),
+                animation_effects: true,
                 visible: false,
                 inside: false,
                 buttons: false,
@@ -400,6 +402,10 @@ pub fn us_layout(key: u16) -> Option<char> {
 impl Desktop for Fake {
     fn layout_char(&self, key: u16) -> Option<char> {
         us_layout(key)
+    }
+
+    fn animation_effects(&self) -> bool {
+        self.state().animation_effects
     }
 
     fn visible(&self) -> bool {

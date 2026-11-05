@@ -14,10 +14,30 @@ use windows::Win32::Networking::WinSock::{AF_INET, SOCKADDR_IN};
 use windows::Win32::Storage::FileSystem::{FILE_ATTRIBUTE_HIDDEN, FileTimeToLocalFileTime};
 use windows::Win32::System::WindowsProgramming::FileTimeToDosDateTime;
 use windows::Win32::UI::Input::KeyboardAndMouse::{MAPVK_VK_TO_CHAR, MapVirtualKeyW};
+use windows::Win32::UI::WindowsAndMessaging::{
+    SPI_GETCLIENTAREAANIMATION, SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS, SystemParametersInfoW,
+};
+use windows::core::BOOL;
 
 pub fn layout_char(key: u16) -> Option<char> {
     let mapped = unsafe { MapVirtualKeyW(key as u32, MAPVK_VK_TO_CHAR) } & 0xFFFF;
     char::from_u32(mapped).filter(|c| *c != '\0' && !c.is_control())
+}
+
+pub fn animation_effects() -> bool {
+    let mut enabled = BOOL(1);
+    let read = unsafe {
+        SystemParametersInfoW(
+            SPI_GETCLIENTAREAANIMATION,
+            0,
+            Some((&mut enabled as *mut BOOL).cast()),
+            SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS(0),
+        )
+    };
+    if let Err(error) = read {
+        log::warn!("Couldn't read the animation effects setting: {error}");
+    }
+    enabled.as_bool()
 }
 
 pub fn ui_language() -> u16 {

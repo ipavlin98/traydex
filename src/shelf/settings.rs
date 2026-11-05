@@ -96,7 +96,7 @@ impl Shelf {
         if differs(old, &new, |s| s.interface_animations) {
             self.apply_motion(cx);
         }
-        if !new.window_animations && differs(old, &new, |s| s.window_animations) {
+        if !self.window_motion() && differs(old, &new, |s| s.window_animations) {
             self.fade.update(cx, |fade, cx| fade.reset(cx));
         }
         let relabel = old.is_some_and(|old| old.language != new.language);
@@ -177,7 +177,27 @@ impl Shelf {
     }
 
     pub(super) fn apply_motion(&self, cx: &mut Context<Self>) {
-        cx.set_global(HoverTransition { duration: self.store.settings().interface_animations.then_some(HOVER_TIME) });
+        cx.set_global(HoverTransition { duration: self.interface_motion().then_some(HOVER_TIME) });
+    }
+
+    pub(crate) fn interface_motion(&self) -> bool {
+        self.store.settings().interface_animations && self.animation_effects
+    }
+
+    pub(super) fn window_motion(&self) -> bool {
+        self.store.settings().window_animations && self.animation_effects
+    }
+
+    pub(super) fn animation_effects_changed(&mut self, enabled: bool, cx: &mut Context<Self>) {
+        if self.animation_effects == enabled {
+            return;
+        }
+        self.animation_effects = enabled;
+        self.apply_motion(cx);
+        if !self.window_motion() {
+            self.fade.update(cx, |fade, cx| fade.reset(cx));
+        }
+        cx.notify();
     }
 
     pub fn toggle_automatic(&mut self, cx: &mut Context<Self>) {

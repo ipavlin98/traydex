@@ -233,6 +233,28 @@ fn interface_animations_switch_controls_hover_transitions(cx: &mut TestAppContex
 }
 
 #[gpui::test]
+fn windows_without_animation_effects_overrides_the_animation_settings(cx: &mut TestAppContext) {
+    let mut h = open_with(cx, true, |sandbox, store, fake| {
+        animated(sandbox, store, fake);
+        fake.state().animation_effects = false;
+    });
+    assert!(h.cx.update(|_, cx| cx.global::<HoverTransition>().duration.is_none()));
+    h.send(Event::Toggle);
+    assert!(!h.fake.state().visible, "the window hides without fading out");
+}
+
+#[gpui::test]
+fn animation_effects_switched_in_windows_apply_without_a_restart(cx: &mut TestAppContext) {
+    let mut h = open_with(cx, true, animated);
+    h.send(Event::AnimationEffects(false));
+    assert!(h.cx.update(|_, cx| cx.global::<HoverTransition>().duration.is_none()));
+    h.send(Event::Toggle);
+    assert!(!h.fake.state().visible, "the window hides without fading out");
+    h.send(Event::AnimationEffects(true));
+    assert!(h.cx.update(|_, cx| cx.global::<HoverTransition>().duration.is_some()));
+}
+
+#[gpui::test]
 fn interface_animations_alone_hide_the_window_at_once(cx: &mut TestAppContext) {
     let mut h = open_with(cx, true, |_, store, _| store.settings_mut().interface_animations = true);
     h.send(Event::Toggle);
