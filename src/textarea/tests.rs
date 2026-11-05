@@ -1,5 +1,5 @@
 use super::buffer::utf8_offset;
-use super::words::{word_end, word_start};
+use super::words::{step, word_end, word_start};
 use super::{TextArea, clean, word_around};
 use crate::input::Changed;
 use gpui::{
@@ -67,6 +67,18 @@ fn words_stop_at_spaces_punctuation_and_line_breaks() {
     assert_eq!(word_end("", 0), 0);
     assert_eq!(&text[word_around(text, 2)], "Съешь");
     assert_eq!(&text[word_around(text, text.find(',').expect("comma"))], ",");
+}
+
+#[test]
+fn cursor_steps_and_words_keep_combining_marks_and_emoji_whole() {
+    let accented = "cafe\u{301} bar";
+    assert_eq!(word_end(accented, 0), "cafe\u{301}".len());
+    assert_eq!(word_start(accented, "cafe\u{301}".len()), 0);
+    assert_eq!(&accented[word_around(accented, 1)], "cafe\u{301}");
+    assert_eq!(step(accented, "caf".len(), true, false), "cafe\u{301}".len());
+    let family = "a👨‍👩‍👧b";
+    assert_eq!(step(family, 1, true, false), family.len() - 1);
+    assert_eq!(step(family, family.len() - 1, false, false), 1);
 }
 
 #[test]

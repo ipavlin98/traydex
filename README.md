@@ -194,6 +194,7 @@ ones included. A card goes away when its file is deleted or moved; a card you re
 | Preview | `Space` or double-click |
 | Open | `Enter` |
 | Copy, delete | `Ctrl+C`, `Delete` |
+| Undo, redo in text fields | `Ctrl+Z`, `Ctrl+Y` |
 | Select all, select a range | `Ctrl+A`, `Shift`+click |
 | Pin to the top | `P` |
 | List / grid | `Ctrl+G` |

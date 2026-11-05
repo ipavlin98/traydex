@@ -73,6 +73,46 @@ fn backspace_and_delete_remove_whole_characters(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
+fn backspace_removes_an_emoji_sequence_whole(cx: &mut TestAppContext) {
+    let (input, cx, _) = open(cx, "a👨‍👩‍👧", false);
+    cx.simulate_keystrokes("backspace");
+    assert_eq!(text(&input, cx), "a");
+}
+
+#[gpui::test]
+fn undo_and_redo_step_through_words_and_edits(cx: &mut TestAppContext) {
+    let (input, cx, events) = open(cx, "", false);
+    cx.simulate_input("D:\\work src");
+    cx.simulate_keystrokes("ctrl-z");
+    assert_eq!(text(&input, cx), "D:\\work ");
+    cx.simulate_keystrokes("ctrl-z ctrl-z");
+    assert_eq!(text(&input, cx), "");
+    cx.simulate_keystrokes("ctrl-y");
+    assert_eq!(text(&input, cx), "D:\\work");
+    cx.simulate_keystrokes("ctrl-shift-z");
+    assert_eq!(text(&input, cx), "D:\\work ");
+    cx.simulate_keystrokes("ctrl-backspace ctrl-z");
+    assert_eq!(text(&input, cx), "D:\\work ");
+    cx.simulate_keystrokes("end");
+    cx.simulate_input("x");
+    cx.simulate_keystrokes("ctrl-y");
+    assert_eq!(text(&input, cx), "D:\\work x", "a new edit drops what could be redone");
+    let changes = *events.changed.borrow();
+    cx.simulate_keystrokes("ctrl-z");
+    assert_eq!(*events.changed.borrow(), changes + 1, "an undo reports the change");
+}
+
+#[gpui::test]
+fn moving_the_cursor_splits_typing_into_separate_undo_steps(cx: &mut TestAppContext) {
+    let (input, cx, _) = open(cx, "", false);
+    cx.simulate_input("ab");
+    cx.simulate_keystrokes("left right");
+    cx.simulate_input("cd");
+    cx.simulate_keystrokes("ctrl-z");
+    assert_eq!(text(&input, cx), "ab");
+}
+
+#[gpui::test]
 fn editing_at_boundaries_is_harmless(cx: &mut TestAppContext) {
     let (input, cx, _) = open(cx, "ab", false);
     cx.simulate_keystrokes("end delete right");

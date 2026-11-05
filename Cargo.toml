@@ -30,6 +30,7 @@ flate2 = "1"
 sha2 = "0.10"
 md-5 = "0.10"
 ttf-parser = "0.25"
+unicode-segmentation = "1.13"
 mozjpeg = { version = "0.10", default-features = false }
 webp = { version = "0.3", default-features = false }
 

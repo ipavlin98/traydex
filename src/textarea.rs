@@ -13,11 +13,11 @@ const PADDING_X: f32 = space::PAGE;
 const PADDING_Y: f32 = space::M;
 const CARET_INSET: f32 = 2.;
 const NEWLINE_WIDTH: f32 = 4.;
-const HISTORY: usize = 200;
 
 mod buffer;
 mod chips;
 mod handler;
+mod history;
 mod layout;
 mod links;
 mod words;
@@ -25,22 +25,11 @@ mod words;
 pub(crate) use buffer::EditBuffer;
 pub(crate) use chips::{AreaEvent, Chip, Peek};
 use chips::{Display, Refs};
+pub(crate) use history::{Edit, History};
 use layout::{Layout, stack};
 use links::Painted;
 use words::{clean, previous};
 pub(crate) use words::{head, step, tail, word_around};
-
-#[derive(Clone, Copy, PartialEq)]
-enum Edit {
-    Typing,
-    Erasing,
-    Other,
-}
-
-struct Snapshot {
-    text: String,
-    selected: Range<usize>,
-}
 
 pub struct TextArea {
     focus: FocusHandle,
@@ -48,9 +37,7 @@ pub struct TextArea {
     placeholder: SharedString,
     version: usize,
     goal: Option<Pixels>,
-    undo: Vec<Snapshot>,
-    redo: Vec<Snapshot>,
-    last: Option<Edit>,
+    history: History,
     layout: Option<Layout>,
     scroll: Pixels,
     reveal: bool,
@@ -88,9 +75,7 @@ impl TextArea {
             placeholder: placeholder.into(),
             version: 0,
             goal: None,
-            undo: Vec::new(),
-            redo: Vec::new(),
-            last: None,
+            history: History::default(),
             layout: None,
             scroll: px(0.),
             reveal: false,
@@ -151,7 +136,7 @@ impl TextArea {
     }
 
     fn settle(&mut self, cx: &mut Context<Self>) {
-        self.last = None;
+        self.history.interrupt();
         self.goal = None;
         self.reveal = true;
         self.ask(cx);
@@ -167,26 +152,14 @@ impl TextArea {
     }
 
     fn remember(&mut self, edit: Edit) {
-        if self.last == Some(edit) && edit != Edit::Other {
-            return;
-        }
-        self.undo.push(Snapshot { text: self.raw().to_string(), selected: self.edit.selected() });
-        if self.undo.len() > HISTORY {
-            self.undo.remove(0);
-        }
-        self.redo.clear();
-        self.last = Some(edit);
+        self.history.remember(edit, &self.edit);
     }
 
     fn restore(&mut self, redo: bool, cx: &mut Context<Self>) {
-        let (from, to) = if redo { (&mut self.redo, &mut self.undo) } else { (&mut self.undo, &mut self.redo) };
-        let Some(snapshot) = from.pop() else {
+        if !self.history.restore(redo, &mut self.edit) {
             return;
-        };
-        let selected = self.edit.selected();
-        to.push(Snapshot { text: self.edit.reset(snapshot.text, snapshot.selected), selected });
+        }
         self.version += 1;
-        self.last = None;
         self.goal = None;
         self.reveal = true;
         self.ask(cx);
