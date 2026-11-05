@@ -219,6 +219,10 @@ Window transparency (0–40%) and blurring what's behind the window are set in *
 the whole window, text and tiles included. Blur is the system one (*Light*, Aero); Windows doesn't let apps set its
 strength. With 0% transparency blur is off.
 
+*Window animation* in *Appearance* fades the window in and out; it's off by default. While the Windows *Animation
+effects* setting (*Settings → Accessibility → Visual effects*) is off, Traydex doesn't animate at all, whatever its own
+settings say, and it follows a change of that setting without a restart.
+
 *Scale* in *Appearance* (90%, 100%, 110%, 125%, 150%, a drop-down list) enlarges or shrinks the whole interface:
 text, icons, spacing and the minimum window size. It's stored as `scale` (percent) in `shelf.json`. Versions before
 it stored a font size (`font_size`, 12–16 at 13 = 100%); on the first start such a value becomes the nearest scale

@@ -15,6 +15,7 @@ pub enum Event {
     DragEnd,
     CancelDrag,
     Hover(bool),
+    AnimationEffects(bool),
     Offer(Offer),
     Pointer(f32, f32),
     Drop(Payload),
@@ -140,6 +141,7 @@ pub trait Embedded {
 
 pub trait Desktop {
     fn layout_char(&self, key: u16) -> Option<char>;
+    fn animation_effects(&self) -> bool;
 
     fn visible(&self) -> bool;
     fn show(&self, activate: bool);

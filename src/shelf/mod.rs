@@ -105,6 +105,7 @@ pub struct Shelf {
     menu: Menu,
     recorder: Recorder,
     appearance: WindowAppearance,
+    animation_effects: bool,
     backdrop: WindowBackgroundAppearance,
     focus: FocusHandle,
     scrolls: [ScrollHandle; 11],
@@ -143,7 +144,9 @@ impl Shelf {
         let jobs = cx.new(|_| Jobs::default());
         let updates = cx.new(|_| Updates::default());
         let folders = cx.new(|_| Folders::default());
-        let fade = cx.new(|_| if store.settings().window_animations { Fade::out() } else { Fade::default() });
+        let animation_effects = desktop.animation_effects();
+        let fades = store.settings().window_animations && animation_effects;
+        let fade = cx.new(|_| if fades { Fade::out() } else { Fade::default() });
         let subscriptions = vec![
             cx.observe_window_appearance(window, |shelf, window, cx| {
                 shelf.appearance = window.appearance();
@@ -207,6 +210,7 @@ impl Shelf {
             menu: Menu::default(),
             recorder: Recorder::default(),
             appearance: window.appearance(),
+            animation_effects,
             backdrop: WindowBackgroundAppearance::Opaque,
             focus,
             scrolls: Default::default(),
@@ -265,6 +269,7 @@ impl Shelf {
             Event::DragEnd => self.drag_ended(cx),
             Event::CancelDrag => self.cancel_drag(cx),
             Event::Hover(hovering) => self.hover_changed(hovering, cx),
+            Event::AnimationEffects(enabled) => self.animation_effects_changed(enabled, cx),
             Event::Offer(offer) => self.offered(offer, cx),
             Event::Pointer(x, y) => self.pointer_moved(point(px(x), px(y)), cx),
             Event::DropBack => self.dropped_back(cx),

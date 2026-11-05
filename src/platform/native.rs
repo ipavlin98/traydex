@@ -29,6 +29,10 @@ impl Desktop for Native {
         os::layout_char(key)
     }
 
+    fn animation_effects(&self) -> bool {
+        os::animation_effects()
+    }
+
     fn visible(&self) -> bool {
         super::visible()
     }

@@ -442,7 +442,7 @@ impl Shelf {
     }
 
     fn animated(&self) -> bool {
-        self.store().settings().interface_animations
+        self.interface_motion()
     }
 
     fn copied(&self, origin: &str, cx: &App) -> bool {

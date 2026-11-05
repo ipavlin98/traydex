@@ -308,7 +308,7 @@ impl Shelf {
     }
 
     fn fades(&self) -> bool {
-        self.store.settings().window_animations && self.preview().is_none_or(|preview| preview.host.is_none())
+        self.window_motion() && self.preview().is_none_or(|preview| preview.host.is_none())
     }
 
     pub(super) fn appear(&mut self, activate: bool, cx: &mut Context<Self>) {

@@ -395,6 +395,9 @@ fn dispatch(window: HWND, msg: u32, wp: WPARAM, lp: LPARAM) -> Option<LRESULT> {
             WM_RBUTTONUP => tray_menu(window),
             _ => {}
         },
+        WM_SETTINGCHANGE if wp.0 == SPI_SETCLIENTAREAANIMATION.0 as usize => {
+            send(Event::AnimationEffects(crate::os::animation_effects()))
+        }
         WM_QUERYENDSESSION => return Some(LRESULT(1)),
         WM_ENDSESSION if wp.0 != 0 => {
             log::info!("Windows is ending the session, quitting");
