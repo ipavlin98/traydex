@@ -2,6 +2,16 @@
 
 Notable changes in each release. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.6.2-alpha] — 2026-11-06
+
+- The 32-bit and ARM64 versions start on a clean Windows: like the 64-bit one, they no longer need the Visual C++
+  Redistributable installed.
+- Traydex follows the Windows *Animation effects* setting: while it's off, the window and the interface don't animate,
+  whatever Traydex's own animation settings say. A change of the setting applies without a restart.
+- One-line fields (search, note titles, settings) get undo and redo: `Ctrl+Z`, `Ctrl+Y` or `Ctrl+Shift+Z`, as in
+  notes.
+- Moving the cursor and erasing keep emoji and letters with accents whole, in fields and in notes.
+
 ## [0.6.1-alpha] — 2026-10-29
 
 - A scrolled tile strip or tab row no longer shows a one-pixel strip of the hidden tile beside its scroll button
@@ -111,6 +121,7 @@ First public release.
 - Preview, notes, search with typo and keyboard-layout tolerance, list and grid views.
 - Light and dark themes, transparency and blur, six languages.
 
+[0.6.2-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.6.2-alpha
 [0.6.1-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.6.1-alpha
 [0.6.0-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.6.0-alpha
 [0.5.1-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.5.1-alpha
