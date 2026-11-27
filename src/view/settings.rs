@@ -12,7 +12,7 @@ use crate::theme::{Theme, ThemeMode};
 use gpui::{prelude::*, *};
 use std::path::Path;
 
-const DROPDOWN_MIN: f32 = 192.;
+const DROPDOWN_MIN: f32 = 172.;
 const DROPDOWN_MAX: f32 = 240.;
 const DROPDOWN_GRID: f32 = space::XS;
 const MENU_PADDING: f32 = space::XS;
