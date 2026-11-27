@@ -1,5 +1,5 @@
 use super::widgets::{Finder, Marked, hint, icon, icon_button, setting};
-use crate::design::{glyph, line, radius, rem, scaled, size, snap, space, text};
+use crate::design::{glyph, radius, rem, scaled, size, snap, space};
 use crate::i18n::tr;
 use crate::shelf::{Paint, Picking, SafeListener, Shelf};
 use crate::theme::{ACCENTS, BACKGROUNDS, Hex, Hsv, Theme, contrast, offered};
@@ -164,15 +164,17 @@ impl Shelf {
             .flex_shrink_0()
             .child(face.on_click(cx.safe_listener(move |shelf, _, _, cx| shelf.toggle_picker(paint, cx))))
             .when_some(picking, |d, picking| {
-                d.child(div().absolute().top(rem(SWATCH + space::XS)).right_0().child(
-                    deferred(
-                        anchored()
-                            .anchor(gpui::Anchor::TopRight)
-                            .snap_to_window_with_margin(px(space::XS))
-                            .child(self.color_picker(t, picking, cx)),
-                    )
-                    .with_priority(1),
-                ))
+                d.child(
+                    div().absolute().top(rem(SWATCH + space::XS)).right_0().child(
+                        deferred(
+                            anchored()
+                                .anchor(gpui::Anchor::TopRight)
+                                .snap_to_window_with_margin(px(space::XS))
+                                .child(self.color_picker(t, picking, cx)),
+                        )
+                        .with_priority(1),
+                    ),
+                )
             })
     }
 
@@ -194,17 +196,7 @@ impl Shelf {
             .on_mouse_down_out(cx.safe_listener(|shelf, _, _, cx| shelf.dismiss_picker(cx)))
             .child(self.scrubbed(Area::Shade, FIELD_HEIGHT, cx).child(shade_canvas(t, hsv)))
             .child(self.scrubbed(Area::Hue, HUE_HEIGHT, cx).child(hue_canvas(t, hsv)))
-            .child(
-                div()
-                    .flex()
-                    .items_center()
-                    .gap(rem(space::M))
-                    .text_size(rem(text::SMALL))
-                    .line_height(rem(line::SMALL))
-                    .text_color(t.muted)
-                    .child(div().relative().flex_shrink_0().size(rem(glyph::S)).child(sample(hsv.color(), t.border_strong)))
-                    .child(String::from(Hex::of(hsv.color())).to_uppercase()),
-            )
+            .child(div().marked("picker-hex").child(self.themes().hex().clone()))
     }
 
     fn scrubbed(&self, area: Area, height: f32, cx: &mut Context<Self>) -> Stateful<Div> {
@@ -238,7 +230,14 @@ impl Shelf {
             }))
     }
 
-    fn scrub(&mut self, area: Area, at: Point<Pixels>, bounds: Bounds<Pixels>, window: &Window, cx: &mut Context<Self>) {
+    fn scrub(
+        &mut self,
+        area: Area,
+        at: Point<Pixels>,
+        bounds: Bounds<Pixels>,
+        window: &Window,
+        cx: &mut Context<Self>,
+    ) {
         let Some(picking) = self.themes().picking() else { return };
         let inset = match area {
             Area::Shade => KNOB,

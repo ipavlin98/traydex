@@ -307,7 +307,7 @@ fn chosen_colors_stay_with_their_theme_and_a_new_background_resets_the_text(cx: 
     assert_eq!((colors.background, colors.text), (Some(hex("#ffffff")), None), "the text follows the new background");
     assert!(h.read(|shelf| shelf.themes().picking()).is_none(), "picking a preset closes the picker");
     h.act(|shelf, _, cx| shelf.set_theme(ThemeChoice::Named("Light".into()), cx));
-    assert_eq!(h.read(|shelf| shelf.theme().accent), crate::theme::Theme::system(WindowAppearance::Light).accent);
+    assert_eq!(h.read(|shelf| shelf.theme().accent), crate::theme::Theme::system(gpui::WindowAppearance::Light).accent);
     h.act(|shelf, _, cx| {
         shelf.set_theme(ThemeChoice::Named("dracula".into()), cx);
         shelf.set_accent(None, cx);

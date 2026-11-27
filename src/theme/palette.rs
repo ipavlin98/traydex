@@ -218,7 +218,11 @@ pub(super) fn accented(theme: Theme, accent: Rgba) -> Theme {
 
 fn luminance(color: Rgba) -> f32 {
     let linear = |channel: f32| {
-        if channel <= LINEAR_KNEE { channel / LINEAR_SLOPE } else { ((channel + GAMMA_OFFSET) / GAMMA_SCALE).powf(GAMMA) }
+        if channel <= LINEAR_KNEE {
+            channel / LINEAR_SLOPE
+        } else {
+            ((channel + GAMMA_OFFSET) / GAMMA_SCALE).powf(GAMMA)
+        }
     };
     let [r, g, b] = LUMINANCE;
     r * linear(color.r) + g * linear(color.g) + b * linear(color.b)

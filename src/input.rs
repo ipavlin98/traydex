@@ -449,8 +449,7 @@ impl EntityInputHandler for TextInput {
 
 impl Render for TextInput {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let t =
-            cx.try_global::<Theme>().copied().unwrap_or_else(|| Theme::system(window.appearance()));
+        let t = cx.try_global::<Theme>().copied().unwrap_or_else(|| Theme::system(window.appearance()));
         let focused = self.focus.is_focused(window);
         let entity = cx.entity();
         let painter = entity.clone();

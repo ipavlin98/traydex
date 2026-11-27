@@ -1,4 +1,5 @@
 use super::Shelf;
+use crate::input::TextInput;
 use crate::theme::{Catalog, Entry, Hex, Hsv, ThemeChoice, ThemeColors};
 use gpui::*;
 
@@ -15,14 +16,22 @@ pub struct Picking {
     pub hsv: Hsv,
 }
 
-#[derive(Default)]
 pub struct Themes {
     catalog: Catalog,
     picking: Option<Picking>,
     dismissed: Option<Paint>,
+    hex: Entity<TextInput>,
 }
 
 impl Themes {
+    pub(super) fn new(hex: Entity<TextInput>) -> Self {
+        Self { catalog: Catalog::default(), picking: None, dismissed: None, hex }
+    }
+
+    pub fn hex(&self) -> &Entity<TextInput> {
+        &self.hex
+    }
+
     pub fn catalog(&self) -> &Catalog {
         &self.catalog
     }
@@ -110,7 +119,7 @@ impl Shelf {
         self.themes.picking = Some(Picking { paint, hsv: Hsv::of(color) });
         match paint {
             Paint::Accent | Paint::Background => self.pick_shade(Hsv::of(color), cx),
-            Paint::Text => cx.notify(),
+            Paint::Text => self.show_hex(cx),
         }
     }
 
@@ -130,6 +139,31 @@ impl Shelf {
     }
 
     pub fn pick_shade(&mut self, hsv: Hsv, cx: &mut Context<Self>) {
+        self.apply_shade(hsv, cx);
+        self.show_hex(cx);
+    }
+
+    pub(super) fn hex_typed(&mut self, cx: &mut Context<Self>) {
+        let typed = self.themes.hex.read(cx).text().trim().trim_start_matches('#').to_owned();
+        let Some(color) = Hex::parse(&format!("#{typed}")) else { return };
+        let Some(picking) = self.themes.picking else { return };
+        if Hex::of(picking.hsv.color()) != color {
+            self.apply_shade(Hsv::of(color.color()), cx);
+        }
+    }
+
+    pub(super) fn hex_focused(&self, window: &Window, cx: &App) -> bool {
+        self.themes.picking.is_some() && self.themes.hex.read(cx).focused(window)
+    }
+
+    fn show_hex(&mut self, cx: &mut Context<Self>) {
+        let Some(picking) = self.themes.picking else { return };
+        let text = String::from(Hex::of(picking.hsv.color())).to_uppercase();
+        self.themes.hex.update(cx, |input, cx| input.set_text(text, cx));
+        cx.notify();
+    }
+
+    fn apply_shade(&mut self, hsv: Hsv, cx: &mut Context<Self>) {
         let Some(picking) = self.themes.picking.as_mut() else { return };
         picking.hsv = hsv;
         let paint = picking.paint;

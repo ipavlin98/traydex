@@ -80,7 +80,7 @@ fn a_theme_file_derives_its_shades_from_the_palette_and_overrides_named_colors()
 fn broken_or_clashing_theme_files_are_reported_and_skipped() {
     let catalog = Catalog::load(vec![
         ("light".into(), "{}".into()),
-        ("bad".into(), r#"{"colors": {"glow": "#ffffff"}}"#.into()),
+        ("bad".into(), r##"{"colors": {"glow": "#ffffff"}}"##.into()),
         ("loop".into(), r#"{"palette": {"background": "text", "text": "background"}}"#.into()),
         ("fine".into(), r##"{"palette": {"accent": "#00aa00"}}"##.into()),
     ]);
@@ -114,11 +114,8 @@ fn an_accent_unreadable_on_the_new_background_gives_way_to_the_text_color() {
 #[test]
 fn own_text_and_accent_win_over_the_automatic_ones() {
     let catalog = Catalog::default();
-    let colors = ThemeColors {
-        accent: Some(hex("#22c55e")),
-        background: Some(hex("#f6f3ec")),
-        text: Some(hex("#3a2a1a")),
-    };
+    let colors =
+        ThemeColors { accent: Some(hex("#22c55e")), background: Some(hex("#f6f3ec")), text: Some(hex("#3a2a1a")) };
     let theme = resolve(&catalog, &named("Dark"), &[("Dark", colors)]);
     assert_eq!((theme.bg, theme.text, theme.accent), (rgb(0xf6f3ec), rgb(0x3a2a1a), rgb(0x22c55e)));
     assert_eq!(theme.brand, rgb(0x22c55e));
@@ -135,9 +132,9 @@ fn colors_chosen_for_one_theme_stay_with_it() {
 
 #[test]
 fn presets_skip_the_color_the_theme_already_offers() {
-    let offered: Vec<Hex> = offered(&BACKGROUNDS, rgb(0xffffff)).map(|(_, color)| color).collect();
-    assert_eq!(offered.len(), 7);
-    assert!(!offered.contains(&hex("#ffffff")));
+    let shown: Vec<Hex> = offered(&BACKGROUNDS, rgb(0xffffff)).map(|(_, color)| color).collect();
+    assert_eq!(shown.len(), 7);
+    assert!(!shown.contains(&hex("#ffffff")));
     assert_eq!(offered(&ACCENTS, rgb(0x123456)).count(), 7);
 }
 

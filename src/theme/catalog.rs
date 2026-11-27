@@ -34,9 +34,7 @@ impl ThemeColors {
     }
 }
 
-pub fn colors_by_theme<'de, D: Deserializer<'de>>(
-    deserializer: D,
-) -> Result<BTreeMap<String, ThemeColors>, D::Error> {
+pub fn colors_by_theme<'de, D: Deserializer<'de>>(deserializer: D) -> Result<BTreeMap<String, ThemeColors>, D::Error> {
     let value = serde_json::Value::deserialize(deserializer)?;
     let serde_json::Value::Object(themes) = value else { return Ok(BTreeMap::new()) };
     Ok(themes
@@ -121,9 +119,13 @@ impl Catalog {
             }
         }
         for (id, text) in files {
-            let taken = id.eq_ignore_ascii_case(SYSTEM) || catalog.entries.iter().any(|entry| entry.id.eq_ignore_ascii_case(&id));
-            let parsed =
-                if taken { Err("this name is taken by a built-in theme".to_owned()) } else { parse(&id, &text, Origin::File) };
+            let taken = id.eq_ignore_ascii_case(SYSTEM)
+                || catalog.entries.iter().any(|entry| entry.id.eq_ignore_ascii_case(&id));
+            let parsed = if taken {
+                Err("this name is taken by a built-in theme".to_owned())
+            } else {
+                parse(&id, &text, Origin::File)
+            };
             match parsed {
                 Ok(entry) => catalog.entries.push(entry),
                 Err(error) => {
@@ -226,7 +228,12 @@ fn resolve_palette(palette: BTreeMap<String, String>) -> Result<BTreeMap<String,
             }
             value = next;
         }
-        let color = color.ok_or_else(|| format!("palette.{name}: `{}` is neither a color nor a palette name", palette.get(name).map_or("", String::as_str)))?;
+        let color = color.ok_or_else(|| {
+            format!(
+                "palette.{name}: `{}` is neither a color nor a palette name",
+                palette.get(name).map_or("", String::as_str)
+            )
+        })?;
         resolved.insert(name.clone(), color);
     }
     Ok(resolved)
