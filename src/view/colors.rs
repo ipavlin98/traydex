@@ -1,5 +1,5 @@
 use super::widgets::{Finder, Marked, hint, icon, icon_button, setting};
-use crate::design::{glyph, line, radius, rem, scaled, size, space, text};
+use crate::design::{glyph, radius, rem, scaled, size, snap, space};
 use crate::i18n::tr;
 use crate::shelf::{Paint, Picking, SafeListener, Shelf};
 use crate::theme::{ACCENTS, BACKGROUNDS, Hex, Hsv, Theme, contrast, offered};
@@ -13,6 +13,8 @@ const FIELD_HEIGHT: f32 = 128.;
 const HUE_HEIGHT: f32 = 16.;
 const KNOB: f32 = 12.;
 const KNOB_RING: f32 = 2.;
+const HAIRLINE: f32 = 1.;
+const SWATCH_GROUP: &str = "swatch";
 const SECTORS: usize = 6;
 const RIGHT: f32 = 90.;
 const DOWN: f32 = 180.;
@@ -34,24 +36,49 @@ fn paint_name(paint: Paint) -> &'static str {
     }
 }
 
+fn device(count: f32, window: &Window) -> Pixels {
+    px(count / window.scale_factor())
+}
+
+fn snapped(bounds: Bounds<Pixels>, window: &Window) -> Bounds<Pixels> {
+    let scale = window.scale_factor();
+    let at = |value: Pixels| px(snap(f32::from(value), scale));
+    Bounds::from_corners(point(at(bounds.left()), at(bounds.top())), point(at(bounds.right()), at(bounds.bottom())))
+}
+
+fn sample(color: Rgba, edge: Rgba) -> impl IntoElement {
+    canvas(
+        |_, _, _| {},
+        move |bounds, _, window, _| {
+            let bounds = snapped(bounds, window);
+            let round = bounds.size.width.min(bounds.size.height) / 2.;
+            window.paint_quad(quad(bounds, round, color, device(HAIRLINE, window), edge, BorderStyle::Solid));
+        },
+    )
+    .absolute()
+    .inset_0()
+}
+
 fn swatch(t: Theme, id: impl Into<ElementId>, fill: Option<Rgba>, chosen: bool, tip: &'static str) -> Stateful<Div> {
+    let color = fill.unwrap_or(Rgba { a: 0., ..t.border_strong });
+    let layer = || div().absolute().inset_0();
     let face = div()
         .id(id)
+        .group(SWATCH_GROUP)
+        .relative()
         .size(rem(SWATCH))
         .flex_shrink_0()
         .flex()
         .items_center()
         .justify_center()
-        .rounded_full()
-        .border_1()
-        .border_color(t.border_strong)
         .cursor_pointer()
-        .hover(move |s| s.border_color(t.muted))
-        .tooltip(hint(t, tip));
+        .tooltip(hint(t, tip))
+        .child(layer().group_hover(SWATCH_GROUP, |s| s.opacity(0.)).child(sample(color, t.border_strong)))
+        .child(layer().opacity(0.).group_hover(SWATCH_GROUP, |s| s.opacity(1.)).child(sample(color, t.muted)));
     match fill {
         Some(color) => {
             let mark = if contrast(color, t.knob) >= contrast(color, t.code_ink) { t.knob } else { t.code_ink };
-            face.bg(color).when(chosen, |d| d.child(icon("check", mark, glyph::XS)))
+            face.when(chosen, |d| d.child(icon("check", mark, glyph::XS)))
         }
         None => face.child(icon("pipette", t.muted, glyph::XS)),
     }
@@ -137,15 +164,17 @@ impl Shelf {
             .flex_shrink_0()
             .child(face.on_click(cx.safe_listener(move |shelf, _, _, cx| shelf.toggle_picker(paint, cx))))
             .when_some(picking, |d, picking| {
-                d.child(div().absolute().top(rem(SWATCH + space::XS)).right_0().child(
-                    deferred(
-                        anchored()
-                            .anchor(gpui::Anchor::TopRight)
-                            .snap_to_window_with_margin(px(space::XS))
-                            .child(self.color_picker(t, picking, cx)),
-                    )
-                    .with_priority(1),
-                ))
+                d.child(
+                    div().absolute().top(rem(SWATCH + space::XS)).right_0().child(
+                        deferred(
+                            anchored()
+                                .anchor(gpui::Anchor::TopRight)
+                                .snap_to_window_with_margin(px(space::XS))
+                                .child(self.color_picker(t, picking, cx)),
+                        )
+                        .with_priority(1),
+                    ),
+                )
             })
     }
 
@@ -167,17 +196,7 @@ impl Shelf {
             .on_mouse_down_out(cx.safe_listener(|shelf, _, _, cx| shelf.dismiss_picker(cx)))
             .child(self.scrubbed(Area::Shade, FIELD_HEIGHT, cx).child(shade_canvas(t, hsv)))
             .child(self.scrubbed(Area::Hue, HUE_HEIGHT, cx).child(hue_canvas(t, hsv)))
-            .child(
-                div()
-                    .flex()
-                    .items_center()
-                    .gap(rem(space::M))
-                    .text_size(rem(text::SMALL))
-                    .line_height(rem(line::SMALL))
-                    .text_color(t.muted)
-                    .child(div().size(rem(glyph::S)).rounded_full().border_1().border_color(t.border_strong).bg(hsv.color()))
-                    .child(String::from(Hex::of(hsv.color())).to_uppercase()),
-            )
+            .child(div().marked("picker-hex").child(self.themes().hex().clone()))
     }
 
     fn scrubbed(&self, area: Area, height: f32, cx: &mut Context<Self>) -> Stateful<Div> {
@@ -211,7 +230,14 @@ impl Shelf {
             }))
     }
 
-    fn scrub(&mut self, area: Area, at: Point<Pixels>, bounds: Bounds<Pixels>, window: &Window, cx: &mut Context<Self>) {
+    fn scrub(
+        &mut self,
+        area: Area,
+        at: Point<Pixels>,
+        bounds: Bounds<Pixels>,
+        window: &Window,
+        cx: &mut Context<Self>,
+    ) {
         let Some(picking) = self.themes().picking() else { return };
         let inset = match area {
             Area::Shade => KNOB,
@@ -248,7 +274,8 @@ fn shade_canvas(t: Theme, hsv: Hsv) -> impl IntoElement {
     canvas(
         |_, _, _| {},
         move |bounds, _, window, _| {
-            let corners = Corners::all(scaled(radius::SMALL, window));
+            let bounds = snapped(bounds, window);
+            let corner = scaled(radius::SMALL, window);
             let inset = scaled(KNOB / 2., window);
             let white = Hsv { saturation: 0., value: 1., ..hsv }.color();
             let black = Hsv { value: 0., ..hsv }.color();
@@ -261,8 +288,10 @@ fn shade_canvas(t: Theme, hsv: Hsv) -> impl IntoElement {
                 linear_color_stop(Hsla::from(black).opacity(0.), top),
                 linear_color_stop(black, bottom),
             );
-            window.paint_quad(fill(bounds, across).corner_radii(corners));
-            window.paint_quad(fill(bounds, down).corner_radii(corners));
+            window.paint_quad(fill(bounds, across));
+            window.paint_quad(fill(bounds, down));
+            let mask = Rgba { a: 0., ..t.surface };
+            window.paint_quad(quad(bounds.dilate(corner), corner * 2., mask, corner, t.surface, BorderStyle::Solid));
             let center = point(
                 along(bounds.left(), bounds.size.width, inset, hsv.saturation),
                 along(bounds.top(), bounds.size.height, inset, 1. - hsv.value),
@@ -278,13 +307,16 @@ fn hue_canvas(t: Theme, hsv: Hsv) -> impl IntoElement {
     canvas(
         |_, _, _| {},
         move |bounds, _, window, _| {
+            let bounds = snapped(bounds, window);
+            let scale = window.scale_factor();
             let inset = scaled(HUE_HEIGHT / 2., window);
             let round = bounds.size.height / 2.;
             let at = |sector: usize| along(bounds.left(), bounds.size.width, inset, sector as f32 / SECTORS as f32);
+            let snapped_at = |sector: usize| px(snap(f32::from(at(sector)), scale));
             for sector in 0..SECTORS {
                 let (first, last) = (sector == 0, sector + 1 == SECTORS);
-                let start = if first { bounds.left() } else { at(sector) };
-                let end = if last { bounds.right() } else { at(sector + 1) };
+                let start = if first { bounds.left() } else { snapped_at(sector) };
+                let end = if last { bounds.right() } else { snapped_at(sector + 1) };
                 let part = Bounds::from_corners(point(start, bounds.top()), point(end, bounds.bottom()));
                 let corners = Corners {
                     top_left: if first { round } else { px(0.) },
@@ -309,9 +341,12 @@ fn hue_canvas(t: Theme, hsv: Hsv) -> impl IntoElement {
 }
 
 fn knob(t: Theme, center: Point<Pixels>, diameter: f32, color: Rgba, window: &mut Window) {
+    let scale = window.scale_factor();
     let side = scaled(diameter, window);
-    let inner = Bounds::new(point(center.x - side / 2., center.y - side / 2.), size(side, side));
-    let ring = scaled(KNOB_RING, window);
-    window.paint_quad(fill(inner.dilate(px(1.)), t.code_ink).corner_radii(side / 2. + px(1.)));
-    window.paint_quad(quad(inner, side / 2., color, ring, t.knob, BorderStyle::Solid));
+    let at = |value: Pixels| px(snap(f32::from(value), scale));
+    let inner = Bounds::new(point(at(center.x - side / 2.), at(center.y - side / 2.)), size(side, side));
+    let ring = device(KNOB_RING, window);
+    let line = device(HAIRLINE, window);
+    window.paint_quad(fill(inner.dilate(line), t.text).corner_radii(side / 2. + line));
+    window.paint_quad(quad(inner, side / 2., color, ring, t.bg, BorderStyle::Solid));
 }

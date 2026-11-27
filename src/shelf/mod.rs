@@ -57,9 +57,9 @@ pub use session::Launch;
 pub(crate) use session::{Regions, Session};
 pub use settings::Dropdown;
 pub(crate) use settings::{Menu, Recorder};
-pub use themes::{Paint, Picking};
-use themes::Themes;
 pub use tasks::SafeListener;
+use themes::Themes;
+pub use themes::{Paint, Picking};
 pub use tiles::{Edge, Lane};
 use updates::{Check, Due, Updates};
 
@@ -144,6 +144,7 @@ impl Shelf {
         .detach();
         let search = cx.new(|cx| TextInput::new(String::new(), tr().search_placeholder, false, cx).bare());
         let find = cx.new(|cx| TextInput::new(String::new(), tr().search_placeholder, false, cx).bare());
+        let hex = cx.new(|cx| TextInput::new(String::new(), "#000000", false, cx));
         let notices = cx.new(|_| Notices::default());
         let jobs = cx.new(|_| Jobs::default());
         let updates = cx.new(|_| Updates::default());
@@ -182,6 +183,7 @@ impl Shelf {
                 cx.notify();
             }),
             cx.subscribe(&find, |shelf, _, _: &Changed, cx| shelf.page_searched(cx)),
+            cx.subscribe(&hex, |shelf, _, _: &Changed, cx| shelf.guarded(cx, |shelf, cx| shelf.hex_typed(cx))),
             cx.observe(&notices, |_, _, cx| cx.notify()),
             cx.observe(&jobs, |_, _, cx| cx.notify()),
             cx.observe(&updates, |_, _, cx| cx.notify()),
@@ -212,7 +214,7 @@ impl Shelf {
             fade,
             confirming: None,
             menu: Menu::default(),
-            themes: Themes::default(),
+            themes: Themes::new(hex),
             recorder: Recorder::default(),
             appearance: window.appearance(),
             animation_effects,

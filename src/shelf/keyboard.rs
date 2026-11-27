@@ -27,6 +27,8 @@ impl Shelf {
             "password"
         } else if self.renaming().is_some_and(|renaming| renaming.name.read(cx).focused(window)) {
             "rename"
+        } else if self.hex_focused(window, cx) {
+            "color"
         } else if self.editor().is_some_and(|editor| {
             let mut inputs =
                 editor.inputs.iter().map(|(_, input)| input).chain(editor.settings.iter().map(|(_, input)| input));
@@ -41,7 +43,7 @@ impl Shelf {
     }
 
     pub(super) fn escape(&mut self, cx: &mut Context<Self>) {
-        if self.menu.close() || self.confirming.take().is_some() {
+        if self.menu.close() || self.themes.close() || self.confirming.take().is_some() {
             return cx.notify();
         }
         match self.page() {
@@ -71,6 +73,12 @@ impl Shelf {
                 }
                 cx.stop_propagation();
             }
+            return;
+        }
+        if self.hex_focused(window, cx) && matches!(key, "enter" | "escape") {
+            self.close_picker(cx);
+            window.focus(&self.focus, cx);
+            cx.stop_propagation();
             return;
         }
         if self.title_focused(window, cx) {
