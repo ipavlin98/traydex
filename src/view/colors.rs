@@ -104,6 +104,12 @@ impl Shelf {
         let custom = chosen.filter(|color| presets.iter().all(|(_, preset)| preset != color));
         cluster()
             .marked("accent-colors")
+            .when(chosen.is_some(), |d| {
+                d.child(
+                    icon_button(t, "accent-reset", "reset", tr().shortcut_reset, false)
+                        .on_click(cx.safe_listener(|shelf, _, _, cx| shelf.set_accent(None, cx))),
+                )
+            })
             .child(
                 swatch(t, "accent-theme", Some(own), chosen.is_none(), tr().color_theme)
                     .on_click(cx.safe_listener(|shelf, _, _, cx| shelf.set_accent(None, cx))),
@@ -122,6 +128,12 @@ impl Shelf {
         let custom = chosen.filter(|color| presets.iter().all(|(_, preset)| preset != color));
         cluster()
             .marked("background-colors")
+            .when(chosen.is_some(), |d| {
+                d.child(
+                    icon_button(t, "background-reset", "reset", tr().shortcut_reset, false)
+                        .on_click(cx.safe_listener(|shelf, _, _, cx| shelf.set_background(None, cx))),
+                )
+            })
             .child(
                 swatch(t, "background-theme", Some(own), chosen.is_none(), tr().color_theme)
                     .on_click(cx.safe_listener(|shelf, _, _, cx| shelf.set_background(None, cx))),

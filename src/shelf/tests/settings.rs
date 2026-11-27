@@ -358,3 +358,26 @@ fn restoring_a_setting_brings_back_its_default_and_reaches_the_system(cx: &mut T
     assert!(h.fake.calls().contains(&Call::Tray(true)));
     assert!(h.read(|shelf| shelf.store().settings().is_default(store::Preference::TrayIcon)));
 }
+
+#[gpui::test]
+fn restoring_the_theme_also_drops_the_colors_chosen_for_it(cx: &mut TestAppContext) {
+    let mut h = open(cx, true);
+    let red = crate::theme::Hex::parse("#ef4444");
+    h.act(|shelf, _, cx| shelf.set_accent(red, cx));
+    assert!(
+        h.read(|shelf| shelf.setting_changed(store::Preference::Theme)),
+        "own colors count as a change of the theme"
+    );
+    h.act(|shelf, _, cx| {
+        shelf.set_theme(ThemeChoice::Named("dracula".into()), cx);
+        shelf.set_accent(red, cx);
+        shelf.restore_setting(store::Preference::Theme, cx);
+    });
+    let saved = h.saved();
+    assert_eq!(saved.settings().theme, ThemeChoice::System);
+    assert!(saved.settings().theme_colors("dracula").is_empty(), "the colors of the theme that was on are dropped");
+    assert!(
+        h.read(|shelf| shelf.setting_changed(store::Preference::Theme)),
+        "colors of the system theme stay until restored"
+    );
+}

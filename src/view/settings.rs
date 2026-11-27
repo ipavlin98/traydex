@@ -454,7 +454,7 @@ impl Shelf {
         control: impl IntoElement,
         cx: &mut Context<Self>,
     ) -> Div {
-        let changed = !self.store().settings().is_default(preference);
+        let changed = self.setting_changed(preference);
         row.child(
             div()
                 .flex()

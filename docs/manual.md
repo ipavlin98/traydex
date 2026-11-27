@@ -248,6 +248,9 @@ Under it, three rows recolor the current theme:
 
 Picks are kept per theme in `theme_colors` in `shelf.json` (`{"dracula": {"accent": "#22c55e"}}`); choosing the
 theme's own color removes the entry. *Reset all settings* clears them.
+Every setting that differs from its default shows a reset button beside it. The one next to *Theme* returns
+to *System* and drops the colors picked for the theme that was on; the ones next to the accent and background
+return them to the theme's own.
 
 *Themes folder* opens `%LOCALAPPDATA%\Traydex\themes` (`data\themes` in the portable copy), creating it if needed.
 Every `*.json` file there is a theme whose id is the file name; the folder is read at start and each time Settings
