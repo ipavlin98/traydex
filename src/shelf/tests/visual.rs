@@ -659,7 +659,8 @@ fn verify(check: &mut Check, scene: Scene, ids: &[ItemId]) {
                 .into_iter()
                 .chain(names(SEGMENTS, "segmented:"))
                 .chain(
-                    ["scale", "language", "tile-input", "check-updates", "watch-folder", "watched:0"].map(String::from),
+                    ["scale", "brand", "language", "tile-input", "check-updates", "watch-folder", "watched:0"]
+                        .map(String::from),
                 )
                 .collect();
             for control in &controls {

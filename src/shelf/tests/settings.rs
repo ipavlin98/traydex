@@ -288,3 +288,25 @@ fn language_change_updates_shell_menu_label(cx: &mut TestAppContext) {
     h.act(|shelf, _, cx| shelf.toggle_menu(Dropdown::Language, cx));
     assert!(h.read(|shelf| shelf.menu.open() == Some(Dropdown::Language)));
 }
+
+#[gpui::test]
+fn title_shows_the_chosen_brand_and_separates_the_page_only_after_it(cx: &mut TestAppContext) {
+    let mut h = open(cx, true);
+    h.act(|shelf, _, cx| shelf.toggle_page(Page::Settings, cx));
+    let shown =
+        |h: &mut Harness| ["logo", "app-name", "crumb-dot", "crumb"].map(|mark| h.cx.debug_bounds(mark).is_some());
+    assert_eq!(shown(&mut h), [true, true, true, true], "logo and name by default");
+    for (brand, expected) in [
+        (Brand::Logo, [true, false, true, true]),
+        (Brand::Name, [false, true, true, true]),
+        (Brand::Hidden, [false, false, false, true]),
+    ] {
+        h.act(|shelf, _, cx| {
+            shelf.toggle_menu(Dropdown::Brand, cx);
+            shelf.set_brand(brand, cx);
+        });
+        assert_eq!(h.saved().settings().brand, brand);
+        assert_eq!(h.read(|shelf| shelf.menu.open()), None, "picking closes the menu");
+        assert_eq!(shown(&mut h), expected, "{brand:?}");
+    }
+}

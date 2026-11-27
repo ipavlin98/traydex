@@ -7,7 +7,7 @@ use crate::design::{glyph, line, radius, rem, size, space, text};
 use crate::i18n::{self, Language, tr};
 use crate::keys::Command;
 use crate::shelf::{Dropdown, Page, SafeListener, Shelf};
-use crate::store::{Corner, SCALES, ShakeLevel, TileInput};
+use crate::store::{Brand, Corner, SCALES, ShakeLevel, TileInput};
 use crate::theme::{Theme, ThemeMode};
 use gpui::{prelude::*, *};
 use std::path::Path;
@@ -30,6 +30,16 @@ fn dropdown_name(menu: Dropdown) -> &'static str {
         Dropdown::Scale => "scale",
         Dropdown::Language => "language",
         Dropdown::TileInput => "tile-input",
+        Dropdown::Brand => "brand",
+    }
+}
+
+fn brand_label(brand: Brand) -> &'static str {
+    match brand {
+        Brand::LogoAndName => tr().brand_logo_and_name,
+        Brand::Logo => tr().brand_logo,
+        Brand::Name => tr().brand_name,
+        Brand::Hidden => tr().brand_hidden,
     }
 }
 
@@ -245,6 +255,17 @@ impl Shelf {
         self.dropdown(t, picker, cx)
     }
 
+    fn brand_picker(&self, t: Theme, cx: &mut Context<Self>) -> Div {
+        let picker = Picker {
+            menu: Dropdown::Brand,
+            current: self.store().settings().brand,
+            options: &Brand::ALL,
+            label: |brand| div().whitespace_nowrap().child(brand_label(brand)),
+            pick: Self::set_brand,
+        };
+        self.dropdown(t, picker, cx)
+    }
+
     fn tile_input_picker(&self, t: Theme, cx: &mut Context<Self>) -> Div {
         let picker = Picker {
             menu: Dropdown::TileInput,
@@ -359,6 +380,7 @@ impl Shelf {
             //         cx,
             //     ),
             // ))
+            .child(setting(t, query, tr().brand, None).child(self.brand_picker(t, cx)))
             .child(setting(t, query, tr().language, None).child(self.language_picker(t, cx)))
     }
 

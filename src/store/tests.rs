@@ -294,6 +294,7 @@ fn old_format_without_settings_uses_defaults() {
     );
     assert!(!store.settings.blur && !store.settings.window_animations && !store.settings.interface_animations);
     assert_eq!(store.settings.tile_input, TileInput::Clipboard);
+    assert_eq!(store.settings.brand, Brand::LogoAndName);
     assert_eq!(store.settings.scale, 100);
     assert!(!sandbox.join("root").join("shelf.broken.json").exists());
 }
