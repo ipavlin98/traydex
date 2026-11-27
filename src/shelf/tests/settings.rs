@@ -381,3 +381,24 @@ fn restoring_the_theme_also_drops_the_colors_chosen_for_it(cx: &mut TestAppConte
         "colors of the system theme stay until restored"
     );
 }
+
+#[gpui::test]
+fn enter_in_page_search_walks_through_the_matches_and_wraps_around(cx: &mut TestAppContext) {
+    let mut h = open(cx, true);
+    h.act(|shelf, _, cx| {
+        shelf.toggle_page(Page::Settings, cx);
+        shelf.find.input().update(cx, |input, cx| input.set_text("o".into(), cx));
+        shelf.page_searched(cx);
+    });
+    h.render();
+    let count = h.read(|shelf| shelf.regions.hit_count());
+    assert!(count > 1, "a common letter is found in several settings");
+    assert_eq!(h.read(|shelf| shelf.current_hit()), 0, "typing lands on the first match");
+    h.act(|shelf, _, cx| shelf.step_hit(false, cx));
+    assert_eq!(h.read(|shelf| shelf.current_hit()), count - 1, "going back from the first match wraps to the last");
+    for _ in 0..count {
+        h.act(|shelf, _, cx| shelf.step_hit(true, cx));
+        h.render();
+    }
+    assert_eq!(h.read(|shelf| shelf.current_hit()), count - 1, "a full round comes back to the same match");
+}

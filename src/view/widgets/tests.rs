@@ -86,7 +86,7 @@ fn page_search_keeps_only_the_best_grade_of_matches_on_the_page() {
     ];
     let shown = |text: &str| {
         let query = Query::parse(text);
-        searched(query.as_ref(), &regions, |finder| {
+        searched(query.as_ref(), &regions, 0, |finder| {
             entries.map(|(title, detail)| finder.locate(title, detail).is_some())
         })
     };

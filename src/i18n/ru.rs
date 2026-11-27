@@ -130,6 +130,7 @@ pub(super) static RU: Strings = Strings {
     search_placeholder: "Нажмите и введите для поиска",
     nothing_found: "Ничего не найдено",
     clear_search: "Очистить поиск",
+    search_next: "Следующее совпадение, Shift+Enter — предыдущее",
     clear_hint: "Очистить Traydex",
     autostart_setup_failed: "Не удалось настроить автозапуск: {}",
     save_failed: "Не удалось сохранить содержимое: {}",

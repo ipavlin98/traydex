@@ -59,6 +59,11 @@ impl Shelf {
         let control = event.keystroke.modifiers.control;
         let slash = event.keystroke.key_char.as_deref() == Some("/") || matches!(key, "/" | ".");
         if self.search_input().read(cx).focused(window) {
+            if self.page() != Page::Shelf && key == "enter" {
+                self.step_hit(!event.keystroke.modifiers.shift, cx);
+                cx.stop_propagation();
+                return;
+            }
             if self.page() == Page::Shelf && matches!(key, "up" | "down") {
                 let step = self.row_step();
                 self.step_hover(if key == "up" { -step } else { step }, cx);

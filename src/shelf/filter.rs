@@ -7,12 +7,13 @@ use gpui::*;
 
 pub(super) struct PageSearch {
     input: Entity<TextInput>,
+    current: usize,
     revealing: bool,
 }
 
 impl PageSearch {
     pub(super) fn new(input: Entity<TextInput>) -> Self {
-        Self { input, revealing: false }
+        Self { input, current: 0, revealing: false }
     }
 
     pub(super) fn input(&self) -> &Entity<TextInput> {
@@ -114,44 +115,51 @@ impl Shelf {
     }
 
     pub(super) fn page_searched(&mut self, cx: &mut Context<Self>) {
+        self.find.current = 0;
         self.find.revealing = !self.find.input.read(cx).text().trim().is_empty();
         cx.notify();
     }
 
-    pub(crate) fn reveal_after_frame(&self, margin: f32, window: &Window, cx: &mut Context<Self>) {
+    pub(crate) fn current_hit(&self) -> usize {
+        self.find.current
+    }
+
+    pub fn step_hit(&mut self, forward: bool, cx: &mut Context<Self>) {
+        let count = self.regions.hit_count();
+        if count == 0 {
+            return;
+        }
+        let current = self.find.current.min(count - 1);
+        self.find.current = if forward { (current + 1) % count } else { (current + count - 1) % count };
+        self.find.revealing = true;
+        cx.notify();
+    }
+
+    pub(crate) fn reveal_after_frame(&self, window: &Window, cx: &mut Context<Self>) {
         if !self.find.revealing {
             return;
         }
         let shelf = cx.entity().downgrade();
         window.defer(cx, move |_, cx| {
-            let _ = shelf.update(cx, |shelf, cx| shelf.guarded(cx, |shelf, cx| shelf.reveal_first_hit(margin, cx)));
+            let _ = shelf.update(cx, |shelf, cx| shelf.guarded(cx, |shelf, cx| shelf.reveal_current_hit(cx)));
         });
     }
 
-    fn reveal_first_hit(&mut self, margin: f32, cx: &mut Context<Self>) {
+    fn reveal_current_hit(&mut self, cx: &mut Context<Self>) {
         if !std::mem::take(&mut self.find.revealing) {
             return;
         }
-        let Some(hit) = self.regions.first_hit() else {
+        let Some(hit) = self.regions.hit(self.find.current) else {
             return;
         };
         let scroll = self.scroll(self.page());
         let view = scroll.bounds();
-        let margin = px(margin);
-        let mut shift = px(0.);
-        if hit.bottom() > view.bottom() - margin {
-            shift = view.bottom() - margin - hit.bottom();
-        }
-        if hit.top() + shift < view.top() + margin {
-            shift = view.top() + margin - hit.top();
-        }
-        if shift == px(0.) {
-            return;
-        }
         let offset = scroll.offset();
-        let target = (offset.y + shift).clamp(-scroll.max_offset().y, px(0.));
-        scroll.set_offset(point(offset.x, target));
-        cx.notify();
+        let target = (offset.y + view.center().y - hit.center().y).clamp(-scroll.max_offset().y, px(0.));
+        if target != offset.y {
+            scroll.set_offset(point(offset.x, target));
+            cx.notify();
+        }
     }
 
     pub fn searchable(&self) -> bool {

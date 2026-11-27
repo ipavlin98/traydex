@@ -162,6 +162,7 @@ check failed; automatic checks only write failures to the log. The version itsel
 | Select all | `Ctrl+A` |
 | Remove the selected cards | `Delete` or the button on the *Selected* bar |
 | Find a card | `/` or a click on the search box at the bottom; `Esc` clears the query, a second `Esc` leaves the search box. The search box is hidden while the shelf is empty and while something is dragged over the window |
+| Find a setting or a tile | The same search box on Settings and the tiles page highlights matches and shows the current one and their count (`2/7`); `Enter` goes to the next match and `Shift+Enter` to the previous, scrolling the current one to the middle of the page when there is room |
 | Edit text in a field | In the search box, note titles and other one-line fields `Ctrl+Z` undoes and `Ctrl+Y` or `Ctrl+Shift+Z` redoes, as in notes. `Ctrl+←`/`Ctrl+→` and `Ctrl+Backspace`/`Ctrl+Delete` work by words, which end at spaces and punctuation such as `\` and `.`; a double click selects a word, a triple click everything. Emoji and letters with accents move and erase whole |
 | Open a card | `Enter`, the arrow button, or a double-click when *Preview on double-click* is off |
 | Preview a card | Double-click (*Preview on double-click*, on by default), or hover and press `Space` or the eye button; without hover, the first selected card |
