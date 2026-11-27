@@ -507,6 +507,11 @@ focus) and keeps grayscale text antialiasing instead of upstream's ClearType in 
     `vendor/gpui_windows/src/shaders.hlsl`, the path rasterization sprite in `directx_renderer.rs` carries the mask
     too). The regression test is `rounded_overflow_cuts_content_to_the_inner_edge_of_its_corners`; the shader part is
     checked by eye.
+16. **Frames over translucent fills.** The quad shader (`quad_fragment` in `vendor/gpui_windows/src/shaders.hlsl`)
+    blends a border into its background in premultiplied alpha. Upstream lerps straight colors, so the anti-aliased
+    inner edge of a frame over a transparent or translucent fill (every GPUI border, which is a quad of its own over
+    a transparent fill) took the fill's RGB at full weight and came out dark and jagged on rounded shapes. Shader
+    only: no headless test, check by eye.
 
 The vendored crates leave out upstream's examples and test fonts, so their `Cargo.toml` lists no examples;
 `vendor/gpui` adds the `unicode-linebreak` dependency.
