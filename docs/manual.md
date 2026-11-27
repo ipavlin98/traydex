@@ -108,7 +108,7 @@ check failed; automatic checks only write failures to the log. The version itsel
   read-only.
 - Mentions in notes: `\` (the key above `Enter`, unshifted in both English and Russian layouts) or `@` at the start of
   a word (not inside an address like `ivan@mail.ru` or a path like `C:\Users`) opens a list under it of every file,
-  picture, folder and link on the shelf (notes and texts aren't offered), newest first, then filtered by what you type
+  picture, folder, link and text on the shelf (notes aren't offered), newest first, then filtered by what you type
   with the same matching as search (typos, keyboard layout). It shows seven rows and scrolls with the wheel; `↑`/`↓`
   or `Alt+K`/`Alt+J` move and keep the chosen row in view, the mouse picks the row it moves over, `Enter`, `Tab` or a
   click inserts, `Esc` closes the list and keeps the text; the same trigger doesn't ask again. A mention is a chip
