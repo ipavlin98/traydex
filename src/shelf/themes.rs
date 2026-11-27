@@ -79,7 +79,7 @@ impl Shelf {
         self.update_settings(|settings| settings.theme = choice, cx);
     }
 
-    fn recolor(&mut self, change: impl FnOnce(&mut ThemeColors), cx: &mut Context<Self>) {
+    pub(super) fn recolor(&mut self, change: impl FnOnce(&mut ThemeColors), cx: &mut Context<Self>) {
         let Some(id) = self.current_theme().map(|entry| entry.id().to_owned()) else { return };
         let mut colors = self.store.settings().theme_colors(&id);
         change(&mut colors);

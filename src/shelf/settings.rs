@@ -1,7 +1,8 @@
 use super::{Page, Screen, Shelf};
 use crate::i18n::{self, Language, fill, tr};
 use crate::keys::{Command, Scope, Shortcut};
-use crate::store::{self, Corner, Settings, ShakeLevel, TileInput};
+use crate::store::{self, Corner, Preference, Settings, ShakeLevel, TileInput};
+use crate::theme::ThemeColors;
 use gpui::*;
 use std::time::Duration;
 
@@ -149,6 +150,23 @@ impl Shelf {
             cx,
         );
         self.refresh(cx);
+    }
+
+    pub(crate) fn setting_changed(&self, preference: Preference) -> bool {
+        let own_colors = preference == Preference::Theme && !self.current_colors().is_empty();
+        own_colors || !self.store.settings().is_default(preference)
+    }
+
+    pub fn restore_setting(&mut self, preference: Preference, cx: &mut Context<Self>) {
+        self.menu.close();
+        if preference == Preference::SeparateNotes {
+            self.selection.reset();
+        }
+        if preference == Preference::Theme {
+            self.themes.close();
+            self.recolor(|colors| *colors = ThemeColors::default(), cx);
+        }
+        self.update_settings(|settings| settings.restore(preference), cx);
     }
 
     pub fn set_transparency(&mut self, transparency: u8, cx: &mut Context<Self>) {

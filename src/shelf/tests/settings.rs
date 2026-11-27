@@ -315,3 +315,47 @@ fn chosen_colors_stay_with_their_theme_and_a_new_background_resets_the_text(cx: 
     });
     assert!(h.saved().settings().theme_colors.is_empty(), "back to the theme's own colors leaves nothing saved");
 }
+
+#[gpui::test]
+fn restoring_a_setting_brings_back_its_default_and_reaches_the_system(cx: &mut TestAppContext) {
+    let mut h = open(cx, true);
+    h.act(|shelf, _, cx| {
+        shelf.toggle_tray_icon(cx);
+        shelf.set_scale(125, cx);
+        shelf.set_transparency(30, cx);
+    });
+    assert!(!h.read(|shelf| shelf.store().settings().is_default(store::Preference::TrayIcon)));
+    h.fake.take_calls();
+    h.act(|shelf, _, cx| {
+        shelf.restore_setting(store::Preference::TrayIcon, cx);
+        shelf.restore_setting(store::Preference::Scale, cx);
+    });
+    let saved = h.saved();
+    assert!(saved.settings().tray_icon && saved.settings().scale == 100);
+    assert_eq!(saved.settings().transparency, 30, "other settings stay as they were");
+    assert!(h.fake.calls().contains(&Call::Tray(true)));
+    assert!(h.read(|shelf| shelf.store().settings().is_default(store::Preference::TrayIcon)));
+}
+
+#[gpui::test]
+fn restoring_the_theme_also_drops_the_colors_chosen_for_it(cx: &mut TestAppContext) {
+    let mut h = open(cx, true);
+    let red = crate::theme::Hex::parse("#ef4444");
+    h.act(|shelf, _, cx| shelf.set_accent(red, cx));
+    assert!(
+        h.read(|shelf| shelf.setting_changed(store::Preference::Theme)),
+        "own colors count as a change of the theme"
+    );
+    h.act(|shelf, _, cx| {
+        shelf.set_theme(ThemeChoice::Named("dracula".into()), cx);
+        shelf.set_accent(red, cx);
+        shelf.restore_setting(store::Preference::Theme, cx);
+    });
+    let saved = h.saved();
+    assert_eq!(saved.settings().theme, ThemeChoice::System);
+    assert!(saved.settings().theme_colors("dracula").is_empty(), "the colors of the theme that was on are dropped");
+    assert!(
+        h.read(|shelf| shelf.setting_changed(store::Preference::Theme)),
+        "colors of the system theme stay until restored"
+    );
+}
