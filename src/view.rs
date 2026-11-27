@@ -215,7 +215,7 @@ fn side_fades(
                     continue;
                 };
                 let [solid, shade] = cover(window, bounds, edge, button, (underline.top(), underline.size.height));
-                window.with_content_mask(Some(ContentMask { bounds: underline }), |window| {
+                window.with_content_mask(Some(ContentMask::new(underline)), |window| {
                     window.paint_quad(gpui::fill(solid, line));
                     window.paint_quad(gpui::fill(shade, fade(line, angle)));
                 });

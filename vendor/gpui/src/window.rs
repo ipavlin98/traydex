@@ -2251,27 +2251,63 @@ pub struct DispatchEventResult {
 }
 
 /// Indicates which region of the window is visible. Content falling outside of this mask will not be
-/// rendered. Currently, only rectangular content masks are supported, but we give the mask its own type
-/// to leave room to support more complex shapes in the future.
+/// rendered. `bounds` clips to a rectangle; when `corner_radii` aren't zero, content is also cut to
+/// the rounded rectangle `corner_bounds`, antialiased once by the shaders.
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 #[repr(C)]
 pub struct ContentMask<P: Clone + Debug + Default + PartialEq> {
     /// The bounds
     pub bounds: Bounds<P>,
+    /// The rounded rectangle content is cut to, when `corner_radii` aren't zero.
+    pub corner_bounds: Bounds<P>,
+    /// The corner radii of `corner_bounds`; all zero for a rectangular mask.
+    pub corner_radii: Corners<P>,
+}
+
+impl<P: Clone + Debug + Default + PartialEq> ContentMask<P> {
+    /// A rectangular content mask.
+    pub fn new(bounds: Bounds<P>) -> Self {
+        ContentMask {
+            bounds,
+            corner_bounds: Bounds::default(),
+            corner_radii: Corners::default(),
+        }
+    }
 }
 
 impl ContentMask<Pixels> {
+    /// A content mask cut to the rounded rectangle `bounds`.
+    pub fn rounded(bounds: Bounds<Pixels>, corner_radii: Corners<Pixels>) -> Self {
+        let corner_radii = corner_radii.clamp_radii_for_quad_size(bounds.size);
+        if corner_radii.is_zero() {
+            return Self::new(bounds);
+        }
+        ContentMask {
+            bounds,
+            corner_bounds: bounds,
+            corner_radii,
+        }
+    }
+
     /// Scale the content mask's pixel units by the given scaling factor.
     pub fn scale(&self, factor: f32) -> ContentMask<ScaledPixels> {
         ContentMask {
             bounds: self.bounds.scale(factor),
+            corner_bounds: self.corner_bounds.scale(factor),
+            corner_radii: self.corner_radii.scale(factor),
         }
     }
 
-    /// Intersect the content mask with the given content mask.
+    /// Intersect the content mask with the given, enclosing content mask. The rectangles intersect
+    /// exactly; of two rounded shapes the inner one, `self`, is kept.
     pub fn intersect(&self, other: &Self) -> Self {
         let bounds = self.bounds.intersect(&other.bounds);
-        ContentMask { bounds }
+        let rounded = if self.corner_radii.is_zero() { other } else { self };
+        ContentMask {
+            bounds,
+            corner_bounds: rounded.corner_bounds,
+            corner_radii: rounded.corner_radii.clone(),
+        }
     }
 }
 
@@ -3286,6 +3322,7 @@ impl Window {
                         point(start, bounds.top()),
                         point(end, bounds.bottom()),
                     ),
+                    ..underline.content_mask
                 },
                 ..underline
             });
@@ -3358,8 +3395,11 @@ impl Window {
     /// The current content mask in whole device pixels, as primitives are clipped to it.
     #[inline]
     pub fn snapped_content_mask(&self) -> ContentMask<ScaledPixels> {
+        let mask = self.content_mask();
         ContentMask {
-            bounds: self.cover_bounds(self.content_mask().bounds),
+            bounds: self.cover_bounds(mask.bounds),
+            corner_bounds: mask.corner_bounds.scale(self.scale_factor()),
+            corner_radii: mask.corner_radii.scale(self.scale_factor()),
         }
     }
 
@@ -4359,11 +4399,11 @@ impl Window {
         self.content_mask_stack
             .last()
             .cloned()
-            .unwrap_or_else(|| ContentMask {
-                bounds: Bounds {
+            .unwrap_or_else(|| {
+                ContentMask::new(Bounds {
                     origin: Point::default(),
                     size: self.viewport_size,
-                },
+                })
             })
     }
 
@@ -4788,6 +4828,7 @@ impl Window {
                 self.next_frame.scene.insert_primitive(Quad {
                     content_mask: ContentMask {
                         bounds: content_mask_bounds,
+                        ..quad.content_mask
                     },
                     ..quad
                 });
@@ -9454,9 +9495,10 @@ mod tests {
             let scale = window.scale_factor();
             let original_mask = window.content_mask();
             let original_opacity = window.element_opacity();
-            let mask = ContentMask {
-                bounds: Bounds::from_corners(point(px(4.), px(10.)), point(px(16.), px(12.))),
-            };
+            let mask = ContentMask::new(Bounds::from_corners(
+                point(px(4.), px(10.)),
+                point(px(16.), px(12.)),
+            ));
             let style = UnderlineStyle {
                 thickness: px(2.),
                 color: Some(hsla(0.25, 0.5, 0.75, 0.5)),
@@ -9599,12 +9641,10 @@ mod tests {
             canvas(
                 |_, _, _| {},
                 move |_, _, window, _| {
-                    window.content_mask_stack.push(ContentMask {
-                        bounds: Bounds::from_corners(
-                            point(px(-1000.), px(-1000.)),
-                            point(px(1000.), px(1000.)),
-                        ),
-                    });
+                    window.content_mask_stack.push(ContentMask::new(Bounds::from_corners(
+                        point(px(-1000.), px(-1000.)),
+                        point(px(1000.), px(1000.)),
+                    )));
                     paint(window);
                     window.content_mask_stack.pop();
                 },

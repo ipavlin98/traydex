@@ -681,7 +681,7 @@ impl Render for Clip {
             |_, _, _| {},
             move |_, _, window, _| {
                 let right: f32 = std::iter::repeat_n(0.1, 10).sum();
-                let bounds = gpui::ContentMask { bounds: rect(0., 0., right, 1.) };
+                let bounds = gpui::ContentMask::new(rect(0., 0., right, 1.));
                 window.with_content_mask(Some(bounds), |window| mask.set(Some(window.snapped_content_mask().bounds)));
             },
         )
@@ -702,6 +702,49 @@ fn clip_on_a_whole_device_pixel_ends_where_painted_edges_end(cx: &mut TestAppCon
         gpui::ScaledPixels(2.),
         "1 px reached with float noise is 2 device pixels, so the clip must not take a third"
     );
+}
+
+type Masks = Rc<RefCell<Vec<gpui::ContentMask<gpui::ScaledPixels>>>>;
+
+struct RoundedClip {
+    masks: Masks,
+}
+
+impl Render for RoundedClip {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        let probe = |masks: Masks| {
+            canvas(|_, _, _| {}, move |_, _, window, _| masks.borrow_mut().push(window.snapped_content_mask()))
+                .size_full()
+        };
+        div()
+            .size(px(40.))
+            .rounded(px(8.))
+            .border_1()
+            .border_color(gpui::black())
+            .overflow_hidden()
+            .child(div().absolute().size_full().child(probe(self.masks.clone())))
+            .child(div().absolute().top(px(4.)).size(px(10.)).overflow_hidden().child(probe(self.masks.clone())))
+    }
+}
+
+#[gpui::test]
+fn rounded_overflow_cuts_content_to_the_inner_edge_of_its_corners(cx: &mut TestAppContext) {
+    let masks = Masks::default();
+    let shared = Rc::clone(&masks);
+    let (_, cx) = cx.add_window_view(move |_, _| RoundedClip { masks: shared });
+    cx.run_until_parked();
+    assert_eq!(cx.update(|window, _| window.scale_factor()), 2.);
+    let masks = masks.borrow();
+    let [inside, nested] = masks.as_slice() else {
+        panic!("both probes paint once, got {} masks", masks.len());
+    };
+    let inner = Bounds::from_corners(point(gpui::ScaledPixels(2.), gpui::ScaledPixels(2.)), point(gpui::ScaledPixels(78.), gpui::ScaledPixels(78.)));
+    let radius = gpui::ScaledPixels(14.);
+    assert_eq!(inside.corner_bounds, inner, "the cut follows the inside of the 1 px border");
+    assert_eq!(inside.corner_radii.top_left, radius, "8 px corners minus the 1 px border, at 2x");
+    assert_eq!(inside.corner_radii.bottom_right, radius);
+    assert_eq!(nested.corner_bounds, inner, "a rectangular clip inside keeps the rounded cut around it");
+    assert_eq!(nested.corner_radii.bottom_left, radius);
 }
 
 struct Segments {

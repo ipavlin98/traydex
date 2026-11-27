@@ -92,7 +92,7 @@ pub fn label(text: SharedString, backdrop: Rgba) -> impl IntoElement {
             },
             move |bounds, line, window, cx| {
                 let area = overdrawn(bounds);
-                window.with_content_mask(Some(ContentMask { bounds: area }), |window| {
+                window.with_content_mask(Some(ContentMask::new(area)), |window| {
                     let _ = line.paint(bounds.origin, bounds.size.height, TextAlign::Left, None, window, cx);
                     paint_fades(area, (false, line.width > bounds.size.width), backdrop, window);
                 });
@@ -478,7 +478,7 @@ impl Render for TextInput {
                     move |bounds, frame, window, cx| {
                         window.handle_input(&focus, ElementInputHandler::new(bounds, painter.clone()), cx);
                         let area = overdrawn(bounds);
-                        window.with_content_mask(Some(ContentMask { bounds: area }), |window| {
+                        window.with_content_mask(Some(ContentMask::new(area)), |window| {
                             if let Some(selection) = frame.selection {
                                 window.paint_quad(fill(selection, t.selection));
                             }

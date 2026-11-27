@@ -443,6 +443,15 @@ focus) and keeps grayscale text antialiasing instead of upstream's ClearType in 
 14. **Measurement support.** With `ZED_MEASUREMENTS=1`, `log_timing` in `vendor/gpui/src/window.rs` writes when each
     frame and each opacity change happens to stderr, which the E2E `--measure` option and the `motion` suite read. In
     debug builds, `layout_line` checks that the style runs cover the whole text.
+15. **Rounded clipping.** A box with rounded corners that hides its overflow on both axes cuts its content to the
+    inner edge of its corners, the way CSS does; upstream clipped only to the rectangle, so a child filling a row at
+    the edge of a rounded list (the drop line in the tile list) stuck out past the curve. `ContentMask` carries the
+    rounded rectangle and its radii besides the clip rectangle (`vendor/gpui/src/window.rs`; `overflow_mask` in
+    `vendor/gpui/src/style.rs` sets them, an inner rounded box wins over an outer one), and every fragment shader
+    multiplies its alpha by the mask's antialiased coverage (`content_mask_alpha` in
+    `vendor/gpui_windows/src/shaders.hlsl`, the path rasterization sprite in `directx_renderer.rs` carries the mask
+    too). The regression test is `rounded_overflow_cuts_content_to_the_inner_edge_of_its_corners`; the shader part is
+    checked by eye.
 
 The vendored crates leave out upstream's examples and test fonts, so their `Cargo.toml` lists no examples;
 `vendor/gpui` adds the `unicode-linebreak` dependency.

@@ -483,7 +483,7 @@ fn paint(
     for hitbox in hitboxes {
         window.set_cursor_style(CursorStyle::PointingHand, hitbox);
     }
-    window.with_content_mask(Some(ContentMask { bounds }), |window| {
+    window.with_content_mask(Some(ContentMask::new(bounds)), |window| {
         links::paint_backs(&frame.chips, t, window);
         for selection in &frame.selections {
             window.paint_quad(fill(*selection, t.selection));
