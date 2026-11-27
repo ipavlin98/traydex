@@ -840,8 +840,10 @@ float4 quad_fragment(QuadFragmentInput input): SV_Target {
         // Blend the border on top of the background and then linearly interpolate
         // between the two as we slide inside the background.
         float4 blended_border = over(background_color, border_color);
-        color = lerp(background_color, blended_border,
-                    saturate(antialias_threshold - inner_sdf));
+        float4 below = float4(background_color.rgb * background_color.a, background_color.a);
+        float4 above = float4(blended_border.rgb * blended_border.a, blended_border.a);
+        float4 mixed = lerp(below, above, saturate(antialias_threshold - inner_sdf));
+        color = mixed.a > 0.0 ? float4(mixed.rgb / mixed.a, mixed.a) : background_color;
     }
 
     return color * float4(1.0, 1.0, 1.0, saturate(antialias_threshold - outer_sdf));
