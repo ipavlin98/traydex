@@ -188,6 +188,10 @@ impl Shelf {
                 shelf.guarded(cx, |shelf, cx| shelf.close_picker(cx));
                 window.focus(&shelf.focus, cx);
             }),
+            cx.subscribe(&find, |shelf, _, submitted: &Submitted, cx| {
+                let forward = !submitted.shift;
+                shelf.guarded(cx, |shelf, cx| shelf.step_hit(forward, cx))
+            }),
             cx.observe(&notices, |_, _, cx| cx.notify()),
             cx.observe(&jobs, |_, _, cx| cx.notify()),
             cx.observe(&updates, |_, _, cx| cx.notify()),

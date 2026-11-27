@@ -28,7 +28,9 @@ pub(crate) fn caret_bounds(at: Point<Pixels>, height: Pixels, scale: f32) -> Bou
     Bounds::new(edges.origin, size(px(width), edges.size.height))
 }
 
-pub struct Submitted;
+pub struct Submitted {
+    pub shift: bool,
+}
 
 pub struct TextInput {
     focus: FocusHandle,
@@ -272,7 +274,7 @@ impl TextInput {
                     self.replace(selected, text.trim(), Edit::Other, cx);
                 }
             }
-            "enter" if self.edit.marked().is_none() => cx.emit(Submitted),
+            "enter" if self.edit.marked().is_none() => cx.emit(Submitted { shift }),
             "enter" => {}
             "tab" if self.edit.marked().is_some() => {}
             _ => return,

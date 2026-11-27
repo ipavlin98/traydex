@@ -458,21 +458,15 @@ enum Pass<'a> {
 pub(super) struct Finder<'a> {
     query: Option<&'a Query>,
     pass: Pass<'a>,
-    current: usize,
 }
 
-pub(super) fn searched<R>(
-    query: Option<&Query>,
-    regions: &Regions,
-    current: usize,
-    mut build: impl FnMut(Finder) -> R,
-) -> R {
+pub(super) fn searched<R>(query: Option<&Query>, regions: &Regions, mut build: impl FnMut(Finder) -> R) -> R {
     let grade = query.map_or(Grade::Word, |query| {
         let best = Cell::new(None);
-        drop(build(Finder { query: Some(query), pass: Pass::Survey(&best), current }));
+        drop(build(Finder { query: Some(query), pass: Pass::Survey(&best) }));
         best.get().unwrap_or(Grade::Word)
     });
-    build(Finder { query, pass: Pass::Show(grade, regions), current })
+    build(Finder { query, pass: Pass::Show(grade, regions) })
 }
 
 impl Finder<'_> {
@@ -491,7 +485,7 @@ impl Finder<'_> {
         }
     }
 
-    pub(super) fn hit(self, t: Theme, found: bool) -> Option<impl IntoElement> {
+    pub(super) fn hit(self, found: bool) -> Option<impl IntoElement> {
         let Pass::Show(_, regions) = self.pass else {
             return None;
         };
@@ -500,15 +494,7 @@ impl Finder<'_> {
         }
         let index = regions.count_hit();
         let regions = regions.clone();
-        Some(
-            div()
-                .absolute()
-                .inset_0()
-                .when(index == self.current, |d| d.rounded(rem(radius::SMALL)).bg(t.accent_tint))
-                .child(
-                    canvas(move |bounds, _, _| regions.add_hit(index, bounds), |_, _, _, _| {}).absolute().inset_0(),
-                ),
-        )
+        Some(canvas(move |bounds, _, _| regions.add_hit(index, bounds), |_, _, _, _| {}).absolute().inset_0())
     }
 }
 
@@ -528,7 +514,7 @@ pub(super) fn setting(t: Theme, finder: Finder, label: &'static str, description
     div()
         .relative()
         .when(missed, unmatched)
-        .children(finder.hit(t, !missed))
+        .children(finder.hit(!missed))
         .min_h(rem(SETTING_HEIGHT))
         .py(rem(space::M))
         .flex()
