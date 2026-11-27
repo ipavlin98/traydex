@@ -2,6 +2,36 @@
 
 Notable changes in each release. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.7.0-alpha] — 2026-11-27
+
+- Content inside rounded boxes, such as the drop line in the tile list, no longer sticks out past their corners.
+- Dragging a tile in the tile list shows a line where it will land.
+- Title bar setting in Appearance: show the logo and the name, only the logo, only the name or nothing on the left of
+  the title bar.
+- The page name in the title bar is now separated by a dot instead of a slash, and with nothing shown before it the
+  page name stands alone.
+- Dropdown menus and segmented switches keep the highlight while the pointer crosses the gap between options, and
+  the already selected option no longer lights up on hover.
+- Notes can mention texts from the shelf, such as text pasted from the clipboard, alongside files, pictures, folders
+  and links.
+- Latin text and digits (the Traydex title, percentages, shortcuts) no longer change weight and shape when the
+  interface language is Chinese or Hindi: every language uses Segoe UI, with Chinese and Hindi characters drawn in
+  their own fonts.
+- A right click during a drag only hides the panel and the drag goes on, so files can be dropped onto whatever the
+  panel covered. The next drag shows the panel again.
+- Drop-down lists in Settings fit their longest option: they keep a fixed width for short options, grow for longer
+  ones up to a limit, and the open list is as wide as the button.
+- Color themes: pick Light, Dark, Catppuccin Mocha, Dracula, Soft Sand or your own JSON theme from a drop-down list
+  in Settings, or follow the system. Themes change colors only.
+- Recolor any theme with your own accent and background (circles with ready-made colors and a palette); the text
+  color follows the background automatically or can be picked by hand. Picks are remembered for each theme.
+- Themes folder in Settings: put JSON files there for themes of your own; broken files are reported.
+- Every setting that differs from its default shows a reset button next to it that restores the default value.
+- Rounded frames (color circles, switches, buttons) have smooth edges instead of a dark jagged fringe.
+- Search in Settings and on the tiles page shows how many matches there are and which one is current; Enter goes
+  to the next one, Shift+Enter to the previous, and the current match is scrolled to the middle of the page when there
+  is room.
+
 ## [0.6.2-alpha] — 2026-11-06
 
 - The 32-bit and ARM64 versions start on a clean Windows: like the 64-bit one, they no longer need the Visual C++
@@ -121,6 +151,7 @@ First public release.
 - Preview, notes, search with typo and keyboard-layout tolerance, list and grid views.
 - Light and dark themes, transparency and blur, six languages.
 
+[0.7.0-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.7.0-alpha
 [0.6.2-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.6.2-alpha
 [0.6.1-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.6.1-alpha
 [0.6.0-alpha]: https://github.com/ipavlin98/traydex/releases/tag/v0.6.0-alpha
