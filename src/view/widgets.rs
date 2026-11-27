@@ -78,12 +78,13 @@ pub(super) fn measure(window: &Window, text: &str, size: f32) -> f32 {
 }
 
 pub(super) fn measure_weighted(window: &Window, text: &str, size: f32, weight: FontWeight) -> f32 {
-    let shaped = window.text_system().shape_line(
-        SharedString::from(text.to_string()),
-        scaled(size, window),
-        &[run(text.len(), weight)],
-        None,
-    );
+    measure_in(window, text, size, run(text.len(), weight).font)
+}
+
+pub(super) fn measure_in(window: &Window, text: &str, size: f32, font: Font) -> f32 {
+    let run = TextRun { font, ..run(text.len(), FontWeight::NORMAL) };
+    let shaped =
+        window.text_system().shape_line(SharedString::from(text.to_string()), scaled(size, window), &[run], None);
     units(shaped.width, window)
 }
 
