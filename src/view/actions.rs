@@ -241,7 +241,7 @@ fn chip(
         })
         .relative()
         .when(missed, unmatched)
-        .children(chips.finder.hit(t, !missed))
+        .children(chips.finder.hit(!missed))
         .child(icon(name, color, glyph::M))
         .child(label)
         .map(|d| match mark {
@@ -323,7 +323,7 @@ impl Shelf {
             .when(lifted, |d| d.opacity(opacity::DISABLED))
             .when(missed && !lifted, unmatched)
             .relative()
-            .children(row.finder.hit(t, !missed))
+            .children(row.finder.hit(!missed))
             .hover(move |s| s.bg(t.hover))
             .on_hover(cx.safe_listener(move |shelf, hovered: &bool, _, _| shelf.hover(Hovered::Tile(id), *hovered)))
             .on_click(cx.safe_listener(move |shelf, _, window, cx| shelf.open_editor(id, None, window, cx)))
@@ -506,9 +506,7 @@ impl Shelf {
 
     pub(super) fn actions_page(&self, t: Theme, width: f32, cx: &mut Context<Self>) -> AnyElement {
         let query = self.page_query(cx);
-        let content = searched(query.as_ref(), self.regions(), self.current_hit(), |finder| {
-            self.actions_content(t, width, finder, cx)
-        });
+        let content = searched(query.as_ref(), self.regions(), |finder| self.actions_content(t, width, finder, cx));
         self.scroll_area(t, Page::Actions, "actions-page", content)
     }
 

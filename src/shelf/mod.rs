@@ -26,7 +26,7 @@ mod updates;
 
 use crate::actions::{TileId, Tiles, Tool};
 use crate::i18n::{fill, tr};
-use crate::input::{Changed, TextInput};
+use crate::input::{Changed, Submitted, TextInput};
 use crate::keys::Command;
 use crate::store::{ItemId, Store};
 use crate::system::{Desktop, Event, Services};
@@ -178,6 +178,10 @@ impl Shelf {
                 cx.notify();
             }),
             cx.subscribe(&find, |shelf, _, _: &Changed, cx| shelf.page_searched(cx)),
+            cx.subscribe(&find, |shelf, _, submitted: &Submitted, cx| {
+                let forward = !submitted.shift;
+                shelf.guarded(cx, |shelf, cx| shelf.step_hit(forward, cx))
+            }),
             cx.observe(&notices, |_, _, cx| cx.notify()),
             cx.observe(&jobs, |_, _, cx| cx.notify()),
             cx.observe(&updates, |_, _, cx| cx.notify()),
