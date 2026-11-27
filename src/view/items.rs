@@ -235,7 +235,6 @@ impl Shelf {
             .flex_1()
             .min_h_0()
             .overflow_hidden()
-            .rounded_t(rem(TILE_RADIUS - size::HAIRLINE))
             .bg(t.surface)
             .border_b_1()
             .border_color(t.border);
@@ -244,10 +243,7 @@ impl Shelf {
         }
         match item.kind {
             Kind::Image => frame.child(
-                img(item.path.clone())
-                    .size_full()
-                    .rounded_t(rem(TILE_RADIUS - size::HAIRLINE))
-                    .object_fit(ObjectFit::Cover),
+                img(item.path.clone()).size_full().object_fit(ObjectFit::Cover),
             ),
             Kind::Text | Kind::Note => frame
                 .child(

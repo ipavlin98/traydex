@@ -317,8 +317,6 @@ impl Shelf {
             .items_center()
             .gap(rem(space::L))
             .cursor_pointer()
-            .when(row.previous.is_none(), |d| d.rounded_t(rem(ROW_RADIUS)))
-            .when(row.next.is_none(), |d| d.rounded_b(rem(ROW_RADIUS)))
             .when(row.next.is_some(), |d| d.border_b_1().border_color(t.border))
             .when(lifted, |d| d.opacity(opacity::DISABLED))
             .when(missed && !lifted, unmatched)
