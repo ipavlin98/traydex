@@ -199,7 +199,7 @@ ones included. A card goes away when its file is deleted or moved; a card you re
 | Select all, select a range | `Ctrl+A`, `Shift`+click |
 | Pin to the top | `P` |
 | List / grid | `Ctrl+G` |
-| Cancel a drag and hide the shelf | Right-click while dragging |
+| Hide the shelf and keep dragging | Right-click while dragging |
 | Hide | `Esc` |
 
 Explorer's context menu also gets a *Send to Traydex shelf* item (on Windows 11, under *Show more options*).

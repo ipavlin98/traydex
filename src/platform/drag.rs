@@ -23,7 +23,6 @@ const POLL_MS: u32 = 15;
 const RELEASE_TICKS: u32 = 4;
 const OLE_CAPTURE_CLASS: &str = "CLIPBRDWNDCLASS";
 const SHAKE_WINDOW: Duration = Duration::from_millis(800);
-const ESCAPE_LPARAM: isize = 1 | (1 << 16);
 
 impl ShakeLevel {
     fn span(self) -> i32 {
@@ -141,14 +140,6 @@ fn external_drag(thread: u32) -> Option<u32> {
     ole_drag_in(thread).or_else(|| ole_drag_in(0))
 }
 
-fn abort_drag(thread: u32) -> bool {
-    let own = unsafe { GetWindowThreadProcessId(window::panel(), None) };
-    let Some(capture) = [thread, 0, own].into_iter().find_map(ole_capture) else {
-        return false;
-    };
-    unsafe { PostMessageW(Some(capture), WM_KEYDOWN, WPARAM(VK_ESCAPE.0 as usize), LPARAM(ESCAPE_LPARAM)) }.is_ok()
-}
-
 pub(super) fn process_name(process: u32) -> String {
     let name = unsafe {
         OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, process).ok().and_then(|handle| {
@@ -252,14 +243,14 @@ fn cancels(press: Option<Press>, exporting: bool) -> bool {
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum RightPress {
     Pass,
-    Cancel,
+    Hide,
     Swallow,
 }
 
 fn right_press(dragging: bool, shown: bool, left_held: bool) -> RightPress {
     match (dragging, shown && left_held) {
         (false, _) => RightPress::Pass,
-        (true, false) => RightPress::Cancel,
+        (true, false) => RightPress::Hide,
         (true, true) => RightPress::Swallow,
     }
 }
@@ -272,18 +263,16 @@ fn right_down(data: &MSLLHOOKSTRUCT) -> bool {
             press_at(data);
             false
         }
-        RightPress::Cancel => {
+        RightPress::Hide => {
             log::debug!("Right button pressed during a drag");
-            send(Event::CancelDrag);
+            send(Event::HideDuringDrag);
             false
         }
         RightPress::Swallow => {
-            let thread = PRESS.get().map(|press| press.thread).unwrap_or_default();
-            let aborted = abort_drag(thread);
-            log::debug!("Right button pressed during a drag, the drag is aborted: {aborted}");
-            send(Event::CancelDrag);
-            SWALLOW_UP.set(aborted);
-            aborted
+            log::debug!("Right button pressed during a drag, the drag goes on with the window hidden");
+            send(Event::HideDuringDrag);
+            SWALLOW_UP.set(true);
+            true
         }
     }
 }

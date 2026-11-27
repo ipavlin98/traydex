@@ -42,7 +42,7 @@ fn specs() -> Vec<Spec> {
         ),
         spec(
             "right-click-hides",
-            "A right click during a drag cancels it, hides even a pinned panel and doesn't reach Windows",
+            "A right click during a drag hides even a pinned panel, keeps the drag going and doesn't reach Windows",
             true,
         ),
     ]
@@ -361,11 +361,11 @@ fn run(s: &mut Session) {
         })?;
         input::right_click()?;
         app.wait_shown(false, "the panel hid on the right click", Duration::from_secs(4))?;
-        let effect = wait("the drag was cancelled with the left button held", Duration::from_secs(4), helper::effect)?;
-        expect_eq("the drag was cancelled without a drop", 0, effect)?;
+        pause(300)?;
+        expect_eq("the drag goes on after the right click", None, helper::effect())?;
         input::move_to(offset(from, 24));
         input::release(offset(from, 24))?;
-        pause(300)?;
+        wait("the drag ended on release", Duration::from_secs(4), helper::effect)?;
         expect_eq("the right click didn't reach the window under the cursor", 0, helper::right_button_messages())?;
         expect_eq("nothing was added to the shelf", Vec::<PathBuf>::new(), app.saved_paths())?;
         Ok(())

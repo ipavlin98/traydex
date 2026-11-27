@@ -165,7 +165,7 @@ check failed; automatic checks only write failures to the log. The version itsel
 | Flip through previews | `←`/`→` or `↑`/`↓`, the buttons in the preview header |
 | Close the preview | `Space`, `Esc` or the cross; `Esc` also works from a system preview if its handler passes keys to the window. `Enter`, `Ctrl+C` and `Delete` in the preview act on the card shown |
 | Drag a card out | Hold the left button and move the mouse |
-| Cancel a drag and hide the panel | Right-click during a drag (left button still held, panel open): the drag is cancelled, files stay where they are, the panel hides even when pinned. The click itself never reaches Windows, so no context menu appears. Ordinary right clicks without a drag aren't affected |
+| Hide the panel during a drag | Right-click during a drag (left button still held, panel open): the panel hides even when pinned and the drag goes on, so you can drop onto whatever the panel covered. The next drag shows the panel again. The click itself never reaches Windows, so no context menu appears. Ordinary right clicks without a drag aren't affected |
 | Create a note | The plus button, `Ctrl+N`, or the *Ctrl N new note* button on an empty shelf and an empty *Notes* tab |
 | Rename a note or a link | Click the title in the preview or press `F2` and edit; `Enter`, `Esc` or `Tab` go back to the text. An empty title brings back the automatic one |
 | Show the shelf as a list or a grid | The grid (or list) button next to the storage button, `Ctrl+G` |
