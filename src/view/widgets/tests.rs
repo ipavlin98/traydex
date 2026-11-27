@@ -1,7 +1,7 @@
 use super::{HINT_PADDING, HINT_WIDTH, Hint, Tip, hint, optical_lift, searched};
 use crate::search::Query;
 use crate::shelf::Regions;
-use crate::theme::{Theme, ThemeMode};
+use crate::theme::Theme;
 use gpui::{
     Context, IntoElement, Modifiers, Render, TestAppContext, VisualTestContext, Window, WindowAppearance, div, point,
     prelude::*, px,
@@ -22,7 +22,7 @@ impl Render for Anchor {
 }
 
 fn shown(cx: &mut TestAppContext) -> &mut VisualTestContext {
-    let theme = Theme::resolve(ThemeMode::Dark, WindowAppearance::Dark);
+    let theme = Theme::system(WindowAppearance::Dark);
     let (_, cx) = cx.add_window_view(move |_, _| Anchor { theme });
     cx.run_until_parked();
     cx.simulate_mouse_move(point(px(20.), px(30.)), None, Modifiers::default());
@@ -55,7 +55,7 @@ fn shown_tooltip_grows_to_fit_wrapped_lines(cx: &mut TestAppContext) {
 
 #[gpui::test]
 fn long_hint_lines_wrap_inside_its_box(cx: &mut TestAppContext) {
-    let theme = Theme::resolve(ThemeMode::Dark, WindowAppearance::Dark);
+    let theme = Theme::system(WindowAppearance::Dark);
     let text = LONG;
     let (_, cx) = cx.add_window_view(move |_, _| Hint {
         tip: Tip::keys(text, &["Ctrl", "C"]).line(Tip::keys(text, &["Ctrl", "Enter"])),
