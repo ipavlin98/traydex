@@ -1,4 +1,4 @@
-use super::palette::{Hex, accented, dark, neutrals, parse_color, readable, text_for};
+use super::palette::{Hex, accented, dark, legible_accent, legible_danger, neutrals, parse_color, readable, text_for};
 use super::{Theme, ThemeChoice};
 use gpui::{Rgba, WindowAppearance};
 use serde::{Deserialize, Deserializer, Serialize};
@@ -211,6 +211,12 @@ fn parse(id: &str, text: &str, origin: Origin) -> Result<Entry, String> {
         let color = palette.get(value.as_str()).copied().or_else(|| parse_color(value));
         let color = color.ok_or_else(|| format!("colors.{token}: `{value}` is neither a color nor a palette name"))?;
         *theme.token_mut(token).ok_or_else(|| format!("unknown color `{token}`"))? = color;
+    }
+    if !file.colors.contains_key("accent_text") {
+        theme.accent_text = legible_accent(&theme);
+    }
+    if !file.colors.contains_key("danger") {
+        theme.danger = legible_danger(&theme);
     }
     Ok(Entry { id: id.to_owned(), name: file.name.unwrap_or_else(|| id.to_owned()), origin, theme })
 }

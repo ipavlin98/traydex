@@ -185,7 +185,7 @@ pub fn dark(background: Rgba) -> bool {
 pub(super) fn neutrals(background: Rgba, text: Rgba) -> Theme {
     let base = if dark(background) { Theme::dark() } else { Theme::light() };
     let shade = |share: Share| mix(background, text, share.at(background));
-    Theme {
+    let theme = Theme {
         bg: background,
         surface: shade(SURFACE),
         hover: shade(HOVER),
@@ -196,24 +196,49 @@ pub(super) fn neutrals(background: Rgba, text: Rgba) -> Theme {
         muted: shade(MUTED),
         faint: shade(FAINT),
         ..base
-    }
+    };
+    Theme { danger: legible_danger(&theme), ..theme }
 }
 
 pub(super) fn accented(theme: Theme, accent: Rgba) -> Theme {
     let accent = Rgba { a: 1., ..accent };
-    let legible = (0..=LEGIBLE_STEPS)
-        .map(|step| mix(accent, theme.text, f32::from(step) / f32::from(LEGIBLE_STEPS)))
-        .find(|color| contrast(*color, theme.bg) >= LEGIBLE)
-        .unwrap_or(theme.text);
-    Theme {
+    let theme = Theme {
         accent,
-        accent_text: legible,
         accent_tint: Rgba { a: TINT.at(theme.bg), ..accent },
         selection: Rgba { a: SELECTION.at(theme.bg), ..accent },
         on_accent: text_for(accent),
         brand: accent,
         ..theme
-    }
+    };
+    Theme { accent_text: legible_accent(&theme), ..theme }
+}
+
+pub(super) fn legible_accent(theme: &Theme) -> Rgba {
+    let grounds = [
+        theme.bg,
+        theme.surface,
+        over(theme.accent_tint, theme.bg),
+        over(theme.accent_tint, theme.surface),
+        over(theme.selection, theme.bg),
+    ];
+    legible(theme.accent, theme.text, &grounds)
+}
+
+pub(super) fn legible_danger(theme: &Theme) -> Rgba {
+    let grounds = [theme.bg, theme.surface, theme.hover, over(theme.danger_tint, theme.surface)];
+    legible(theme.danger, theme.text, &grounds)
+}
+
+fn legible(color: Rgba, toward: Rgba, grounds: &[Rgba]) -> Rgba {
+    (0..=LEGIBLE_STEPS)
+        .map(|step| mix(color, toward, f32::from(step) / f32::from(LEGIBLE_STEPS)))
+        .find(|color| grounds.iter().all(|ground| contrast(*color, *ground) >= LEGIBLE))
+        .unwrap_or(toward)
+}
+
+fn over(top: Rgba, base: Rgba) -> Rgba {
+    let blend = |high: f32, low: f32| high * top.a + low * (1. - top.a);
+    Rgba { r: blend(top.r, base.r), g: blend(top.g, base.g), b: blend(top.b, base.b), a: 1. }
 }
 
 fn luminance(color: Rgba) -> f32 {

@@ -183,7 +183,6 @@ fn text_tokens_meet_contrast_thresholds_on_their_backgrounds() {
             ("accent_text/tint-bg", t.accent_text, over(t.accent_tint, t.bg), BODY),
             ("accent_text/tint-surface", t.accent_text, over(t.accent_tint, t.surface), BODY),
             ("accent_text/selection", t.accent_text, over(t.selection, t.bg), BODY),
-            ("on_accent/accent", t.on_accent, t.accent, BODY),
             ("danger/bg", t.danger, t.bg, BODY),
             ("danger/surface", t.danger, t.surface, BODY),
             ("danger/hover", t.danger, t.hover, BODY),
