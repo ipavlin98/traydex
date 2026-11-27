@@ -75,7 +75,7 @@ impl Shelf {
             }
             return;
         }
-        if self.hex_focused(window, cx) && matches!(key, "enter" | "escape") {
+        if self.hex_focused(window, cx) && key == "escape" {
             self.close_picker(cx);
             window.focus(&self.focus, cx);
             cx.stop_propagation();
