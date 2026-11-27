@@ -20,6 +20,7 @@ mod selection;
 mod session;
 mod settings;
 mod tasks;
+mod themes;
 mod tiles;
 mod unpack;
 mod updates;
@@ -56,6 +57,8 @@ pub use session::Launch;
 pub(crate) use session::{Regions, Session};
 pub use settings::Dropdown;
 pub(crate) use settings::{Menu, Recorder};
+pub use themes::{Paint, Picking};
+use themes::Themes;
 pub use tasks::SafeListener;
 pub use tiles::{Edge, Lane};
 use updates::{Check, Due, Updates};
@@ -103,6 +106,7 @@ pub struct Shelf {
     fade: Entity<Fade>,
     confirming: Option<Confirm>,
     menu: Menu,
+    themes: Themes,
     recorder: Recorder,
     appearance: WindowAppearance,
     animation_effects: bool,
@@ -208,6 +212,7 @@ impl Shelf {
             fade,
             confirming: None,
             menu: Menu::default(),
+            themes: Themes::default(),
             recorder: Recorder::default(),
             appearance: window.appearance(),
             animation_effects,
@@ -248,13 +253,15 @@ impl Shelf {
             self.fail(fill(tr().actions_failed, &error), cx);
         }
         self.detect_tools(cx);
+        self.load_themes(cx);
         self.schedule_scans(cx);
         self.fit(cx);
         self.refresh(cx);
     }
 
     pub fn theme(&self) -> Theme {
-        Theme::resolve(self.store.settings().theme, self.appearance)
+        let settings = self.store.settings();
+        self.themes.catalog().resolve(&settings.theme, self.appearance, &settings.theme_colors)
     }
 
     fn apply_theme(&self, cx: &mut Context<Self>) {

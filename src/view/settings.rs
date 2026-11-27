@@ -8,7 +8,7 @@ use crate::i18n::{self, Language, tr};
 use crate::keys::Command;
 use crate::shelf::{Dropdown, Page, SafeListener, Shelf};
 use crate::store::{Corner, SCALES, ShakeLevel, TileInput};
-use crate::theme::{Theme, ThemeMode};
+use crate::theme::{Catalog, Origin, Theme, ThemeChoice};
 use gpui::{prelude::*, *};
 use std::path::Path;
 
@@ -20,9 +20,28 @@ const SHORTCUT_HEIGHT: f32 = 26.;
 struct Picker<T: 'static> {
     menu: Dropdown,
     current: T,
-    options: &'static [T],
-    label: fn(T) -> Div,
+    options: Vec<T>,
+    label: fn(&T) -> Div,
     pick: fn(&mut Shelf, T, &mut Context<Shelf>),
+}
+
+#[derive(Clone, PartialEq)]
+struct ThemePick {
+    choice: ThemeChoice,
+    name: SharedString,
+}
+
+fn theme_picks(catalog: &Catalog) -> Vec<ThemePick> {
+    let system = ThemePick { choice: ThemeChoice::System, name: tr().theme_system.into() };
+    let entries = catalog.entries().iter().map(|entry| ThemePick {
+        choice: ThemeChoice::Named(entry.id().to_owned()),
+        name: match entry.origin() {
+            Origin::Light => tr().theme_light.into(),
+            Origin::Dark => tr().theme_dark.into(),
+            Origin::Example | Origin::File => entry.name().to_owned().into(),
+        },
+    });
+    std::iter::once(system).chain(entries).collect()
 }
 
 fn dropdown_name(menu: Dropdown) -> &'static str {
@@ -30,6 +49,7 @@ fn dropdown_name(menu: Dropdown) -> &'static str {
         Dropdown::Scale => "scale",
         Dropdown::Language => "language",
         Dropdown::TileInput => "tile-input",
+        Dropdown::Theme => "theme",
     }
 }
 
@@ -64,13 +84,38 @@ impl Shelf {
         ))
     }
 
-    fn theme_switcher(&self, t: Theme, cx: &mut Context<Self>) -> Div {
-        let options = vec![
-            (ThemeMode::System, Some("monitor"), tr().theme_system, false),
-            (ThemeMode::Light, Some("sun"), tr().theme_light, false),
-            (ThemeMode::Dark, Some("moon"), tr().theme_dark, false),
-        ];
-        self.segmented(t, "theme", self.store().settings().theme, options, Self::set_theme, cx)
+    fn theme_picker(&self, t: Theme, cx: &mut Context<Self>) -> Div {
+        let options = theme_picks(self.themes().catalog());
+        let chosen = &self.store().settings().theme;
+        let current = options.iter().find(|pick| &pick.choice == chosen).or(options.first()).cloned();
+        let Some(current) = current else { return div() };
+        let picker = Picker {
+            menu: Dropdown::Theme,
+            current,
+            options,
+            label: |pick| div().whitespace_nowrap().child(pick.name.clone()),
+            pick: |shelf, pick, cx| shelf.set_theme(pick.choice, cx),
+        };
+        self.dropdown(t, picker, cx)
+    }
+
+    fn themes_folder(&self, t: Theme, query: Finder, cx: &mut Context<Self>) -> Div {
+        let failures = self.themes().catalog().failures();
+        setting(t, query, tr().themes_folder, Some(tr().themes_folder_hint))
+            .when(!failures.is_empty(), |d| {
+                d.child(
+                    div()
+                        .flex_shrink_0()
+                        .child(icon("alert", t.danger, glyph::M))
+                        .id("theme-failures")
+                        .tooltip(hint(t, failures.join("\n"))),
+                )
+            })
+            .child(
+                text_button(t, "themes-folder", tr().open_button, Look::Plain)
+                    .marked("themes-folder")
+                    .on_click(cx.safe_listener(|shelf, _, _, _| shelf.open_themes())),
+            )
     }
 
     fn transparency_picker(&self, t: Theme, cx: &mut Context<Self>) -> Div {
@@ -142,7 +187,7 @@ impl Shelf {
         )
     }
 
-    fn dropdown<T: Copy + PartialEq + 'static>(&self, t: Theme, picker: Picker<T>, cx: &mut Context<Self>) -> Div {
+    fn dropdown<T: Clone + PartialEq + 'static>(&self, t: Theme, picker: Picker<T>, cx: &mut Context<Self>) -> Div {
         let name = dropdown_name(picker.menu);
         let open = self.menu().open() == Some(picker.menu);
         let menu = picker.menu;
@@ -166,14 +211,14 @@ impl Shelf {
                     .text_size(rem(text::SMALL))
                     .cursor_pointer()
                     .hover(move |s| s.bg(t.hover))
-                    .child((picker.label)(picker.current))
+                    .child((picker.label)(&picker.current))
                     .child(icon("chevron", t.muted, glyph::XS))
                     .on_click(cx.safe_listener(move |shelf, _, _, cx| shelf.toggle_menu(menu, cx))),
             )
             .when(open, |d| d.child(self.dropdown_menu(t, name, &picker, cx)))
     }
 
-    fn dropdown_menu<T: Copy + PartialEq + 'static>(
+    fn dropdown_menu<T: Clone + PartialEq + 'static>(
         &self,
         t: Theme,
         name: &'static str,
@@ -181,8 +226,8 @@ impl Shelf {
         cx: &mut Context<Self>,
     ) -> Div {
         let pick = picker.pick;
-        let options = picker.options.iter().copied().enumerate().map(|(index, value)| {
-            let active = value == picker.current;
+        let options = picker.options.iter().enumerate().map(|(index, value)| {
+            let active = *value == picker.current;
             div()
                 .id(SharedString::from(format!("{name}-option-{index}")))
                 .h(rem(size::CONTROL))
@@ -199,7 +244,10 @@ impl Shelf {
                 .hover(move |s| s.bg(t.hover).text_color(t.text))
                 .child((picker.label)(value))
                 .when(active, |d| d.child(icon("check", t.accent_text, glyph::XS)))
-                .on_click(cx.safe_listener(move |shelf, _, _, cx| pick(shelf, value, cx)))
+                .on_click({
+                    let value = value.clone();
+                    cx.safe_listener(move |shelf, _, _, cx| pick(shelf, value.clone(), cx))
+                })
         });
         let menu = div()
             .id(SharedString::from(format!("{name}-menu")))
@@ -227,7 +275,7 @@ impl Shelf {
         let picker = Picker {
             menu: Dropdown::Scale,
             current: self.store().settings().scale,
-            options: &SCALES,
+            options: SCALES.to_vec(),
             label: |scale| div().child(format!("{scale}%")),
             pick: Self::set_scale,
         };
@@ -238,7 +286,7 @@ impl Shelf {
         let picker = Picker {
             menu: Dropdown::Language,
             current: i18n::current(),
-            options: &Language::ALL,
+            options: Language::ALL.to_vec(),
             label: |language| div().font_family(language.font()).child(language.native_name()),
             pick: Self::set_language,
         };
@@ -249,8 +297,8 @@ impl Shelf {
         let picker = Picker {
             menu: Dropdown::TileInput,
             current: self.store().settings().tile_input,
-            options: &TileInput::ALL,
-            label: |input| div().whitespace_nowrap().child(tile_input_label(input)),
+            options: TileInput::ALL.to_vec(),
+            label: |input| div().whitespace_nowrap().child(tile_input_label(*input)),
             pick: Self::set_tile_input,
         };
         self.dropdown(t, picker, cx)
@@ -332,7 +380,9 @@ impl Shelf {
     fn appearance_section(&self, t: Theme, query: Finder, cx: &mut Context<Self>) -> Div {
         let settings = self.store().settings();
         section(t, tr().section_appearance)
-            .child(setting(t, query, tr().theme, None).child(self.theme_switcher(t, cx)))
+            .child(setting(t, query, tr().theme, None).child(self.theme_picker(t, cx)))
+            .children(self.color_rows(t, query, cx))
+            .child(self.themes_folder(t, query, cx))
             .child(setting(t, query, tr().transparency, None).child(self.transparency_picker(t, cx)))
             .child(setting(t, query, tr().scale, None).child(self.scale_picker(t, cx)))
             .child(

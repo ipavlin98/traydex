@@ -1,6 +1,6 @@
 use crate::design::{self, line, radius, rem, size, space};
 use crate::textarea::{Edit, EditBuffer, History, head, step, word_around};
-use crate::theme::{Theme, ThemeMode, fade};
+use crate::theme::{Theme, fade};
 use gpui::{prelude::*, *};
 use std::ops::Range;
 
@@ -450,7 +450,7 @@ impl EntityInputHandler for TextInput {
 impl Render for TextInput {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let t =
-            cx.try_global::<Theme>().copied().unwrap_or_else(|| Theme::resolve(ThemeMode::System, window.appearance()));
+            cx.try_global::<Theme>().copied().unwrap_or_else(|| Theme::system(window.appearance()));
         let focused = self.focus.is_focused(window);
         let entity = cx.entity();
         let painter = entity.clone();

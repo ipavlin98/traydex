@@ -65,6 +65,7 @@ impl Shelf {
         self.session.release();
         self.confirming = None;
         self.menu.close();
+        self.themes.close();
         self.stop_recording(cx);
         self.update_hits(cx);
         self.refresh(cx);

@@ -103,7 +103,7 @@ fn settings_toggles_persist_and_reach_the_system(cx: &mut TestAppContext) {
         shelf.set_corner(Some(Corner::BottomRight), cx);
         shelf.toggle_autostart(cx);
         shelf.toggle_context_menu(cx);
-        shelf.set_theme(ThemeMode::Dark, cx);
+        shelf.set_theme(ThemeChoice::Named("Dark".into()), cx);
         shelf.set_transparency(40, cx);
         shelf.toggle_blur(cx);
         shelf.toggle_window_animations(cx);
@@ -130,7 +130,7 @@ fn settings_toggles_persist_and_reach_the_system(cx: &mut TestAppContext) {
     );
     assert_eq!(saved.settings().corner, Some(Corner::BottomRight));
     assert!(
-        saved.settings().theme == ThemeMode::Dark
+        saved.settings().theme == ThemeChoice::Named("Dark".into())
             && saved.settings().transparency == 40
             && saved.settings().blur
             && saved.settings().window_animations
@@ -287,4 +287,31 @@ fn language_change_updates_shell_menu_label(cx: &mut TestAppContext) {
     assert!(h.read(|shelf| shelf.menu.open() != Some(Dropdown::Language)));
     h.act(|shelf, _, cx| shelf.toggle_menu(Dropdown::Language, cx));
     assert!(h.read(|shelf| shelf.menu.open() == Some(Dropdown::Language)));
+}
+
+#[gpui::test]
+fn chosen_colors_stay_with_their_theme_and_a_new_background_resets_the_text(cx: &mut TestAppContext) {
+    let mut h = open(cx, true);
+    let hex = |text: &str| crate::theme::Hex::parse(text).expect("a color");
+    h.act(|shelf, _, cx| {
+        shelf.set_theme(ThemeChoice::Named("dracula".into()), cx);
+        shelf.set_accent(Some(hex("#22c55e")), cx);
+        shelf.toggle_picker(Paint::Text, cx);
+        shelf.pick_shade(crate::theme::Hsv { hue: 0., saturation: 0., value: 0.5 }, cx);
+    });
+    let colors = h.saved().settings().theme_colors("dracula");
+    assert_eq!((colors.accent, colors.text), (Some(hex("#22c55e")), Some(hex("#808080"))));
+    assert_eq!(h.read(|shelf| shelf.theme().text), hex("#808080").color());
+    h.act(|shelf, _, cx| shelf.set_background(Some(hex("#ffffff")), cx));
+    let colors = h.saved().settings().theme_colors("dracula");
+    assert_eq!((colors.background, colors.text), (Some(hex("#ffffff")), None), "the text follows the new background");
+    assert!(h.read(|shelf| shelf.themes().picking()).is_none(), "picking a preset closes the picker");
+    h.act(|shelf, _, cx| shelf.set_theme(ThemeChoice::Named("Light".into()), cx));
+    assert_eq!(h.read(|shelf| shelf.theme().accent), crate::theme::Theme::system(WindowAppearance::Light).accent);
+    h.act(|shelf, _, cx| {
+        shelf.set_theme(ThemeChoice::Named("dracula".into()), cx);
+        shelf.set_accent(None, cx);
+        shelf.set_background(None, cx);
+    });
+    assert!(h.saved().settings().theme_colors.is_empty(), "back to the theme's own colors leaves nothing saved");
 }

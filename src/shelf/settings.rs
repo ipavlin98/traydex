@@ -2,7 +2,6 @@ use super::{Page, Screen, Shelf};
 use crate::i18n::{self, Language, fill, tr};
 use crate::keys::{Command, Scope, Shortcut};
 use crate::store::{self, Corner, Settings, ShakeLevel, TileInput};
-use crate::theme::ThemeMode;
 use gpui::*;
 use std::time::Duration;
 
@@ -13,6 +12,7 @@ pub enum Dropdown {
     Scale,
     Language,
     TileInput,
+    Theme,
 }
 
 #[derive(Default)]
@@ -87,7 +87,7 @@ impl Shelf {
         if differs(old, &new, |s| s.check_updates) {
             self.updates.update(cx, |updates, cx| updates.schedule(new.check_updates, cx));
         }
-        if differs(old, &new, |s| s.theme) {
+        if differs(old, &new, |s| (s.theme.clone(), s.theme_colors.clone())) {
             self.apply_theme(cx);
         }
         if differs(old, &new, |s| s.scale) {
@@ -125,6 +125,7 @@ impl Shelf {
         log::info!("Resetting all settings");
         self.confirming = None;
         self.menu.close();
+        self.themes.close();
         self.stop_recording(cx);
         if self.page() == Page::Edit {
             self.navigate(Screen::Actions, cx);
@@ -148,10 +149,6 @@ impl Shelf {
             cx,
         );
         self.refresh(cx);
-    }
-
-    pub fn set_theme(&mut self, mode: ThemeMode, cx: &mut Context<Self>) {
-        self.update_settings(|settings| settings.theme = mode, cx);
     }
 
     pub fn set_transparency(&mut self, transparency: u8, cx: &mut Context<Self>) {
@@ -329,6 +326,7 @@ impl Shelf {
 
     pub fn pointer_pressed(&mut self, cx: &mut Context<Self>) {
         self.menu.dismissed = None;
+        self.forget_dismissed_picker();
         self.reclaim_focus(cx);
     }
 
@@ -403,6 +401,10 @@ impl Shelf {
             Page::Settings => Screen::Settings,
             _ => Screen::Shelf,
         };
+        if matches!(screen, Screen::Settings) {
+            self.load_themes(cx);
+        }
+        self.themes.close();
         self.show(screen, cx);
     }
 }

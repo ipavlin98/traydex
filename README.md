@@ -152,7 +152,8 @@ Wi-Fi.<br><br>
 
 <img src="docs/media/customize.webp" alt="Switching layout, theme and language" width="100%">
 
-List or grid view, light or dark theme, transparency and blur, interface scale from 90% to 150%, smooth scrolling.
+List or grid view, color themes (light, dark, Catppuccin, Dracula, Soft Sand or your own JSON files) with your
+own accent, background and text colors, transparency and blur, interface scale from 90% to 150%, smooth scrolling.
 Animations follow the Windows *Animation effects* setting. Available in English, Russian, Chinese, Hindi, Spanish and
 French.<br><br>
 

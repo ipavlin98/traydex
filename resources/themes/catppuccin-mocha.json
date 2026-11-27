@@ -1,0 +1,31 @@
+{
+  "name": "Catppuccin Mocha",
+  "base": "dark",
+  "palette": {
+    "base": "#1e1e2e",
+    "mantle": "#181825",
+    "crust": "#11111b",
+    "surface0": "#313244",
+    "surface1": "#45475a",
+    "overlay1": "#7f849c",
+    "subtext0": "#a6adc8",
+    "mauve": "#cba6f7",
+    "red": "#f38ba8",
+    "green": "#a6e3a1",
+    "background": "base",
+    "text": "#cdd6f4",
+    "accent": "mauve"
+  },
+  "colors": {
+    "surface": "mantle",
+    "hover": "#28283a",
+    "active": "surface0",
+    "border": "surface0",
+    "border_strong": "surface1",
+    "muted": "subtext0",
+    "faint": "overlay1",
+    "danger": "red",
+    "success": "green",
+    "on_accent": "crust"
+  }
+}
