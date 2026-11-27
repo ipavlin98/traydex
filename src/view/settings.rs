@@ -16,6 +16,7 @@ const PICKER_WIDTH: f32 = 152.;
 const MENU_WIDTH: f32 = 180.;
 const MENU_OFFSET: f32 = size::CONTROL + space::XS;
 const SHORTCUT_HEIGHT: f32 = 26.;
+const OPTION: &str = "dropdown-option";
 
 struct Picker<T: 'static> {
     menu: Dropdown,
@@ -54,11 +55,13 @@ impl Shelf {
         segments(t).marked(format!("segmented:{id}")).flex_shrink_0().children(options.into_iter().enumerate().map(
             |(index, (value, name, label, compact))| {
                 let active = current == value;
-                segment_base(t, (id, index), active)
+                let face = div()
                     .px(rem(if compact { space::S } else { space::M }))
                     .gap(rem(space::S))
                     .when_some(name, |d, name| d.child(icon(name, if active { t.text } else { t.muted }, glyph::S)))
-                    .map(|d| if compact { d.tooltip(hint(t, label)) } else { d.child(label) })
+                    .when(!compact, |d| d.child(label));
+                segment_base(t, (id, index), active, face)
+                    .when(compact, |d| d.tooltip(hint(t, label)))
                     .on_click(cx.safe_listener(move |shelf, _, _, cx| pick(shelf, value, cx)))
             },
         ))
@@ -183,8 +186,7 @@ impl Shelf {
         let pick = picker.pick;
         let options = picker.options.iter().copied().enumerate().map(|(index, value)| {
             let active = value == picker.current;
-            div()
-                .id(SharedString::from(format!("{name}-option-{index}")))
+            let face = div()
                 .h(rem(size::CONTROL))
                 .px(rem(space::M))
                 .flex()
@@ -192,13 +194,18 @@ impl Shelf {
                 .justify_between()
                 .gap(rem(space::M))
                 .rounded(rem(radius::SMALL))
-                .cursor_pointer()
                 .text_size(rem(text::SMALL))
                 .text_color(if active { t.text } else { t.muted })
                 .when(active, |d| d.bg(t.active))
-                .hover(move |s| s.bg(t.hover).text_color(t.text))
+                .when(!active, |d| d.group_hover(OPTION, move |s| s.bg(t.hover).text_color(t.text)))
                 .child((picker.label)(value))
-                .when(active, |d| d.child(icon("check", t.accent_text, glyph::XS)))
+                .when(active, |d| d.child(icon("check", t.accent_text, glyph::XS)));
+            div()
+                .id(SharedString::from(format!("{name}-option-{index}")))
+                .group(OPTION)
+                .when(index > 0, |d| d.pt(rem(space::X2S)))
+                .cursor_pointer()
+                .child(face)
                 .on_click(cx.safe_listener(move |shelf, _, _, cx| pick(shelf, value, cx)))
         });
         let menu = div()
@@ -208,7 +215,6 @@ impl Shelf {
             .p(rem(space::XS))
             .flex()
             .flex_col()
-            .gap(rem(space::X2S))
             .rounded(rem(radius::CONTROL))
             .border_1()
             .border_color(t.border_strong)
