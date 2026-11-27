@@ -1,13 +1,13 @@
 use super::motion::{Enter, Motion};
 use super::widgets::{
-    Finder, Look, Marked, bare_button, dimmed, hint, icon, icon_button, kbd, page, searched, section, segment_base,
-    measure, measure_in, segments, setting, spinner, switch, text_button, ui_font, unmatched,
+    Finder, Look, Marked, bare_button, dimmed, hint, icon, icon_button, kbd, measure, measure_in, page, searched,
+    section, segment_base, segments, setting, spinner, switch, text_button, ui_font, unmatched,
 };
 use crate::design::{glyph, line, radius, rem, size, space, text};
 use crate::i18n::{self, Language, tr};
 use crate::keys::Command;
 use crate::shelf::{Dropdown, Page, SafeListener, Shelf};
-use crate::store::{Brand, Corner, SCALES, ShakeLevel, TileInput};
+use crate::store::{Brand, Corner, Preference, SCALES, ShakeLevel, TileInput};
 use crate::theme::{Catalog, Origin, Theme, ThemeChoice};
 use gpui::{prelude::*, *};
 use std::path::Path;
@@ -34,7 +34,12 @@ struct Picker<T: 'static> {
 
 impl<T> Picker<T> {
     fn text(&self, value: &T) -> Div {
-        div().flex_1().min_w_0().truncate().when_some(self.font, |d, font| d.font(font(value))).child((self.label)(value))
+        div()
+            .flex_1()
+            .min_w_0()
+            .truncate()
+            .when_some(self.font, |d, font| d.font(font(value)))
+            .child((self.label)(value))
     }
 
     fn widest(&self, window: &Window) -> f32 {
@@ -292,9 +297,12 @@ impl Shelf {
                 .when(active, |d| d.bg(t.active))
                 .when(!active, |d| d.group_hover(OPTION, move |s| s.bg(t.hover).text_color(t.text)))
                 .child(picker.text(value))
-                .child(div().size(rem(glyph::XS)).flex_shrink_0().when(active, |d| {
-                    d.child(icon("check", t.accent_text, glyph::XS))
-                }));
+                .child(
+                    div()
+                        .size(rem(glyph::XS))
+                        .flex_shrink_0()
+                        .when(active, |d| d.child(icon("check", t.accent_text, glyph::XS))),
+                );
             div()
                 .id(SharedString::from(format!("{name}-option-{index}")))
                 .group(OPTION)
@@ -438,6 +446,32 @@ impl Shelf {
         switch(t, id, on).on_click(cx.safe_listener(move |shelf, _, _, cx| flip(shelf, cx)))
     }
 
+    fn option(
+        &self,
+        t: Theme,
+        row: Div,
+        preference: Preference,
+        control: impl IntoElement,
+        cx: &mut Context<Self>,
+    ) -> Div {
+        let changed = !self.store().settings().is_default(preference);
+        row.child(
+            div()
+                .flex()
+                .flex_shrink_0()
+                .items_center()
+                .gap(rem(space::XS))
+                .when(changed, |d| {
+                    d.child(
+                        icon_button(t, ("restore", preference as usize), "reset", tr().shortcut_reset, false)
+                            .marked(format!("restore:{preference:?}"))
+                            .on_click(cx.safe_listener(move |shelf, _, _, cx| shelf.restore_setting(preference, cx))),
+                    )
+                })
+                .child(control),
+        )
+    }
+
     fn reset_button(
         &self,
         t: Theme,
@@ -452,18 +486,43 @@ impl Shelf {
     fn appearance_section(&self, t: Theme, query: Finder, window: &Window, cx: &mut Context<Self>) -> Div {
         let settings = self.store().settings();
         section(t, tr().section_appearance)
-            .child(setting(t, query, tr().theme, None).child(self.theme_picker(t, window, cx)))
+            .child(self.option(
+                t,
+                setting(t, query, tr().theme, None),
+                Preference::Theme,
+                self.theme_picker(t, window, cx),
+                cx,
+            ))
             .children(self.color_rows(t, query, cx))
             .child(self.themes_folder(t, query, cx))
-            .child(setting(t, query, tr().transparency, None).child(self.transparency_picker(t, cx)))
-            .child(setting(t, query, tr().scale, None).child(self.scale_picker(t, window, cx)))
+            .child(self.option(
+                t,
+                setting(t, query, tr().transparency, None),
+                Preference::Transparency,
+                self.transparency_picker(t, cx),
+                cx,
+            ))
+            .child(self.option(
+                t,
+                setting(t, query, tr().scale, None),
+                Preference::Scale,
+                self.scale_picker(t, window, cx),
+                cx,
+            ))
             .child(
-                setting(t, query, tr().blur, Some(tr().blur_hint)).child(
+                self.option(
+                    t,
+                    setting(t, query, tr().blur, Some(tr().blur_hint)),
+                    Preference::Blur,
                     self.setting_switch(t, "blur", settings.blurred(), Self::toggle_blur, cx)
                         .when(settings.window_animations, |d| dimmed(d).tooltip(hint(t, tr().blur_locked))),
+                    cx,
                 ),
             )
-            .child(setting(t, query, tr().window_animations, Some(tr().window_animations_hint)).child(
+            .child(self.option(
+                t,
+                setting(t, query, tr().window_animations, Some(tr().window_animations_hint)),
+                Preference::WindowAnimations,
                 self.setting_switch(
                     t,
                     "window-animations",
@@ -471,6 +530,7 @@ impl Shelf {
                     Self::toggle_window_animations,
                     cx,
                 ),
+                cx,
             ))
             // .child(setting(t, query, tr().interface_animations, Some(tr().interface_animations_hint)).child(
             //     self.setting_switch(
@@ -481,51 +541,92 @@ impl Shelf {
             //         cx,
             //     ),
             // ))
-            .child(setting(t, query, tr().brand, None).child(self.brand_picker(t, window, cx)))
-            .child(setting(t, query, tr().language, None).child(self.language_picker(t, window, cx)))
+            .child(self.option(
+                t,
+                setting(t, query, tr().brand, None),
+                Preference::Brand,
+                self.brand_picker(t, window, cx),
+                cx,
+            ))
+            .child(self.option(
+                t,
+                setting(t, query, tr().language, None),
+                Preference::Language,
+                self.language_picker(t, window, cx),
+                cx,
+            ))
     }
 
     fn behavior_section(&self, t: Theme, query: Finder, window: &Window, cx: &mut Context<Self>) -> Div {
         let settings = self.store().settings();
         section(t, tr().section_behavior)
-            .child(setting(t, query, tr().auto_show, Some(tr().auto_show_hint)).child(self.setting_switch(
+            .child(self.option(
                 t,
-                "automatic",
-                settings.automatic,
-                Self::toggle_automatic,
+                setting(t, query, tr().auto_show, Some(tr().auto_show_hint)),
+                Preference::Automatic,
+                self.setting_switch(t, "automatic", settings.automatic, Self::toggle_automatic, cx),
                 cx,
-            )))
-            .child(setting(t, query, tr().shake_to_show, Some(tr().shake_hint)).child(self.shake_picker(t, cx)))
-            .child(setting(t, query, tr().hot_corner, Some(tr().hot_corner_hint)).child(self.corner_picker(t, cx)))
-            .child(
-                setting(t, query, tr().corner_drag, Some(tr().corner_drag_hint)).child(self.corner_drag_switch(t, cx)),
-            )
-            .child(
-                setting(t, query, tr().near_cursor, Some(tr().near_cursor_hint)).child(self.near_cursor_switch(t, cx)),
-            )
-            .child(setting(t, query, tr().tile_input, Some(tr().tile_input_hint)).child(self.tile_input_picker(t, window, cx)))
-            .child(setting(t, query, tr().autostart, Some(tr().autostart_hint)).child(self.setting_switch(
+            ))
+            .child(self.option(
                 t,
-                "autostart",
-                settings.autostart,
-                Self::toggle_autostart,
+                setting(t, query, tr().shake_to_show, Some(tr().shake_hint)),
+                Preference::Shake,
+                self.shake_picker(t, cx),
                 cx,
-            )))
-            .child(setting(t, query, tr().tray_icon, Some(tr().tray_icon_hint)).child(self.setting_switch(
+            ))
+            .child(self.option(
                 t,
-                "tray-icon",
-                settings.tray_icon,
-                Self::toggle_tray_icon,
+                setting(t, query, tr().hot_corner, Some(tr().hot_corner_hint)),
+                Preference::HotCorner,
+                self.corner_picker(t, cx),
                 cx,
-            )))
-            .child(setting(t, query, tr().context_menu, Some(tr().context_menu_hint)).child(self.setting_switch(
+            ))
+            .child(self.option(
                 t,
-                "context-menu",
-                settings.context_menu,
-                Self::toggle_context_menu,
+                setting(t, query, tr().corner_drag, Some(tr().corner_drag_hint)),
+                Preference::CornerDrag,
+                self.corner_drag_switch(t, cx),
                 cx,
-            )))
-            .child(setting(t, query, tr().double_click_preview, Some(tr().double_click_preview_hint)).child(
+            ))
+            .child(self.option(
+                t,
+                setting(t, query, tr().near_cursor, Some(tr().near_cursor_hint)),
+                Preference::NearCursor,
+                self.near_cursor_switch(t, cx),
+                cx,
+            ))
+            .child(self.option(
+                t,
+                setting(t, query, tr().tile_input, Some(tr().tile_input_hint)),
+                Preference::TileInput,
+                self.tile_input_picker(t, window, cx),
+                cx,
+            ))
+            .child(self.option(
+                t,
+                setting(t, query, tr().autostart, Some(tr().autostart_hint)),
+                Preference::Autostart,
+                self.setting_switch(t, "autostart", settings.autostart, Self::toggle_autostart, cx),
+                cx,
+            ))
+            .child(self.option(
+                t,
+                setting(t, query, tr().tray_icon, Some(tr().tray_icon_hint)),
+                Preference::TrayIcon,
+                self.setting_switch(t, "tray-icon", settings.tray_icon, Self::toggle_tray_icon, cx),
+                cx,
+            ))
+            .child(self.option(
+                t,
+                setting(t, query, tr().context_menu, Some(tr().context_menu_hint)),
+                Preference::ContextMenu,
+                self.setting_switch(t, "context-menu", settings.context_menu, Self::toggle_context_menu, cx),
+                cx,
+            ))
+            .child(self.option(
+                t,
+                setting(t, query, tr().double_click_preview, Some(tr().double_click_preview_hint)),
+                Preference::DoubleClickPreview,
                 self.setting_switch(
                     t,
                     "double-click-preview",
@@ -533,28 +634,29 @@ impl Shelf {
                     Self::toggle_double_click_preview,
                     cx,
                 ),
+                cx,
             ))
-            .child(setting(t, query, tr().separate_notes, Some(tr().separate_notes_hint)).child(self.setting_switch(
+            .child(self.option(
                 t,
-                "separate-notes",
-                settings.separate_notes,
-                Self::toggle_separate_notes,
+                setting(t, query, tr().separate_notes, Some(tr().separate_notes_hint)),
+                Preference::SeparateNotes,
+                self.setting_switch(t, "separate-notes", settings.separate_notes, Self::toggle_separate_notes, cx),
                 cx,
-            )))
-            .child(setting(t, query, tr().recycle, Some(tr().recycle_hint)).child(self.setting_switch(
+            ))
+            .child(self.option(
                 t,
-                "recycle",
-                settings.recycle,
-                Self::toggle_recycle,
+                setting(t, query, tr().recycle, Some(tr().recycle_hint)),
+                Preference::Recycle,
+                self.setting_switch(t, "recycle", settings.recycle, Self::toggle_recycle, cx),
                 cx,
-            )))
-            .child(setting(t, query, tr().update_auto, Some(tr().update_auto_hint)).child(self.setting_switch(
+            ))
+            .child(self.option(
                 t,
-                "check-updates-auto",
-                settings.check_updates,
-                Self::toggle_check_updates,
+                setting(t, query, tr().update_auto, Some(tr().update_auto_hint)),
+                Preference::CheckUpdates,
+                self.setting_switch(t, "check-updates-auto", settings.check_updates, Self::toggle_check_updates, cx),
                 cx,
-            )))
+            ))
     }
 
     fn folders_section(&self, t: Theme, query: Finder, cx: &mut Context<Self>) -> Div {

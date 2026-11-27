@@ -1,7 +1,7 @@
 use super::{Page, Screen, Shelf};
 use crate::i18n::{self, Language, fill, tr};
 use crate::keys::{Command, Scope, Shortcut};
-use crate::store::{self, Brand, Corner, Settings, ShakeLevel, TileInput};
+use crate::store::{self, Brand, Corner, Preference, Settings, ShakeLevel, TileInput};
 use gpui::*;
 use std::time::Duration;
 
@@ -150,6 +150,14 @@ impl Shelf {
             cx,
         );
         self.refresh(cx);
+    }
+
+    pub fn restore_setting(&mut self, preference: Preference, cx: &mut Context<Self>) {
+        self.menu.close();
+        if preference == Preference::SeparateNotes {
+            self.selection.reset();
+        }
+        self.update_settings(|settings| settings.restore(preference), cx);
     }
 
     pub fn set_transparency(&mut self, transparency: u8, cx: &mut Context<Self>) {

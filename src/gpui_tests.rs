@@ -738,7 +738,10 @@ fn rounded_overflow_cuts_content_to_the_inner_edge_of_its_corners(cx: &mut TestA
     let [inside, nested] = masks.as_slice() else {
         panic!("both probes paint once, got {} masks", masks.len());
     };
-    let inner = Bounds::from_corners(point(gpui::ScaledPixels(2.), gpui::ScaledPixels(2.)), point(gpui::ScaledPixels(78.), gpui::ScaledPixels(78.)));
+    let inner = Bounds::from_corners(
+        point(gpui::ScaledPixels(2.), gpui::ScaledPixels(2.)),
+        point(gpui::ScaledPixels(78.), gpui::ScaledPixels(78.)),
+    );
     let radius = gpui::ScaledPixels(14.);
     assert_eq!(inside.corner_bounds, inner, "the cut follows the inside of the 1 px border");
     assert_eq!(inside.corner_radii.top_left, radius, "8 px corners minus the 1 px border, at 2x");

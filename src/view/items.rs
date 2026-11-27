@@ -242,9 +242,7 @@ impl Shelf {
             return frame.flex().items_center().justify_center().child(icon(item.icon(), t.danger, TILE_FALLBACK));
         }
         match item.kind {
-            Kind::Image => frame.child(
-                img(item.path.clone()).size_full().object_fit(ObjectFit::Cover),
-            ),
+            Kind::Image => frame.child(img(item.path.clone()).size_full().object_fit(ObjectFit::Cover)),
             Kind::Text | Kind::Note => frame
                 .child(
                     div()
