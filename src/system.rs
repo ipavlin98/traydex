@@ -13,7 +13,7 @@ pub enum Event {
     DragStart,
     DragToCorner,
     DragEnd,
-    CancelDrag,
+    HideDuringDrag,
     Hover(bool),
     AnimationEffects(bool),
     Offer(Offer),

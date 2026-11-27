@@ -267,7 +267,7 @@ impl Shelf {
             Event::DragStart => self.drag_started(cx),
             Event::DragToCorner => self.drag_reached_corner(cx),
             Event::DragEnd => self.drag_ended(cx),
-            Event::CancelDrag => self.cancel_drag(cx),
+            Event::HideDuringDrag => self.hide_during_drag(cx),
             Event::Hover(hovering) => self.hover_changed(hovering, cx),
             Event::AnimationEffects(enabled) => self.animation_effects_changed(enabled, cx),
             Event::Offer(offer) => self.offered(offer, cx),

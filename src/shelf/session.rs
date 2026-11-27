@@ -433,7 +433,7 @@ impl Shelf {
         self.session.dismissed = Some(cx.background_executor().now());
     }
 
-    pub(super) fn cancel_drag(&mut self, cx: &mut Context<Self>) {
+    pub(super) fn hide_during_drag(&mut self, cx: &mut Context<Self>) {
         self.hide("right button pressed during a drag", cx);
         self.session.dismissed = Some(cx.background_executor().now());
     }

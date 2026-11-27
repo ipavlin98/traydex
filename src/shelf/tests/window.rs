@@ -196,7 +196,7 @@ fn cancelled_drag_keeps_drop_targets_while_the_window_fades_out(cx: &mut TestApp
     h.send(Event::DragStart);
     h.elapse(Duration::from_millis(300));
     assert!(h.read(|shelf| shelf.dropping()));
-    h.send(Event::CancelDrag);
+    h.send(Event::HideDuringDrag);
     h.fake.state().buttons = false;
     h.send(Event::DragEnd);
     assert!(h.fake.state().visible);
@@ -212,7 +212,7 @@ fn reveal_during_fade_out_shows_the_current_state(cx: &mut TestAppContext) {
     h.fake.state().buttons = true;
     h.send(Event::DragStart);
     h.elapse(Duration::from_millis(300));
-    h.send(Event::CancelDrag);
+    h.send(Event::HideDuringDrag);
     h.fake.state().buttons = false;
     h.send(Event::DragEnd);
     h.elapse(Duration::from_millis(50));
