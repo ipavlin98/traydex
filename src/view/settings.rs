@@ -12,8 +12,8 @@ use crate::theme::{Catalog, Origin, Theme, ThemeChoice};
 use gpui::{prelude::*, *};
 use std::path::Path;
 
-const DROPDOWN_MIN: f32 = 152.;
-const DROPDOWN_MAX: f32 = 208.;
+const DROPDOWN_MIN: f32 = 192.;
+const DROPDOWN_MAX: f32 = 240.;
 const DROPDOWN_GRID: f32 = space::XS;
 const MENU_PADDING: f32 = space::XS;
 const OPTION_PADDING: f32 = space::M;
