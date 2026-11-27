@@ -4,7 +4,7 @@ use super::*;
 use crate::i18n::Language;
 use crate::keys::Command;
 use crate::testing::{Sandbox, item, language, png};
-use crate::theme::ThemeMode;
+use crate::theme::ThemeChoice;
 use gpui::WindowBackgroundAppearance;
 use std::collections::HashSet;
 
@@ -212,7 +212,7 @@ fn fresh_store_has_default_settings() {
     assert!(!store.settings.blur && !store.settings.pinned && store.settings.shake == ShakeLevel::Off);
     assert!(!store.settings.window_animations && !store.settings.interface_animations);
     assert_eq!(store.settings.transparency, 0);
-    assert!(store.settings.theme == ThemeMode::System);
+    assert!(store.settings.theme == ThemeChoice::System);
     assert!(store.settings.layout == Layout::List);
     assert!(
         store.settings.language.is_none()
@@ -238,7 +238,7 @@ fn saved_store_round_trips() {
     store.settings.double_click_preview = false;
     store.settings.separate_notes = false;
     store.settings.tray_icon = false;
-    store.settings.theme = ThemeMode::Dark;
+    store.settings.theme = ThemeChoice::Named("Dark".into());
     store.settings.layout = Layout::Grid;
     store.settings.transparency = 30;
     store.settings.blur = true;
@@ -268,7 +268,7 @@ fn saved_store_round_trips() {
             && !restored.settings.separate_notes
             && !restored.settings.tray_icon
     );
-    assert!(restored.settings.theme == ThemeMode::Dark && restored.settings.layout == Layout::Grid);
+    assert!(restored.settings.theme == ThemeChoice::Named("Dark".into()) && restored.settings.layout == Layout::Grid);
     assert_eq!(restored.settings.transparency, 30);
     assert!(restored.settings.blur && restored.settings.pinned && restored.settings.shake == ShakeLevel::High);
     assert!(restored.settings.window_animations && restored.settings.interface_animations);
@@ -360,10 +360,38 @@ fn blur_accepts_old_string_levels_and_booleans() {
 #[test]
 fn unknown_enum_values_reject_the_file() {
     let sandbox = Sandbox::new();
-    shelf(&sandbox, r#"{"items": [], "theme": "Neon"}"#);
+    shelf(&sandbox, r#"{"items": [], "layout": "Neon"}"#);
     let store = sandbox.store();
-    assert!(store.settings.theme == ThemeMode::System);
+    assert!(store.settings.layout == Layout::List);
     assert!(sandbox.join("root").join("shelf.broken.json").exists());
+}
+
+#[test]
+fn themes_saved_by_older_versions_keep_their_meaning() {
+    for (saved, expected) in [
+        ("System", ThemeChoice::System),
+        ("Light", ThemeChoice::Named("Light".into())),
+        ("Dark", ThemeChoice::Named("Dark".into())),
+    ] {
+        let sandbox = Sandbox::new();
+        shelf(&sandbox, &format!(r#"{{"items": [], "theme": "{saved}"}}"#));
+        assert_eq!(sandbox.store().settings.theme, expected, "{saved}");
+        assert!(!sandbox.join("root").join("shelf.broken.json").exists());
+    }
+}
+
+#[test]
+fn broken_theme_colors_are_dropped_without_losing_the_file() {
+    let sandbox = Sandbox::new();
+    shelf(
+        &sandbox,
+        r##"{"items": [], "theme": "dracula", "theme_colors": {"dracula": {"accent": "#ff0000"}, "Light": {"accent": "red"}}}"##,
+    );
+    let settings = sandbox.store().settings;
+    assert_eq!(settings.theme, ThemeChoice::Named("dracula".into()));
+    assert_eq!(settings.theme_colors("dracula").accent, crate::theme::Hex::parse("#ff0000"));
+    assert!(settings.theme_colors("Light").is_empty());
+    assert!(!sandbox.join("root").join("shelf.broken.json").exists());
 }
 
 #[test]

@@ -70,7 +70,8 @@ check failed; automatic checks only write failures to the log. The version itsel
 - By default the window sits in the top-left corner. Drag it by the title bar and resize it by any edge or corner.
   It snaps to screen edges and remembers its position and size between launches. Both can be reset in Settings; the
   default size is a 540 × 540 square.
-- Themes: light, dark (pure black) and following the system.
+- Color themes: light, dark (pure black), Catppuccin Mocha, Dracula, Soft Sand, your own from JSON files, or the
+  light or dark one following the system (see *Color themes* below).
 - Languages: English, 简体中文, हिन्दी, Español, Français, Русский. The system language is used by default, English if
   the system language isn't in the list. Switch it in Settings. The interface font is Segoe UI in every language, so
   Latin text and digits look the same everywhere; Chinese and Hindi characters fall back to Microsoft YaHei UI and
@@ -172,7 +173,7 @@ check failed; automatic checks only write failures to the log. The version itsel
 | Rename a note or a link | Click the title in the preview or press `F2` and edit; `Enter`, `Esc` or `Tab` go back to the text. An empty title brings back the automatic one |
 | Show the shelf as a list or a grid | The grid (or list) button next to the storage button, `Ctrl+G` |
 | Keep the panel from hiding | The pin button |
-| Theme, transparency, scale and blur, title bar, auto-show, hot corner, autostart, context menu, preview on double-click, keep notes separate, delete to the Recycle Bin, watched folders, reset position and size, reset all settings | The settings button |
+| Theme, accent, background and text colors, themes folder, transparency, scale and blur, title bar, auto-show, hot corner, autostart, context menu, preview on double-click, keep notes separate, delete to the Recycle Bin, watched folders, reset position and size, reset all settings | The settings button |
 | Add or remove quick action tiles | The lightning button |
 | Run an action | Drop files, an image or text on a tile |
 | Add files from Explorer | Right click → *Send to Traydex shelf* |
@@ -225,6 +226,52 @@ strength. With 0% transparency blur is off.
 *Window animation* in *Appearance* fades the window in and out; it's off by default. While the Windows *Animation
 effects* setting (*Settings → Accessibility → Visual effects*) is off, Traydex doesn't animate at all, whatever its own
 settings say, and it follows a change of that setting without a restart.
+
+### Color themes
+
+*Theme* in *Appearance* is a drop-down list: *System* (light or dark after Windows), *Light*, *Dark*, the built-in
+Catppuccin Mocha, Dracula and Soft Sand, and every theme file from the themes folder. A theme changes colors only;
+sizes, corners and fonts stay the same. The choice is stored as `theme` in `shelf.json`: `System`, `Light`, `Dark`
+(as before) or the theme's id.
+
+Under it, three rows recolor the current theme:
+
+- *Accent color*: the theme's own accent (first circle), seven ready-made colors, or your own color from the palette
+  (the last circle: a saturation and brightness field, a hue strip and the color's hex code). The accent paints
+  buttons, marks, the selection and the logo; its text shade is darkened or lightened until it reads at 4.5:1.
+- *Background color*: the theme's own background, seven ready-made ones, or your own. Surfaces, hover and selected
+  rows, borders, secondary text and the danger and success colors are derived from the background and the text.
+  Picking a background also picks a readable text color for it; an accent that becomes unreadable on it (below 3:1)
+  gives way to the text color until you pick one.
+- *Text color*: picked automatically for the background; the circle opens the palette to choose your own, and the
+  reset button next to it returns to the automatic one.
+
+Picks are kept per theme in `theme_colors` in `shelf.json` (`{"dracula": {"accent": "#22c55e"}}`); choosing the
+theme's own color removes the entry. *Reset all settings* clears them.
+
+*Themes folder* opens `%LOCALAPPDATA%\Traydex\themes` (`data\themes` in the portable copy), creating it if needed.
+Every `*.json` file there is a theme whose id is the file name; the folder is read at start and each time Settings
+opens. A file with an error, or one whose name is taken by a built-in theme (`System`, `Light`, `Dark`,
+`catppuccin-mocha`, `dracula`, `soft-sand`, in any case), is skipped and shown by the warning sign next to the button
+with the reason. A theme file looks like this:
+
+```json
+{
+  "name": "Night",
+  "base": "dark",
+  "palette": { "ink": "#e0e0e0", "background": "#101820", "text": "ink", "accent": "#ff8800" },
+  "colors": { "danger": "#ff5555", "faint": "ink" }
+}
+```
+
+- `name`: shown in the list; the file name if missing.
+- `base`: `light` or `dark`, the built-in theme the rest starts from; without it, the background decides.
+- `palette`: named colors (`#rrggbb` or `#rrggbbaa`), which may refer to each other by name. `background`, `text`
+  and `accent` are special: from them the other colors are derived the same way as for the rows above.
+- `colors`: exact values for single colors, as a color or a palette name: `bg`, `surface`, `hover`, `active`,
+  `border`, `border_strong`, `text`, `muted`, `faint`, `accent`, `accent_text`, `accent_tint`, `selection`, `danger`,
+  `danger_tint`, `success`, `knob`, `on_accent`, `brand`, `code_ink`, `code_paper`. Colors picked in Settings for the
+  background or text replace these values with derived ones.
 
 *Scale* in *Appearance* (90%, 100%, 110%, 125%, 150%, a drop-down list) enlarges or shrinks the whole interface:
 text, icons, spacing and the minimum window size. It's stored as `scale` (percent) in `shelf.json`. Versions before

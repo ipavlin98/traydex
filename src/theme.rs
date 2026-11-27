@@ -1,5 +1,11 @@
+mod catalog;
+mod palette;
+
+pub use catalog::{Catalog, Entry, Origin, ThemeColors, colors_by_theme};
+pub use palette::{ACCENTS, BACKGROUNDS, Hex, Hsv, contrast, offered};
+
 use gpui::{Background, Global, Hsla, Rgba, WindowAppearance, linear_color_stop, linear_gradient, rgb, rgba};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 pub fn fade(color: Rgba, angle: f32) -> Background {
     fade_until(color, angle, 1.)
@@ -9,15 +15,39 @@ pub fn fade_until(color: Rgba, angle: f32, solid: f32) -> Background {
     linear_gradient(angle, linear_color_stop(Hsla::from(color).opacity(0.), 0.), linear_color_stop(color, solid))
 }
 
-#[derive(Clone, Copy, PartialEq, Default, Serialize, Deserialize)]
-pub enum ThemeMode {
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize)]
+#[serde(into = "String")]
+pub enum ThemeChoice {
     #[default]
     System,
-    Light,
-    Dark,
+    Named(String),
 }
 
-#[derive(Clone, Copy)]
+impl From<String> for ThemeChoice {
+    fn from(id: String) -> Self {
+        if id == "System" { Self::System } else { Self::Named(id) }
+    }
+}
+
+impl From<ThemeChoice> for String {
+    fn from(choice: ThemeChoice) -> Self {
+        match choice {
+            ThemeChoice::System => "System".to_owned(),
+            ThemeChoice::Named(id) => id,
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for ThemeChoice {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        Ok(match serde_json::Value::deserialize(deserializer)? {
+            serde_json::Value::String(id) => Self::from(id),
+            _ => Self::System,
+        })
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub struct Theme {
     pub bg: Rgba,
     pub surface: Rgba,
@@ -45,13 +75,42 @@ pub struct Theme {
 impl Global for Theme {}
 
 impl Theme {
-    pub fn resolve(mode: ThemeMode, appearance: WindowAppearance) -> Self {
-        let dark = match mode {
-            ThemeMode::Dark => true,
-            ThemeMode::Light => false,
-            ThemeMode::System => matches!(appearance, WindowAppearance::Dark | WindowAppearance::VibrantDark),
-        };
-        if dark { Self::dark() } else { Self::light() }
+    pub fn system(appearance: WindowAppearance) -> Self {
+        match appearance {
+            WindowAppearance::Dark | WindowAppearance::VibrantDark => Self::dark(),
+            WindowAppearance::Light | WindowAppearance::VibrantLight => Self::light(),
+        }
+    }
+
+    pub fn is_dark(&self) -> bool {
+        palette::dark(self.bg)
+    }
+
+    fn token_mut(&mut self, name: &str) -> Option<&mut Rgba> {
+        Some(match name {
+            "bg" => &mut self.bg,
+            "surface" => &mut self.surface,
+            "hover" => &mut self.hover,
+            "active" => &mut self.active,
+            "border" => &mut self.border,
+            "border_strong" => &mut self.border_strong,
+            "text" => &mut self.text,
+            "muted" => &mut self.muted,
+            "faint" => &mut self.faint,
+            "accent" => &mut self.accent,
+            "accent_text" => &mut self.accent_text,
+            "accent_tint" => &mut self.accent_tint,
+            "selection" => &mut self.selection,
+            "danger" => &mut self.danger,
+            "danger_tint" => &mut self.danger_tint,
+            "success" => &mut self.success,
+            "knob" => &mut self.knob,
+            "on_accent" => &mut self.on_accent,
+            "brand" => &mut self.brand,
+            "code_ink" => &mut self.code_ink,
+            "code_paper" => &mut self.code_paper,
+            _ => return None,
+        })
     }
 
     fn dark() -> Self {

@@ -1,9 +1,10 @@
 use super::Layout;
 use crate::i18n::Language;
 use crate::keys::Shortcuts;
-use crate::theme::ThemeMode;
+use crate::theme::{ThemeChoice, ThemeColors, colors_by_theme};
 use gpui::WindowBackgroundAppearance;
 use serde::{Deserialize, Deserializer, Serialize};
+use std::collections::BTreeMap;
 
 pub const DEFAULT_SIZE: (f32, f32) = (540., 540.);
 pub const MIN_SIZE: (f32, f32) = DEFAULT_SIZE;
@@ -82,7 +83,9 @@ pub struct Settings {
     pub tray_icon: bool,
     pub check_updates: bool,
     pub recycle: bool,
-    pub theme: ThemeMode,
+    pub theme: ThemeChoice,
+    #[serde(deserialize_with = "colors_by_theme", skip_serializing_if = "BTreeMap::is_empty")]
+    pub theme_colors: BTreeMap<String, ThemeColors>,
     pub layout: Layout,
     pub transparency: u8,
     #[serde(deserialize_with = "scale")]
@@ -118,7 +121,8 @@ impl Default for Settings {
             tray_icon: true,
             check_updates: !crate::profile::current().testing(),
             recycle: true,
-            theme: ThemeMode::default(),
+            theme: ThemeChoice::default(),
+            theme_colors: BTreeMap::new(),
             layout: Layout::default(),
             transparency: 0,
             scale: DEFAULT_SCALE,
@@ -193,6 +197,18 @@ impl Settings {
     pub(super) fn adopt_font_size(&mut self) {
         if let Some(font_size) = self.font_size.take() {
             self.scale = nearest_scale(font_size);
+        }
+    }
+
+    pub fn theme_colors(&self, id: &str) -> ThemeColors {
+        self.theme_colors.get(id).copied().unwrap_or_default()
+    }
+
+    pub fn set_theme_colors(&mut self, id: &str, colors: ThemeColors) {
+        if colors.is_empty() {
+            self.theme_colors.remove(id);
+        } else {
+            self.theme_colors.insert(id.to_owned(), colors);
         }
     }
 

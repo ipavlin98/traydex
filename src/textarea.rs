@@ -1,7 +1,7 @@
 use crate::design::{self, line, rem, space};
 use crate::input::{Changed, caret_bounds, pixel_bounds};
 use crate::store::ItemId;
-use crate::theme::{Theme, ThemeMode};
+use crate::theme::Theme;
 use gpui::{prelude::*, *};
 use std::cell::Cell;
 use std::collections::HashMap;
@@ -427,7 +427,7 @@ impl TextArea {
 impl Render for TextArea {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let t =
-            cx.try_global::<Theme>().copied().unwrap_or_else(|| Theme::resolve(ThemeMode::System, window.appearance()));
+            cx.try_global::<Theme>().copied().unwrap_or_else(|| Theme::system(window.appearance()));
         let focused = self.focus.is_focused(window);
         let entity = cx.entity();
         let painter = entity.clone();

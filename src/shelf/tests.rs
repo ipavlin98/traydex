@@ -1,4 +1,4 @@
-use super::{Confirm, Dropdown, Filter, Hovered, JobKind, Launch, Page, Shelf, Target};
+use super::{Confirm, Dropdown, Filter, Hovered, JobKind, Launch, Page, Paint, Shelf, Target};
 use crate::actions::{self, Action, Field, Single, Slot, TileId, Tool};
 use crate::i18n::{Language, fill, tr};
 use crate::keys::{Command, Shortcut};
@@ -7,7 +7,7 @@ use crate::store::{self, Brand, Corner, ImageData, ItemId, Kind, Layout, Payload
 use crate::system::{Event, Handler};
 use crate::testing::{Call, Fake, Invocation, NARROW_SIZE, Sandbox, language, output, plant_tools, png, video_info};
 use crate::textarea::TextArea;
-use crate::theme::ThemeMode;
+use crate::theme::ThemeChoice;
 use futures::channel::mpsc::{self, UnboundedSender};
 use gpui::{
     App, Context, Entity, EntityInputHandler, HoverTransition, Modifiers, MouseButton, MouseDownEvent, MouseMoveEvent,

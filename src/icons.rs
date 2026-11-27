@@ -38,6 +38,9 @@ fn shape(name: &str) -> Option<&'static str> {
         "close" => "<path d='M6 6l12 12M18 6 6 18'/>",
         "stop" => "<circle cx='12' cy='12' r='9'/><rect x='9' y='9' width='6' height='6' rx='1'/>",
         "plus" => "<path d='M12 5v14M5 12h14'/>",
+        "pipette" => {
+            "<path d='m2 22 1-1h3l9-9'/><path d='M3 21v-3l9-9'/><path d='m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8a2.1 2.1 0 1 1 3-3l.4.4Z'/>"
+        }
         "alert" => "<circle cx='12' cy='12' r='9'/><path d='M12 7.5v5.5M12 16.5h.01'/>",
         "search" => "<circle cx='10.5' cy='10.5' r='6.5'/><path d='m15.3 15.3 4.7 4.7'/>",
         "pin" => "<path d='M9 4h6M10 4v5l-3 4h10l-3-4V4M12 13v7'/>",

@@ -20,7 +20,7 @@ const SWITCHES: [&str; 10] = [
     "separate-notes",
     "check-updates-auto",
 ];
-const SEGMENTS: [&str; 4] = ["theme", "transparency", "shake", "corner"];
+const SEGMENTS: [&str; 3] = ["transparency", "shake", "corner"];
 const CHIPS: [&str; 20] = [
     "add-folder",
     "add-run",
@@ -68,6 +68,7 @@ enum Scene {
     Confirm,
     Settings,
     Languages,
+    Colors,
     Actions,
     FullActions,
     Editor,
@@ -301,6 +302,10 @@ fn prepare(h: &mut Harness, scene: Scene) {
         Scene::Languages => h.act(|shelf, _, cx| {
             shelf.toggle_page(Page::Settings, cx);
             shelf.toggle_menu(Dropdown::Language, cx);
+        }),
+        Scene::Colors => h.act(|shelf, _, cx| {
+            shelf.toggle_page(Page::Settings, cx);
+            shelf.toggle_picker(Paint::Accent, cx);
         }),
         Scene::Actions => h.act(|shelf, _, cx| shelf.toggle_page(Page::Actions, cx)),
         Scene::FullActions => {
@@ -651,7 +656,7 @@ fn verify(check: &mut Check, scene: Scene, ids: &[ItemId]) {
             check.apart(&names(["note-title", "preview-close"], ""));
             check.apart(&names(["title-bar", "preview-header", "preview-content", "preview-footer"], ""));
         }
-        Scene::Settings | Scene::Languages => {
+        Scene::Settings | Scene::Languages | Scene::Colors => {
             check.in_window("settings-page", false);
             check.in_window("status-bar", true);
             check.at_bottom("status-bar");
@@ -659,8 +664,21 @@ fn verify(check: &mut Check, scene: Scene, ids: &[ItemId]) {
                 .into_iter()
                 .chain(names(SEGMENTS, "segmented:"))
                 .chain(
-                    ["scale", "brand", "language", "tile-input", "check-updates", "watch-folder", "watched:0"]
-                        .map(String::from),
+                    [
+                        "theme",
+                        "accent-colors",
+                        "background-colors",
+                        "text-colors",
+                        "themes-folder",
+                        "scale",
+                        "brand",
+                        "language",
+                        "tile-input",
+                        "check-updates",
+                        "watch-folder",
+                        "watched:0",
+                    ]
+                    .map(String::from),
                 )
                 .collect();
             for control in &controls {
@@ -669,6 +687,11 @@ fn verify(check: &mut Check, scene: Scene, ids: &[ItemId]) {
             check.apart(&controls);
             if matches!(scene, Scene::Languages) {
                 check.in_window("language-menu", true);
+            }
+            if matches!(scene, Scene::Colors) {
+                check.in_window("color-picker", true);
+                check.inside("picker-shade", "color-picker", true);
+                check.inside("picker-hue", "color-picker", true);
             }
         }
         Scene::Actions | Scene::FullActions => {
@@ -1026,6 +1049,7 @@ fn side_pages_keep_elements_inside_and_apart(cx: &mut TestAppContext) {
         &[
             Scene::Settings,
             Scene::Languages,
+            Scene::Colors,
             Scene::Actions,
             Scene::Editor,
             Scene::Drop,

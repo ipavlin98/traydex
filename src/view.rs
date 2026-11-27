@@ -4,6 +4,7 @@ mod items;
 mod list;
 mod media;
 mod mentions;
+mod colors;
 mod motion;
 mod password;
 mod preview;
@@ -35,7 +36,7 @@ use crate::shelf::{
 };
 use crate::store::{self, Item, Kind, Layout};
 use crate::system::Caption;
-use crate::theme::{Theme, ThemeMode};
+use crate::theme::Theme;
 pub(super) use crate::theme::{fade, fade_until};
 use gpui::{prelude::*, *};
 use std::cell::Cell;
@@ -461,7 +462,7 @@ impl Shelf {
                 Layout::List => "list",
                 Layout::Grid => "grid",
             },
-            dark: t.bg == Theme::resolve(ThemeMode::Dark, window.appearance()).bg,
+            dark: t.is_dark(),
             language: i18n::current(),
             scale: window.scale_factor(),
             size: [viewport.width.into(), viewport.height.into()],
