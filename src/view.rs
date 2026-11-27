@@ -409,7 +409,7 @@ impl Shelf {
             Page::Shelf => self.shelf_page(t, window, cx),
             Page::Actions => self.actions_page(t, width, cx),
             Page::Edit => self.editor_page(t, window, width, cx),
-            Page::Settings => self.settings_page(t, cx),
+            Page::Settings => self.settings_page(t, window, cx),
             Page::Preview => self.preview_page(t, width, window, cx),
             Page::Share => self.share_page(t, window, cx),
             Page::Hashes => self.hashes_page(t, window, cx),
