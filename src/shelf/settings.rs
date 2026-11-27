@@ -1,7 +1,7 @@
 use super::{Page, Screen, Shelf};
 use crate::i18n::{self, Language, fill, tr};
 use crate::keys::{Command, Scope, Shortcut};
-use crate::store::{self, Corner, Settings, ShakeLevel, TileInput};
+use crate::store::{self, Brand, Corner, Settings, ShakeLevel, TileInput};
 use crate::theme::ThemeMode;
 use gpui::*;
 use std::time::Duration;
@@ -13,6 +13,7 @@ pub enum Dropdown {
     Scale,
     Language,
     TileInput,
+    Brand,
 }
 
 #[derive(Default)]
@@ -310,6 +311,11 @@ impl Shelf {
     pub fn set_tile_input(&mut self, input: TileInput, cx: &mut Context<Self>) {
         self.menu.close();
         self.update_settings(|settings| settings.tile_input = input, cx);
+    }
+
+    pub fn set_brand(&mut self, brand: Brand, cx: &mut Context<Self>) {
+        self.menu.close();
+        self.update_settings(|settings| settings.brand = brand, cx);
     }
 
     pub fn toggle_menu(&mut self, menu: Dropdown, cx: &mut Context<Self>) {

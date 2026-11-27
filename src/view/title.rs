@@ -35,6 +35,8 @@ impl Shelf {
 
     fn title_home(&self, t: Theme, leading: Rc<Cell<Caption>>, cx: &mut Context<Self>) -> Div {
         let crumb = self.crumb();
+        let brand = self.store().settings().brand;
+        let home = brand.logo() || brand.name();
         div()
             .flex_1()
             .min_w_0()
@@ -43,31 +45,7 @@ impl Shelf {
             .flex()
             .items_center()
             .gap(rem(space::S))
-            .child(
-                div()
-                    .id("home")
-                    .marked("home")
-                    .relative()
-                    .h_full()
-                    .flex_shrink_0()
-                    .flex()
-                    .items_center()
-                    .gap(rem(space::LABEL))
-                    .cursor_pointer()
-                    .on_click(cx.safe_listener(|shelf, _, _, cx| shelf.toggle_page(Page::Shelf, cx)))
-                    .child(tiles::probe(move |bounds| {
-                        leading.set(Caption { leading: (bounds.left().into(), bounds.right().into()), ..leading.get() })
-                    }))
-                    .child(
-                        div()
-                            .relative()
-                            .size(rem(glyph::M))
-                            .flex_shrink_0()
-                            .child(icon("brand", t.brand, glyph::M).absolute().top_0().left_0())
-                            .child(icon("brand-arrow", t.surface, glyph::M).absolute().top_0().left_0()),
-                    )
-                    .child(div().font_weight(FontWeight::SEMIBOLD).child("Traydex")),
-            )
+            .when(home, |d| d.child(self.title_brand(t, leading, cx)))
             .child(
                 div()
                     .id("caption")
@@ -78,7 +56,16 @@ impl Shelf {
                     .items_center()
                     .gap(rem(space::S))
                     .when_some(crumb, |d, crumb| {
-                        d.child(div().text_color(t.faint).child("/")).child(div().text_color(t.muted).child(crumb))
+                        d.when(home, |d| {
+                            d.child(
+                                div()
+                                    .marked("crumb-dot")
+                                    .font_weight(FontWeight::SEMIBOLD)
+                                    .text_color(t.faint)
+                                    .child("·"),
+                            )
+                        })
+                        .child(div().marked("crumb").text_color(t.muted).child(crumb))
                     })
                     .tooltip(hint(
                         t,
@@ -86,6 +73,38 @@ impl Shelf {
                             .line(Tip::keys(tr().fit_size, &[tr().double_right_click])),
                     )),
             )
+    }
+
+    fn title_brand(&self, t: Theme, leading: Rc<Cell<Caption>>, cx: &mut Context<Self>) -> Stateful<Div> {
+        let brand = self.store().settings().brand;
+        div()
+            .id("home")
+            .marked("home")
+            .relative()
+            .h_full()
+            .flex_shrink_0()
+            .flex()
+            .items_center()
+            .gap(rem(space::LABEL))
+            .cursor_pointer()
+            .on_click(cx.safe_listener(|shelf, _, _, cx| shelf.toggle_page(Page::Shelf, cx)))
+            .child(tiles::probe(move |bounds| {
+                leading.set(Caption { leading: (bounds.left().into(), bounds.right().into()), ..leading.get() })
+            }))
+            .when(brand.logo(), |d| {
+                d.child(
+                    div()
+                        .marked("logo")
+                        .relative()
+                        .size(rem(glyph::M))
+                        .flex_shrink_0()
+                        .child(icon("brand", t.brand, glyph::M).absolute().top_0().left_0())
+                        .child(icon("brand-arrow", t.surface, glyph::M).absolute().top_0().left_0()),
+                )
+            })
+            .when(brand.name(), |d| {
+                d.child(div().marked("app-name").font_weight(FontWeight::SEMIBOLD).child("Traydex"))
+            })
     }
 
     fn title_buttons(&self, t: Theme, trailing: Rc<Cell<Caption>>, cx: &mut Context<Self>) -> Div {

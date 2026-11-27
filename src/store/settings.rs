@@ -50,6 +50,27 @@ impl TileInput {
     pub const ALL: [TileInput; 3] = [TileInput::Clipboard, TileInput::Selection, TileInput::Picker];
 }
 
+#[derive(Clone, Copy, Default, Debug, PartialEq, Serialize, Deserialize)]
+pub enum Brand {
+    #[default]
+    LogoAndName,
+    Logo,
+    Name,
+    Hidden,
+}
+
+impl Brand {
+    pub const ALL: [Brand; 4] = [Brand::LogoAndName, Brand::Logo, Brand::Name, Brand::Hidden];
+
+    pub fn logo(self) -> bool {
+        matches!(self, Brand::LogoAndName | Brand::Logo)
+    }
+
+    pub fn name(self) -> bool {
+        matches!(self, Brand::LogoAndName | Brand::Name)
+    }
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Settings {
@@ -80,6 +101,7 @@ pub struct Settings {
     pub corner_drag: bool,
     pub near_cursor: bool,
     pub tile_input: TileInput,
+    pub brand: Brand,
     pub position: Option<(i32, i32)>,
     pub size: Option<(f32, f32)>,
     pub shortcuts: Shortcuts,
@@ -111,6 +133,7 @@ impl Default for Settings {
             corner_drag: false,
             near_cursor: false,
             tile_input: TileInput::default(),
+            brand: Brand::default(),
             position: None,
             size: None,
             shortcuts: Shortcuts::default(),

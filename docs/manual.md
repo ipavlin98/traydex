@@ -170,7 +170,7 @@ check failed; automatic checks only write failures to the log. The version itsel
 | Rename a note or a link | Click the title in the preview or press `F2` and edit; `Enter`, `Esc` or `Tab` go back to the text. An empty title brings back the automatic one |
 | Show the shelf as a list or a grid | The grid (or list) button next to the storage button, `Ctrl+G` |
 | Keep the panel from hiding | The pin button |
-| Theme, transparency, scale and blur, auto-show, hot corner, autostart, context menu, preview on double-click, keep notes separate, delete to the Recycle Bin, watched folders, reset position and size, reset all settings | The settings button |
+| Theme, transparency, scale and blur, title bar, auto-show, hot corner, autostart, context menu, preview on double-click, keep notes separate, delete to the Recycle Bin, watched folders, reset position and size, reset all settings | The settings button |
 | Add or remove quick action tiles | The lightning button |
 | Run an action | Drop files, an image or text on a tile |
 | Add files from Explorer | Right click → *Send to Traydex shelf* |
@@ -228,6 +228,11 @@ settings say, and it follows a change of that setting without a restart.
 text, icons, spacing and the minimum window size. It's stored as `scale` (percent) in `shelf.json`. Versions before
 it stored a font size (`font_size`, 12–16 at 13 = 100%); on the first start such a value becomes the nearest scale
 (12 → 90%, 14 and 15 → 110%, 16 → 125%).
+
+*Title bar* in *Appearance* (a drop-down list) picks what the left side of the title bar shows: the logo and the name
+(the default), only the logo, only the name, or nothing. Clicking the logo or the name returns to the shelf. On other
+pages the page name follows, after a dot; with nothing chosen the page name starts the title bar on its own. It's
+stored as `brand` (`LogoAndName`, `Logo`, `Name`, `Hidden`) in `shelf.json`.
 
 The log of work and errors, including caught crashes and a detailed drag trace (debug level; change it with the
 `RUST_LOG` variable), goes to `%LOCALAPPDATA%\Traydex\logs`: the current file is `traydex_rCURRENT.log`, it rolls
