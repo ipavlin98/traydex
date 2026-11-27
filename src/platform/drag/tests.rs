@@ -217,7 +217,7 @@ fn right_button_cancels_only_an_ongoing_drag() {
 fn right_press_is_swallowed_only_while_dragging_into_the_shown_window() {
     assert_eq!(right_press(false, true, true), RightPress::Pass);
     assert_eq!(right_press(false, false, false), RightPress::Pass);
-    assert_eq!(right_press(true, false, true), RightPress::Cancel);
-    assert_eq!(right_press(true, true, false), RightPress::Cancel);
+    assert_eq!(right_press(true, false, true), RightPress::Hide);
+    assert_eq!(right_press(true, true, false), RightPress::Hide);
     assert_eq!(right_press(true, true, true), RightPress::Swallow);
 }

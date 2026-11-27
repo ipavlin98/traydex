@@ -163,13 +163,15 @@ impl Session {
 }
 
 type TileBounds = Vec<(Bounds<Pixels>, TileId)>;
+type HitBounds = Vec<(usize, Bounds<Pixels>)>;
 
 #[derive(Clone, Default)]
 pub struct Regions {
     tiles: Rc<RefCell<TileBounds>>,
     zone: Rc<Cell<Option<Bounds<Pixels>>>>,
     cancel: Rc<Cell<Option<Bounds<Pixels>>>>,
-    hits: Rc<RefCell<Vec<Bounds<Pixels>>>>,
+    hits: Rc<RefCell<HitBounds>>,
+    found: Rc<Cell<usize>>,
 }
 
 impl Regions {
@@ -178,18 +180,25 @@ impl Regions {
         self.zone.set(None);
         self.cancel.set(None);
         self.hits.borrow_mut().clear();
+        self.found.set(0);
     }
 
-    pub fn add_hit(&self, bounds: Bounds<Pixels>) {
-        self.hits.borrow_mut().push(bounds);
+    pub fn count_hit(&self) -> usize {
+        let index = self.found.get();
+        self.found.set(index + 1);
+        index
     }
 
-    pub(super) fn first_hit(&self) -> Option<Bounds<Pixels>> {
-        self.hits
-            .borrow()
-            .iter()
-            .copied()
-            .min_by(|a, b| (a.top(), a.left()).partial_cmp(&(b.top(), b.left())).unwrap_or(std::cmp::Ordering::Equal))
+    pub fn hit_count(&self) -> usize {
+        self.found.get()
+    }
+
+    pub fn add_hit(&self, index: usize, bounds: Bounds<Pixels>) {
+        self.hits.borrow_mut().push((index, bounds));
+    }
+
+    pub(super) fn hit(&self, index: usize) -> Option<Bounds<Pixels>> {
+        self.hits.borrow().iter().find(|(hit, _)| *hit == index).map(|(_, bounds)| *bounds)
     }
 
     pub fn set_cancel(&self, bounds: Bounds<Pixels>) {
@@ -433,7 +442,7 @@ impl Shelf {
         self.session.dismissed = Some(cx.background_executor().now());
     }
 
-    pub(super) fn cancel_drag(&mut self, cx: &mut Context<Self>) {
+    pub(super) fn hide_during_drag(&mut self, cx: &mut Context<Self>) {
         self.hide("right button pressed during a drag", cx);
         self.session.dismissed = Some(cx.background_executor().now());
     }

@@ -1,4 +1,5 @@
 mod actions;
+mod colors;
 mod hashes;
 mod items;
 mod list;
@@ -21,7 +22,7 @@ use self::scroll::glide;
 pub(crate) use self::tiles::STRIP_COVER;
 use self::widgets::{
     KEYS_SEARCH, Look, Marked, Tip, badge, badge_icon, bare_button, copy_button, highlighted, hint, hint_card, icon,
-    icon_button, kbd, leading_icon, measure, row_button, subtitle_lift, subtitled, text_button,
+    icon_button, kbd, leading_icon, measure, row_button, subtitle_lift, subtitled, text_button, ui_font,
 };
 use crate::design::{self, glyph, line, radius, rem, scaled, size, space, text, timing, units};
 use crate::diagnostics;
@@ -35,7 +36,7 @@ use crate::shelf::{
 };
 use crate::store::{self, Item, Kind, Layout};
 use crate::system::Caption;
-use crate::theme::{Theme, ThemeMode};
+use crate::theme::Theme;
 pub(super) use crate::theme::{fade, fade_until};
 use gpui::{prelude::*, *};
 use std::cell::Cell;
@@ -215,7 +216,7 @@ fn side_fades(
                     continue;
                 };
                 let [solid, shade] = cover(window, bounds, edge, button, (underline.top(), underline.size.height));
-                window.with_content_mask(Some(ContentMask { bounds: underline }), |window| {
+                window.with_content_mask(Some(ContentMask::new(underline)), |window| {
                     window.paint_quad(gpui::fill(solid, line));
                     window.paint_quad(gpui::fill(shade, fade(line, angle)));
                 });
@@ -385,7 +386,7 @@ fn broken(t: Theme) -> AnyElement {
         .justify_center()
         .bg(t.bg)
         .text_color(t.danger)
-        .font_family(i18n::current().font())
+        .font(ui_font(i18n::current()))
         .text_size(rem(text::BODY))
         .child(tr().internal_error)
         .into_any_element()
@@ -403,13 +404,13 @@ impl Shelf {
         diagnostics::begin();
         self.sync_window(window, cx);
         self.regions().clear();
-        self.reveal_after_frame(scaled(FADE, window).into(), window, cx);
+        self.reveal_after_frame(window, cx);
         let width = units(window.viewport_size().width, window);
         let content = match self.page() {
             Page::Shelf => self.shelf_page(t, window, cx),
             Page::Actions => self.actions_page(t, width, cx),
             Page::Edit => self.editor_page(t, window, width, cx),
-            Page::Settings => self.settings_page(t, cx),
+            Page::Settings => self.settings_page(t, window, cx),
             Page::Preview => self.preview_page(t, width, window, cx),
             Page::Share => self.share_page(t, window, cx),
             Page::Hashes => self.hashes_page(t, window, cx),
@@ -428,7 +429,7 @@ impl Shelf {
             .overflow_hidden()
             .bg(t.bg)
             .text_color(t.text)
-            .font_family(i18n::current().font())
+            .font(ui_font(i18n::current()))
             .text_size(rem(text::BODY))
             .on_key_down(cx.safe_listener(Shelf::key))
             .capture_any_mouse_down(cx.safe_listener(|shelf, _: &MouseDownEvent, _, cx| shelf.pointer_pressed(cx)))
@@ -461,7 +462,7 @@ impl Shelf {
                 Layout::List => "list",
                 Layout::Grid => "grid",
             },
-            dark: t.bg == Theme::resolve(ThemeMode::Dark, window.appearance()).bg,
+            dark: t.is_dark(),
             language: i18n::current(),
             scale: window.scale_factor(),
             size: [viewport.width.into(), viewport.height.into()],

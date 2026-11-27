@@ -103,7 +103,7 @@ fn settings_toggles_persist_and_reach_the_system(cx: &mut TestAppContext) {
         shelf.set_corner(Some(Corner::BottomRight), cx);
         shelf.toggle_autostart(cx);
         shelf.toggle_context_menu(cx);
-        shelf.set_theme(ThemeMode::Dark, cx);
+        shelf.set_theme(ThemeChoice::Named("Dark".into()), cx);
         shelf.set_transparency(40, cx);
         shelf.toggle_blur(cx);
         shelf.toggle_window_animations(cx);
@@ -130,7 +130,7 @@ fn settings_toggles_persist_and_reach_the_system(cx: &mut TestAppContext) {
     );
     assert_eq!(saved.settings().corner, Some(Corner::BottomRight));
     assert!(
-        saved.settings().theme == ThemeMode::Dark
+        saved.settings().theme == ThemeChoice::Named("Dark".into())
             && saved.settings().transparency == 40
             && saved.settings().blur
             && saved.settings().window_animations
@@ -287,4 +287,118 @@ fn language_change_updates_shell_menu_label(cx: &mut TestAppContext) {
     assert!(h.read(|shelf| shelf.menu.open() != Some(Dropdown::Language)));
     h.act(|shelf, _, cx| shelf.toggle_menu(Dropdown::Language, cx));
     assert!(h.read(|shelf| shelf.menu.open() == Some(Dropdown::Language)));
+}
+
+#[gpui::test]
+fn title_shows_the_chosen_brand_and_separates_the_page_only_after_it(cx: &mut TestAppContext) {
+    let mut h = open(cx, true);
+    h.act(|shelf, _, cx| shelf.toggle_page(Page::Settings, cx));
+    let shown =
+        |h: &mut Harness| ["logo", "app-name", "crumb-dot", "crumb"].map(|mark| h.cx.debug_bounds(mark).is_some());
+    assert_eq!(shown(&mut h), [true, true, true, true], "logo and name by default");
+    for (brand, expected) in [
+        (Brand::Logo, [true, false, true, true]),
+        (Brand::Name, [false, true, true, true]),
+        (Brand::Hidden, [false, false, false, true]),
+    ] {
+        h.act(|shelf, _, cx| {
+            shelf.toggle_menu(Dropdown::Brand, cx);
+            shelf.set_brand(brand, cx);
+        });
+        assert_eq!(h.saved().settings().brand, brand);
+        assert_eq!(h.read(|shelf| shelf.menu.open()), None, "picking closes the menu");
+        assert_eq!(shown(&mut h), expected, "{brand:?}");
+    }
+}
+
+#[gpui::test]
+fn chosen_colors_stay_with_their_theme_and_a_new_background_resets_the_text(cx: &mut TestAppContext) {
+    let mut h = open(cx, true);
+    let hex = |text: &str| crate::theme::Hex::parse(text).expect("a color");
+    h.act(|shelf, _, cx| {
+        shelf.set_theme(ThemeChoice::Named("dracula".into()), cx);
+        shelf.set_accent(Some(hex("#22c55e")), cx);
+        shelf.toggle_picker(Paint::Text, cx);
+        shelf.pick_shade(crate::theme::Hsv { hue: 0., saturation: 0., value: 0.5 }, cx);
+    });
+    let colors = h.saved().settings().theme_colors("dracula");
+    assert_eq!((colors.accent, colors.text), (Some(hex("#22c55e")), Some(hex("#808080"))));
+    assert_eq!(h.read(|shelf| shelf.theme().text), hex("#808080").color());
+    h.act(|shelf, _, cx| shelf.set_background(Some(hex("#ffffff")), cx));
+    let colors = h.saved().settings().theme_colors("dracula");
+    assert_eq!((colors.background, colors.text), (Some(hex("#ffffff")), None), "the text follows the new background");
+    assert!(h.read(|shelf| shelf.themes().picking()).is_none(), "picking a preset closes the picker");
+    h.act(|shelf, _, cx| shelf.set_theme(ThemeChoice::Named("Light".into()), cx));
+    assert_eq!(h.read(|shelf| shelf.theme().accent), crate::theme::Theme::system(gpui::WindowAppearance::Light).accent);
+    h.act(|shelf, _, cx| {
+        shelf.set_theme(ThemeChoice::Named("dracula".into()), cx);
+        shelf.set_accent(None, cx);
+        shelf.set_background(None, cx);
+    });
+    assert!(h.saved().settings().theme_colors.is_empty(), "back to the theme's own colors leaves nothing saved");
+}
+
+#[gpui::test]
+fn restoring_a_setting_brings_back_its_default_and_reaches_the_system(cx: &mut TestAppContext) {
+    let mut h = open(cx, true);
+    h.act(|shelf, _, cx| {
+        shelf.toggle_tray_icon(cx);
+        shelf.set_scale(125, cx);
+        shelf.set_transparency(30, cx);
+    });
+    assert!(!h.read(|shelf| shelf.store().settings().is_default(store::Preference::TrayIcon)));
+    h.fake.take_calls();
+    h.act(|shelf, _, cx| {
+        shelf.restore_setting(store::Preference::TrayIcon, cx);
+        shelf.restore_setting(store::Preference::Scale, cx);
+    });
+    let saved = h.saved();
+    assert!(saved.settings().tray_icon && saved.settings().scale == 100);
+    assert_eq!(saved.settings().transparency, 30, "other settings stay as they were");
+    assert!(h.fake.calls().contains(&Call::Tray(true)));
+    assert!(h.read(|shelf| shelf.store().settings().is_default(store::Preference::TrayIcon)));
+}
+
+#[gpui::test]
+fn restoring_the_theme_also_drops_the_colors_chosen_for_it(cx: &mut TestAppContext) {
+    let mut h = open(cx, true);
+    let red = crate::theme::Hex::parse("#ef4444");
+    h.act(|shelf, _, cx| shelf.set_accent(red, cx));
+    assert!(
+        h.read(|shelf| shelf.setting_changed(store::Preference::Theme)),
+        "own colors count as a change of the theme"
+    );
+    h.act(|shelf, _, cx| {
+        shelf.set_theme(ThemeChoice::Named("dracula".into()), cx);
+        shelf.set_accent(red, cx);
+        shelf.restore_setting(store::Preference::Theme, cx);
+    });
+    let saved = h.saved();
+    assert_eq!(saved.settings().theme, ThemeChoice::System);
+    assert!(saved.settings().theme_colors("dracula").is_empty(), "the colors of the theme that was on are dropped");
+    assert!(
+        h.read(|shelf| shelf.setting_changed(store::Preference::Theme)),
+        "colors of the system theme stay until restored"
+    );
+}
+
+#[gpui::test]
+fn enter_in_page_search_walks_through_the_matches_and_wraps_around(cx: &mut TestAppContext) {
+    let mut h = open(cx, true);
+    h.act(|shelf, _, cx| {
+        shelf.toggle_page(Page::Settings, cx);
+        shelf.find.input().update(cx, |input, cx| input.set_text("o".into(), cx));
+        shelf.page_searched(cx);
+    });
+    h.render();
+    let count = h.read(|shelf| shelf.regions.hit_count());
+    assert!(count > 1, "a common letter is found in several settings");
+    assert_eq!(h.read(|shelf| shelf.current_hit()), 0, "typing lands on the first match");
+    h.act(|shelf, _, cx| shelf.step_hit(false, cx));
+    assert_eq!(h.read(|shelf| shelf.current_hit()), count - 1, "going back from the first match wraps to the last");
+    for _ in 0..count {
+        h.act(|shelf, _, cx| shelf.step_hit(true, cx));
+        h.render();
+    }
+    assert_eq!(h.read(|shelf| shelf.current_hit()), count - 1, "a full round comes back to the same match");
 }

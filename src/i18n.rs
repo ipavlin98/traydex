@@ -62,11 +62,11 @@ impl Language {
         }
     }
 
-    pub fn font(self) -> &'static str {
+    pub fn script_font(self) -> Option<&'static str> {
         match self {
-            Language::Chinese => "Microsoft YaHei UI",
-            Language::Hindi => "Nirmala UI",
-            _ => "Segoe UI",
+            Language::Chinese => Some("Microsoft YaHei UI"),
+            Language::Hindi => Some("Nirmala UI"),
+            Language::English | Language::Spanish | Language::French | Language::Russian => None,
         }
     }
 
@@ -171,6 +171,18 @@ pub struct Strings {
     pub theme_dark: &'static str,
     pub section_appearance: &'static str,
     pub theme: &'static str,
+    pub accent_color: &'static str,
+    pub accent_hint: &'static str,
+    pub background_color: &'static str,
+    pub background_hint: &'static str,
+    pub text_color: &'static str,
+    pub text_hint: &'static str,
+    pub text_auto: &'static str,
+    pub color_theme: &'static str,
+    pub color_preset: &'static str,
+    pub color_custom: &'static str,
+    pub themes_folder: &'static str,
+    pub themes_folder_hint: &'static str,
     pub transparency: &'static str,
     pub scale: &'static str,
     pub blur: &'static str,
@@ -232,6 +244,7 @@ pub struct Strings {
     pub search_placeholder: &'static str,
     pub nothing_found: &'static str,
     pub clear_search: &'static str,
+    pub search_next: &'static str,
     pub clear_hint: &'static str,
     pub autostart_setup_failed: &'static str,
     pub save_failed: &'static str,
@@ -339,6 +352,11 @@ pub struct Strings {
     pub optional: &'static str,
     pub needs_setup: &'static str,
     pub tile_input: &'static str,
+    pub brand: &'static str,
+    pub brand_logo_and_name: &'static str,
+    pub brand_logo: &'static str,
+    pub brand_name: &'static str,
+    pub brand_hidden: &'static str,
     pub tile_input_hint: &'static str,
     pub input_clipboard: &'static str,
     pub input_selection: &'static str,

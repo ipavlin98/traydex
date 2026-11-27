@@ -221,11 +221,13 @@ fn pinning_during_drag_session_keeps_the_window(cx: &mut TestAppContext) {
 fn right_click_during_drag_hides_even_a_pinned_window(cx: &mut TestAppContext) {
     let mut h = open_with(cx, true, |_, store, _| store.settings_mut().pinned = true);
     h.send(Event::DragStart);
-    h.send(Event::CancelDrag);
+    h.send(Event::HideDuringDrag);
     assert!(!h.fake.state().visible);
     h.send(Event::DragEnd);
     h.elapse(Duration::from_secs(1));
     assert!(!h.fake.state().visible);
+    h.send(Event::DragStart);
+    assert!(h.fake.state().visible, "the next drag shows the window again");
 }
 
 #[gpui::test]

@@ -1,7 +1,8 @@
-use super::{HINT_PADDING, HINT_WIDTH, Hint, Tip, hint, optical_lift, searched};
+use super::{HINT_PADDING, HINT_WIDTH, Hint, Tip, hint, optical_lift, searched, ui_font};
+use crate::i18n::Language;
 use crate::search::Query;
 use crate::shelf::Regions;
-use crate::theme::{Theme, ThemeMode};
+use crate::theme::Theme;
 use gpui::{
     Context, IntoElement, Modifiers, Render, TestAppContext, VisualTestContext, Window, WindowAppearance, div, point,
     prelude::*, px,
@@ -22,7 +23,7 @@ impl Render for Anchor {
 }
 
 fn shown(cx: &mut TestAppContext) -> &mut VisualTestContext {
-    let theme = Theme::resolve(ThemeMode::Dark, WindowAppearance::Dark);
+    let theme = Theme::system(WindowAppearance::Dark);
     let (_, cx) = cx.add_window_view(move |_, _| Anchor { theme });
     cx.run_until_parked();
     cx.simulate_mouse_move(point(px(20.), px(30.)), None, Modifiers::default());
@@ -55,7 +56,7 @@ fn shown_tooltip_grows_to_fit_wrapped_lines(cx: &mut TestAppContext) {
 
 #[gpui::test]
 fn long_hint_lines_wrap_inside_its_box(cx: &mut TestAppContext) {
-    let theme = Theme::resolve(ThemeMode::Dark, WindowAppearance::Dark);
+    let theme = Theme::system(WindowAppearance::Dark);
     let text = LONG;
     let (_, cx) = cx.add_window_view(move |_, _| Hint {
         tip: Tip::keys(text, &["Ctrl", "C"]).line(Tip::keys(text, &["Ctrl", "Enter"])),
@@ -100,4 +101,15 @@ fn text_block_is_centered_between_the_capitals_and_the_last_baseline() {
     assert_eq!(optical_lift(4., 30., 32.), 1., "ink sits low in its line boxes, so the block moves up");
     assert_eq!(optical_lift(2., 26., 32.), -2., "ink sits high, so the block moves down");
     assert_eq!(optical_lift(3., 29., 32.), 0., "ink already centered");
+}
+
+#[test]
+fn every_language_draws_latin_in_one_font_and_its_script_in_the_script_font() {
+    let families: std::collections::HashSet<_> =
+        Language::ALL.iter().map(|&language| ui_font(language).family).collect();
+    assert_eq!(families.len(), 1, "{families:?}");
+    for language in [Language::Chinese, Language::Hindi] {
+        let fallbacks = ui_font(language).fallbacks.expect("a script font");
+        assert_eq!(fallbacks.fallback_list(), [language.script_font().expect("a script font")]);
+    }
 }

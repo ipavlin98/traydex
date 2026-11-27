@@ -458,5 +458,5 @@ fn page_search_scrolls_the_first_match_into_view(cx: &mut TestAppContext) {
     assert!(in_view(&mut h, last), "the only match is scrolled into view");
     h.keys("escape");
     h.cx.simulate_input(tr().theme);
-    assert!(in_view(&mut h, "segmented:theme"), "a new query brings its first match back up");
+    assert!(in_view(&mut h, "theme"), "a new query brings its first match back up");
 }

@@ -1,6 +1,6 @@
 use crate::design::{self, line, radius, rem, size, space};
 use crate::textarea::{Edit, EditBuffer, History, head, step, word_around};
-use crate::theme::{Theme, ThemeMode, fade};
+use crate::theme::{Theme, fade};
 use gpui::{prelude::*, *};
 use std::ops::Range;
 
@@ -28,7 +28,9 @@ pub(crate) fn caret_bounds(at: Point<Pixels>, height: Pixels, scale: f32) -> Bou
     Bounds::new(edges.origin, size(px(width), edges.size.height))
 }
 
-pub struct Submitted;
+pub struct Submitted {
+    pub shift: bool,
+}
 
 pub struct TextInput {
     focus: FocusHandle,
@@ -92,7 +94,7 @@ pub fn label(text: SharedString, backdrop: Rgba) -> impl IntoElement {
             },
             move |bounds, line, window, cx| {
                 let area = overdrawn(bounds);
-                window.with_content_mask(Some(ContentMask { bounds: area }), |window| {
+                window.with_content_mask(Some(ContentMask::new(area)), |window| {
                     let _ = line.paint(bounds.origin, bounds.size.height, TextAlign::Left, None, window, cx);
                     paint_fades(area, (false, line.width > bounds.size.width), backdrop, window);
                 });
@@ -272,7 +274,7 @@ impl TextInput {
                     self.replace(selected, text.trim(), Edit::Other, cx);
                 }
             }
-            "enter" if self.edit.marked().is_none() => cx.emit(Submitted),
+            "enter" if self.edit.marked().is_none() => cx.emit(Submitted { shift }),
             "enter" => {}
             "tab" if self.edit.marked().is_some() => {}
             _ => return,
@@ -449,8 +451,7 @@ impl EntityInputHandler for TextInput {
 
 impl Render for TextInput {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let t =
-            cx.try_global::<Theme>().copied().unwrap_or_else(|| Theme::resolve(ThemeMode::System, window.appearance()));
+        let t = cx.try_global::<Theme>().copied().unwrap_or_else(|| Theme::system(window.appearance()));
         let focused = self.focus.is_focused(window);
         let entity = cx.entity();
         let painter = entity.clone();
@@ -478,7 +479,7 @@ impl Render for TextInput {
                     move |bounds, frame, window, cx| {
                         window.handle_input(&focus, ElementInputHandler::new(bounds, painter.clone()), cx);
                         let area = overdrawn(bounds);
-                        window.with_content_mask(Some(ContentMask { bounds: area }), |window| {
+                        window.with_content_mask(Some(ContentMask::new(area)), |window| {
                             if let Some(selection) = frame.selection {
                                 window.paint_quad(fill(selection, t.selection));
                             }

@@ -20,13 +20,14 @@ mod selection;
 mod session;
 mod settings;
 mod tasks;
+mod themes;
 mod tiles;
 mod unpack;
 mod updates;
 
 use crate::actions::{TileId, Tiles, Tool};
 use crate::i18n::{fill, tr};
-use crate::input::{Changed, TextInput};
+use crate::input::{Changed, Submitted, TextInput};
 use crate::keys::Command;
 use crate::store::{ItemId, Store};
 use crate::system::{Desktop, Event, Services};
@@ -57,6 +58,8 @@ pub(crate) use session::{Regions, Session};
 pub use settings::Dropdown;
 pub(crate) use settings::{Menu, Recorder};
 pub use tasks::SafeListener;
+use themes::Themes;
+pub use themes::{Paint, Picking};
 pub use tiles::{Edge, Lane};
 use updates::{Check, Due, Updates};
 
@@ -103,6 +106,7 @@ pub struct Shelf {
     fade: Entity<Fade>,
     confirming: Option<Confirm>,
     menu: Menu,
+    themes: Themes,
     recorder: Recorder,
     appearance: WindowAppearance,
     animation_effects: bool,
@@ -140,6 +144,7 @@ impl Shelf {
         .detach();
         let search = cx.new(|cx| TextInput::new(String::new(), tr().search_placeholder, false, cx).bare());
         let find = cx.new(|cx| TextInput::new(String::new(), tr().search_placeholder, false, cx).bare());
+        let hex = cx.new(|cx| TextInput::new(String::new(), "#000000", false, cx));
         let notices = cx.new(|_| Notices::default());
         let jobs = cx.new(|_| Jobs::default());
         let updates = cx.new(|_| Updates::default());
@@ -178,6 +183,15 @@ impl Shelf {
                 cx.notify();
             }),
             cx.subscribe(&find, |shelf, _, _: &Changed, cx| shelf.page_searched(cx)),
+            cx.subscribe(&hex, |shelf, _, _: &Changed, cx| shelf.guarded(cx, |shelf, cx| shelf.hex_typed(cx))),
+            cx.subscribe_in(&hex, window, |shelf, _, _: &Submitted, window, cx| {
+                shelf.guarded(cx, |shelf, cx| shelf.close_picker(cx));
+                window.focus(&shelf.focus, cx);
+            }),
+            cx.subscribe(&find, |shelf, _, submitted: &Submitted, cx| {
+                let forward = !submitted.shift;
+                shelf.guarded(cx, |shelf, cx| shelf.step_hit(forward, cx))
+            }),
             cx.observe(&notices, |_, _, cx| cx.notify()),
             cx.observe(&jobs, |_, _, cx| cx.notify()),
             cx.observe(&updates, |_, _, cx| cx.notify()),
@@ -208,6 +222,7 @@ impl Shelf {
             fade,
             confirming: None,
             menu: Menu::default(),
+            themes: Themes::new(hex),
             recorder: Recorder::default(),
             appearance: window.appearance(),
             animation_effects,
@@ -248,13 +263,15 @@ impl Shelf {
             self.fail(fill(tr().actions_failed, &error), cx);
         }
         self.detect_tools(cx);
+        self.load_themes(cx);
         self.schedule_scans(cx);
         self.fit(cx);
         self.refresh(cx);
     }
 
     pub fn theme(&self) -> Theme {
-        Theme::resolve(self.store.settings().theme, self.appearance)
+        let settings = self.store.settings();
+        self.themes.catalog().resolve(&settings.theme, self.appearance, &settings.theme_colors)
     }
 
     fn apply_theme(&self, cx: &mut Context<Self>) {
@@ -267,7 +284,7 @@ impl Shelf {
             Event::DragStart => self.drag_started(cx),
             Event::DragToCorner => self.drag_reached_corner(cx),
             Event::DragEnd => self.drag_ended(cx),
-            Event::CancelDrag => self.cancel_drag(cx),
+            Event::HideDuringDrag => self.hide_during_drag(cx),
             Event::Hover(hovering) => self.hover_changed(hovering, cx),
             Event::AnimationEffects(enabled) => self.animation_effects_changed(enabled, cx),
             Event::Offer(offer) => self.offered(offer, cx),

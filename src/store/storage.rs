@@ -29,6 +29,31 @@ impl Storage {
         self.root.join("content")
     }
 
+    pub fn themes(&self) -> PathBuf {
+        self.root.join("themes")
+    }
+
+    pub fn theme_files(&self) -> Vec<(String, String)> {
+        let Ok(entries) = fs::read_dir(self.themes()) else { return Vec::new() };
+        let mut files: Vec<(String, String)> = entries
+            .flatten()
+            .map(|entry| entry.path())
+            .filter(|path| path.extension().is_some_and(|extension| extension.eq_ignore_ascii_case("json")))
+            .filter_map(|path| {
+                let id = path.file_stem()?.to_string_lossy().into_owned();
+                match fs::read_to_string(&path) {
+                    Ok(text) => Some((id, text)),
+                    Err(error) => {
+                        log::warn!("Couldn't read the theme {}: {error}", path.display());
+                        None
+                    }
+                }
+            })
+            .collect();
+        files.sort();
+        files
+    }
+
     pub fn notes(&self) -> PathBuf {
         self.content().join("notes")
     }

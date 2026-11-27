@@ -1,28 +1,82 @@
 use super::motion::{Enter, Motion};
 use super::widgets::{
-    Finder, Look, Marked, bare_button, dimmed, hint, icon, icon_button, kbd, page, searched, section, segment_base,
-    segments, setting, spinner, switch, text_button, unmatched,
+    Finder, Look, Marked, bare_button, dimmed, hint, icon, icon_button, kbd, measure, measure_in, page, searched,
+    section, segment_base, segments, setting, spinner, switch, text_button, ui_font, unmatched,
 };
 use crate::design::{glyph, line, radius, rem, size, space, text};
 use crate::i18n::{self, Language, tr};
 use crate::keys::Command;
 use crate::shelf::{Dropdown, Page, SafeListener, Shelf};
-use crate::store::{Corner, SCALES, ShakeLevel, TileInput};
-use crate::theme::{Theme, ThemeMode};
+use crate::store::{Brand, Corner, Preference, SCALES, ShakeLevel, TileInput};
+use crate::theme::{Catalog, Origin, Theme, ThemeChoice};
 use gpui::{prelude::*, *};
 use std::path::Path;
 
-const PICKER_WIDTH: f32 = 152.;
-const MENU_WIDTH: f32 = 180.;
+const DROPDOWN_MIN: f32 = 172.;
+const DROPDOWN_MAX: f32 = 240.;
+const DROPDOWN_GRID: f32 = space::XS;
+const MENU_PADDING: f32 = space::XS;
+const OPTION_PADDING: f32 = space::M;
+const TRIGGER_PADDING: f32 = MENU_PADDING + OPTION_PADDING;
+const OPTION_TEXT: f32 = text::SMALL;
 const MENU_OFFSET: f32 = size::CONTROL + space::XS;
 const SHORTCUT_HEIGHT: f32 = 26.;
+const OPTION: &str = "dropdown-option";
 
 struct Picker<T: 'static> {
     menu: Dropdown,
     current: T,
-    options: &'static [T],
-    label: fn(T) -> Div,
+    options: Vec<T>,
+    label: fn(&T) -> SharedString,
+    font: Option<fn(&T) -> Font>,
     pick: fn(&mut Shelf, T, &mut Context<Shelf>),
+}
+
+impl<T> Picker<T> {
+    fn text(&self, value: &T) -> Div {
+        div()
+            .flex_1()
+            .min_w_0()
+            .truncate()
+            .when_some(self.font, |d, font| d.font(font(value)))
+            .child((self.label)(value))
+    }
+
+    fn widest(&self, window: &Window) -> f32 {
+        let measure = |value: &T| {
+            let label = (self.label)(value);
+            match self.font {
+                Some(font) => measure_in(window, &label, OPTION_TEXT, font(value)),
+                None => measure(window, &label, OPTION_TEXT),
+            }
+        };
+        self.options.iter().map(measure).fold(0., f32::max)
+    }
+}
+
+fn dropdown_width(widest: f32) -> (f32, bool) {
+    let chrome = 2. * (size::HAIRLINE + TRIGGER_PADDING) + space::M + glyph::XS;
+    let width = ((widest + chrome) / DROPDOWN_GRID).ceil() * DROPDOWN_GRID;
+    (width.clamp(DROPDOWN_MIN, DROPDOWN_MAX), width <= DROPDOWN_MAX)
+}
+
+#[derive(Clone, PartialEq)]
+struct ThemePick {
+    choice: ThemeChoice,
+    name: SharedString,
+}
+
+fn theme_picks(catalog: &Catalog) -> Vec<ThemePick> {
+    let system = ThemePick { choice: ThemeChoice::System, name: tr().theme_system.into() };
+    let entries = catalog.entries().iter().map(|entry| ThemePick {
+        choice: ThemeChoice::Named(entry.id().to_owned()),
+        name: match entry.origin() {
+            Origin::Light => tr().theme_light.into(),
+            Origin::Dark => tr().theme_dark.into(),
+            Origin::Example | Origin::File => entry.name().to_owned().into(),
+        },
+    });
+    std::iter::once(system).chain(entries).collect()
 }
 
 fn dropdown_name(menu: Dropdown) -> &'static str {
@@ -30,6 +84,17 @@ fn dropdown_name(menu: Dropdown) -> &'static str {
         Dropdown::Scale => "scale",
         Dropdown::Language => "language",
         Dropdown::TileInput => "tile-input",
+        Dropdown::Brand => "brand",
+        Dropdown::Theme => "theme",
+    }
+}
+
+fn brand_label(brand: Brand) -> &'static str {
+    match brand {
+        Brand::LogoAndName => tr().brand_logo_and_name,
+        Brand::Logo => tr().brand_logo,
+        Brand::Name => tr().brand_name,
+        Brand::Hidden => tr().brand_hidden,
     }
 }
 
@@ -54,23 +119,51 @@ impl Shelf {
         segments(t).marked(format!("segmented:{id}")).flex_shrink_0().children(options.into_iter().enumerate().map(
             |(index, (value, name, label, compact))| {
                 let active = current == value;
-                segment_base(t, (id, index), active)
+                let face = div()
                     .px(rem(if compact { space::S } else { space::M }))
                     .gap(rem(space::S))
                     .when_some(name, |d, name| d.child(icon(name, if active { t.text } else { t.muted }, glyph::S)))
-                    .map(|d| if compact { d.tooltip(hint(t, label)) } else { d.child(label) })
+                    .when(!compact, |d| d.child(label));
+                segment_base(t, (id, index), active, face)
+                    .when(compact, |d| d.tooltip(hint(t, label)))
                     .on_click(cx.safe_listener(move |shelf, _, _, cx| pick(shelf, value, cx)))
             },
         ))
     }
 
-    fn theme_switcher(&self, t: Theme, cx: &mut Context<Self>) -> Div {
-        let options = vec![
-            (ThemeMode::System, Some("monitor"), tr().theme_system, false),
-            (ThemeMode::Light, Some("sun"), tr().theme_light, false),
-            (ThemeMode::Dark, Some("moon"), tr().theme_dark, false),
-        ];
-        self.segmented(t, "theme", self.store().settings().theme, options, Self::set_theme, cx)
+    fn theme_picker(&self, t: Theme, window: &Window, cx: &mut Context<Self>) -> Div {
+        let options = theme_picks(self.themes().catalog());
+        let chosen = &self.store().settings().theme;
+        let current = options.iter().find(|pick| &pick.choice == chosen).or(options.first()).cloned();
+        let Some(current) = current else { return div() };
+        let picker = Picker {
+            menu: Dropdown::Theme,
+            current,
+            options,
+            label: |pick| pick.name.clone(),
+            font: None,
+            pick: |shelf, pick, cx| shelf.set_theme(pick.choice, cx),
+        };
+        self.dropdown(t, picker, window, cx)
+    }
+
+    fn themes_folder(&self, t: Theme, query: Finder, cx: &mut Context<Self>) -> Div {
+        let failures = self.themes().catalog().failures();
+        setting(t, query, tr().themes_folder, Some(tr().themes_folder_hint))
+            .when(!failures.is_empty(), |d| {
+                d.child(
+                    div()
+                        .flex_shrink_0()
+                        .child(icon("alert", t.danger, glyph::M))
+                        .id("theme-failures")
+                        .tooltip(hint(t, failures.join("\n"))),
+                )
+            })
+            .child(
+                text_button(t, "themes-folder", tr().open_button, Look::Plain)
+                    .marked("themes-folder")
+                    .on_click(cx.safe_listener(|shelf, _, _, _| shelf.open_themes())),
+            )
     }
 
     fn transparency_picker(&self, t: Theme, cx: &mut Context<Self>) -> Div {
@@ -142,10 +235,18 @@ impl Shelf {
         )
     }
 
-    fn dropdown<T: Copy + PartialEq + 'static>(&self, t: Theme, picker: Picker<T>, cx: &mut Context<Self>) -> Div {
+    fn dropdown<T: Clone + PartialEq + 'static>(
+        &self,
+        t: Theme,
+        picker: Picker<T>,
+        window: &Window,
+        cx: &mut Context<Self>,
+    ) -> Div {
         let name = dropdown_name(picker.menu);
         let open = self.menu().open() == Some(picker.menu);
         let menu = picker.menu;
+        let (width, fits) = dropdown_width(picker.widest(window));
+        let label = (picker.label)(&picker.current);
         div()
             .relative()
             .flex_shrink_0()
@@ -154,61 +255,73 @@ impl Shelf {
                     .id(name)
                     .marked(name)
                     .h(rem(size::CONTROL))
-                    .min_w(rem(PICKER_WIDTH))
-                    .px(rem(space::L))
+                    .w(rem(width))
+                    .px(rem(TRIGGER_PADDING))
                     .flex()
                     .items_center()
-                    .justify_between()
                     .gap(rem(space::M))
                     .rounded(rem(radius::CONTROL))
                     .border_1()
                     .border_color(if open { t.accent } else { t.border_strong })
-                    .text_size(rem(text::SMALL))
+                    .text_size(rem(OPTION_TEXT))
                     .cursor_pointer()
                     .hover(move |s| s.bg(t.hover))
-                    .child((picker.label)(picker.current))
+                    .child(picker.text(&picker.current))
                     .child(icon("chevron", t.muted, glyph::XS))
+                    .when(!fits && !open, |d| d.tooltip(hint(t, label)))
                     .on_click(cx.safe_listener(move |shelf, _, _, cx| shelf.toggle_menu(menu, cx))),
             )
-            .when(open, |d| d.child(self.dropdown_menu(t, name, &picker, cx)))
+            .when(open, |d| d.child(self.dropdown_menu(t, name, &picker, (width, fits), cx)))
     }
 
-    fn dropdown_menu<T: Copy + PartialEq + 'static>(
+    fn dropdown_menu<T: Clone + PartialEq + 'static>(
         &self,
         t: Theme,
         name: &'static str,
         picker: &Picker<T>,
+        (width, fits): (f32, bool),
         cx: &mut Context<Self>,
     ) -> Div {
         let pick = picker.pick;
-        let options = picker.options.iter().copied().enumerate().map(|(index, value)| {
-            let active = value == picker.current;
-            div()
-                .id(SharedString::from(format!("{name}-option-{index}")))
+        let options = picker.options.iter().enumerate().map(|(index, value)| {
+            let active = *value == picker.current;
+            let face = div()
                 .h(rem(size::CONTROL))
-                .px(rem(space::M))
+                .px(rem(OPTION_PADDING))
                 .flex()
                 .items_center()
-                .justify_between()
                 .gap(rem(space::M))
                 .rounded(rem(radius::SMALL))
-                .cursor_pointer()
-                .text_size(rem(text::SMALL))
+                .text_size(rem(OPTION_TEXT))
                 .text_color(if active { t.text } else { t.muted })
                 .when(active, |d| d.bg(t.active))
-                .hover(move |s| s.bg(t.hover).text_color(t.text))
-                .child((picker.label)(value))
-                .when(active, |d| d.child(icon("check", t.accent_text, glyph::XS)))
-                .on_click(cx.safe_listener(move |shelf, _, _, cx| pick(shelf, value, cx)))
+                .when(!active, |d| d.group_hover(OPTION, move |s| s.bg(t.hover).text_color(t.text)))
+                .child(picker.text(value))
+                .child(
+                    div()
+                        .size(rem(glyph::XS))
+                        .flex_shrink_0()
+                        .when(active, |d| d.child(icon("check", t.accent_text, glyph::XS))),
+                );
+            div()
+                .id(SharedString::from(format!("{name}-option-{index}")))
+                .group(OPTION)
+                .when(index > 0, |d| d.pt(rem(space::X2S)))
+                .cursor_pointer()
+                .child(face)
+                .when(!fits, |d| d.tooltip(hint(t, (picker.label)(value))))
+                .on_click({
+                    let value = value.clone();
+                    cx.safe_listener(move |shelf, _, _, cx| pick(shelf, value.clone(), cx))
+                })
         });
         let menu = div()
             .id(SharedString::from(format!("{name}-menu")))
             .marked(format!("{name}-menu"))
-            .min_w(rem(MENU_WIDTH))
-            .p(rem(space::XS))
+            .w(rem(width))
+            .p(rem(MENU_PADDING))
             .flex()
             .flex_col()
-            .gap(rem(space::X2S))
             .rounded(rem(radius::CONTROL))
             .border_1()
             .border_color(t.border_strong)
@@ -223,37 +336,52 @@ impl Shelf {
         )
     }
 
-    fn scale_picker(&self, t: Theme, cx: &mut Context<Self>) -> Div {
+    fn scale_picker(&self, t: Theme, window: &Window, cx: &mut Context<Self>) -> Div {
         let picker = Picker {
             menu: Dropdown::Scale,
             current: self.store().settings().scale,
-            options: &SCALES,
-            label: |scale| div().child(format!("{scale}%")),
+            options: SCALES.to_vec(),
+            label: |scale| format!("{scale}%").into(),
+            font: None,
             pick: Self::set_scale,
         };
-        self.dropdown(t, picker, cx)
+        self.dropdown(t, picker, window, cx)
     }
 
-    fn language_picker(&self, t: Theme, cx: &mut Context<Self>) -> Div {
+    fn language_picker(&self, t: Theme, window: &Window, cx: &mut Context<Self>) -> Div {
         let picker = Picker {
             menu: Dropdown::Language,
             current: i18n::current(),
-            options: &Language::ALL,
-            label: |language| div().font_family(language.font()).child(language.native_name()),
+            options: Language::ALL.to_vec(),
+            label: |language| language.native_name().into(),
+            font: Some(|language| ui_font(*language)),
             pick: Self::set_language,
         };
-        self.dropdown(t, picker, cx)
+        self.dropdown(t, picker, window, cx)
     }
 
-    fn tile_input_picker(&self, t: Theme, cx: &mut Context<Self>) -> Div {
+    fn brand_picker(&self, t: Theme, window: &Window, cx: &mut Context<Self>) -> Div {
+        let picker = Picker {
+            menu: Dropdown::Brand,
+            current: self.store().settings().brand,
+            options: Brand::ALL.to_vec(),
+            label: |brand| brand_label(*brand).into(),
+            font: None,
+            pick: Self::set_brand,
+        };
+        self.dropdown(t, picker, window, cx)
+    }
+
+    fn tile_input_picker(&self, t: Theme, window: &Window, cx: &mut Context<Self>) -> Div {
         let picker = Picker {
             menu: Dropdown::TileInput,
             current: self.store().settings().tile_input,
-            options: &TileInput::ALL,
-            label: |input| div().whitespace_nowrap().child(tile_input_label(input)),
+            options: TileInput::ALL.to_vec(),
+            label: |input| tile_input_label(*input).into(),
+            font: None,
             pick: Self::set_tile_input,
         };
-        self.dropdown(t, picker, cx)
+        self.dropdown(t, picker, window, cx)
     }
 
     fn shortcut(&self, t: Theme, command: Command, cx: &mut Context<Self>) -> Div {
@@ -318,6 +446,32 @@ impl Shelf {
         switch(t, id, on).on_click(cx.safe_listener(move |shelf, _, _, cx| flip(shelf, cx)))
     }
 
+    fn option(
+        &self,
+        t: Theme,
+        row: Div,
+        preference: Preference,
+        control: impl IntoElement,
+        cx: &mut Context<Self>,
+    ) -> Div {
+        let changed = self.setting_changed(preference);
+        row.child(
+            div()
+                .flex()
+                .flex_shrink_0()
+                .items_center()
+                .gap(rem(space::XS))
+                .when(changed, |d| {
+                    d.child(
+                        icon_button(t, ("restore", preference as usize), "reset", tr().shortcut_reset, false)
+                            .marked(format!("restore:{preference:?}"))
+                            .on_click(cx.safe_listener(move |shelf, _, _, cx| shelf.restore_setting(preference, cx))),
+                    )
+                })
+                .child(control),
+        )
+    }
+
     fn reset_button(
         &self,
         t: Theme,
@@ -329,19 +483,46 @@ impl Shelf {
         text_button(t, id, tr().reset, look).on_click(cx.safe_listener(move |shelf, _, _, cx| reset(shelf, cx)))
     }
 
-    fn appearance_section(&self, t: Theme, query: Finder, cx: &mut Context<Self>) -> Div {
+    fn appearance_section(&self, t: Theme, query: Finder, window: &Window, cx: &mut Context<Self>) -> Div {
         let settings = self.store().settings();
         section(t, tr().section_appearance)
-            .child(setting(t, query, tr().theme, None).child(self.theme_switcher(t, cx)))
-            .child(setting(t, query, tr().transparency, None).child(self.transparency_picker(t, cx)))
-            .child(setting(t, query, tr().scale, None).child(self.scale_picker(t, cx)))
+            .child(self.option(
+                t,
+                setting(t, query, tr().theme, None),
+                Preference::Theme,
+                self.theme_picker(t, window, cx),
+                cx,
+            ))
+            .children(self.color_rows(t, query, cx))
+            .child(self.themes_folder(t, query, cx))
+            .child(self.option(
+                t,
+                setting(t, query, tr().transparency, None),
+                Preference::Transparency,
+                self.transparency_picker(t, cx),
+                cx,
+            ))
+            .child(self.option(
+                t,
+                setting(t, query, tr().scale, None),
+                Preference::Scale,
+                self.scale_picker(t, window, cx),
+                cx,
+            ))
             .child(
-                setting(t, query, tr().blur, Some(tr().blur_hint)).child(
+                self.option(
+                    t,
+                    setting(t, query, tr().blur, Some(tr().blur_hint)),
+                    Preference::Blur,
                     self.setting_switch(t, "blur", settings.blurred(), Self::toggle_blur, cx)
                         .when(settings.window_animations, |d| dimmed(d).tooltip(hint(t, tr().blur_locked))),
+                    cx,
                 ),
             )
-            .child(setting(t, query, tr().window_animations, Some(tr().window_animations_hint)).child(
+            .child(self.option(
+                t,
+                setting(t, query, tr().window_animations, Some(tr().window_animations_hint)),
+                Preference::WindowAnimations,
                 self.setting_switch(
                     t,
                     "window-animations",
@@ -349,6 +530,7 @@ impl Shelf {
                     Self::toggle_window_animations,
                     cx,
                 ),
+                cx,
             ))
             // .child(setting(t, query, tr().interface_animations, Some(tr().interface_animations_hint)).child(
             //     self.setting_switch(
@@ -359,50 +541,92 @@ impl Shelf {
             //         cx,
             //     ),
             // ))
-            .child(setting(t, query, tr().language, None).child(self.language_picker(t, cx)))
+            .child(self.option(
+                t,
+                setting(t, query, tr().brand, None),
+                Preference::Brand,
+                self.brand_picker(t, window, cx),
+                cx,
+            ))
+            .child(self.option(
+                t,
+                setting(t, query, tr().language, None),
+                Preference::Language,
+                self.language_picker(t, window, cx),
+                cx,
+            ))
     }
 
-    fn behavior_section(&self, t: Theme, query: Finder, cx: &mut Context<Self>) -> Div {
+    fn behavior_section(&self, t: Theme, query: Finder, window: &Window, cx: &mut Context<Self>) -> Div {
         let settings = self.store().settings();
         section(t, tr().section_behavior)
-            .child(setting(t, query, tr().auto_show, Some(tr().auto_show_hint)).child(self.setting_switch(
+            .child(self.option(
                 t,
-                "automatic",
-                settings.automatic,
-                Self::toggle_automatic,
+                setting(t, query, tr().auto_show, Some(tr().auto_show_hint)),
+                Preference::Automatic,
+                self.setting_switch(t, "automatic", settings.automatic, Self::toggle_automatic, cx),
                 cx,
-            )))
-            .child(setting(t, query, tr().shake_to_show, Some(tr().shake_hint)).child(self.shake_picker(t, cx)))
-            .child(setting(t, query, tr().hot_corner, Some(tr().hot_corner_hint)).child(self.corner_picker(t, cx)))
-            .child(
-                setting(t, query, tr().corner_drag, Some(tr().corner_drag_hint)).child(self.corner_drag_switch(t, cx)),
-            )
-            .child(
-                setting(t, query, tr().near_cursor, Some(tr().near_cursor_hint)).child(self.near_cursor_switch(t, cx)),
-            )
-            .child(setting(t, query, tr().tile_input, Some(tr().tile_input_hint)).child(self.tile_input_picker(t, cx)))
-            .child(setting(t, query, tr().autostart, Some(tr().autostart_hint)).child(self.setting_switch(
+            ))
+            .child(self.option(
                 t,
-                "autostart",
-                settings.autostart,
-                Self::toggle_autostart,
+                setting(t, query, tr().shake_to_show, Some(tr().shake_hint)),
+                Preference::Shake,
+                self.shake_picker(t, cx),
                 cx,
-            )))
-            .child(setting(t, query, tr().tray_icon, Some(tr().tray_icon_hint)).child(self.setting_switch(
+            ))
+            .child(self.option(
                 t,
-                "tray-icon",
-                settings.tray_icon,
-                Self::toggle_tray_icon,
+                setting(t, query, tr().hot_corner, Some(tr().hot_corner_hint)),
+                Preference::HotCorner,
+                self.corner_picker(t, cx),
                 cx,
-            )))
-            .child(setting(t, query, tr().context_menu, Some(tr().context_menu_hint)).child(self.setting_switch(
+            ))
+            .child(self.option(
                 t,
-                "context-menu",
-                settings.context_menu,
-                Self::toggle_context_menu,
+                setting(t, query, tr().corner_drag, Some(tr().corner_drag_hint)),
+                Preference::CornerDrag,
+                self.corner_drag_switch(t, cx),
                 cx,
-            )))
-            .child(setting(t, query, tr().double_click_preview, Some(tr().double_click_preview_hint)).child(
+            ))
+            .child(self.option(
+                t,
+                setting(t, query, tr().near_cursor, Some(tr().near_cursor_hint)),
+                Preference::NearCursor,
+                self.near_cursor_switch(t, cx),
+                cx,
+            ))
+            .child(self.option(
+                t,
+                setting(t, query, tr().tile_input, Some(tr().tile_input_hint)),
+                Preference::TileInput,
+                self.tile_input_picker(t, window, cx),
+                cx,
+            ))
+            .child(self.option(
+                t,
+                setting(t, query, tr().autostart, Some(tr().autostart_hint)),
+                Preference::Autostart,
+                self.setting_switch(t, "autostart", settings.autostart, Self::toggle_autostart, cx),
+                cx,
+            ))
+            .child(self.option(
+                t,
+                setting(t, query, tr().tray_icon, Some(tr().tray_icon_hint)),
+                Preference::TrayIcon,
+                self.setting_switch(t, "tray-icon", settings.tray_icon, Self::toggle_tray_icon, cx),
+                cx,
+            ))
+            .child(self.option(
+                t,
+                setting(t, query, tr().context_menu, Some(tr().context_menu_hint)),
+                Preference::ContextMenu,
+                self.setting_switch(t, "context-menu", settings.context_menu, Self::toggle_context_menu, cx),
+                cx,
+            ))
+            .child(self.option(
+                t,
+                setting(t, query, tr().double_click_preview, Some(tr().double_click_preview_hint)),
+                Preference::DoubleClickPreview,
                 self.setting_switch(
                     t,
                     "double-click-preview",
@@ -410,28 +634,29 @@ impl Shelf {
                     Self::toggle_double_click_preview,
                     cx,
                 ),
+                cx,
             ))
-            .child(setting(t, query, tr().separate_notes, Some(tr().separate_notes_hint)).child(self.setting_switch(
+            .child(self.option(
                 t,
-                "separate-notes",
-                settings.separate_notes,
-                Self::toggle_separate_notes,
+                setting(t, query, tr().separate_notes, Some(tr().separate_notes_hint)),
+                Preference::SeparateNotes,
+                self.setting_switch(t, "separate-notes", settings.separate_notes, Self::toggle_separate_notes, cx),
                 cx,
-            )))
-            .child(setting(t, query, tr().recycle, Some(tr().recycle_hint)).child(self.setting_switch(
+            ))
+            .child(self.option(
                 t,
-                "recycle",
-                settings.recycle,
-                Self::toggle_recycle,
+                setting(t, query, tr().recycle, Some(tr().recycle_hint)),
+                Preference::Recycle,
+                self.setting_switch(t, "recycle", settings.recycle, Self::toggle_recycle, cx),
                 cx,
-            )))
-            .child(setting(t, query, tr().update_auto, Some(tr().update_auto_hint)).child(self.setting_switch(
+            ))
+            .child(self.option(
                 t,
-                "check-updates-auto",
-                settings.check_updates,
-                Self::toggle_check_updates,
+                setting(t, query, tr().update_auto, Some(tr().update_auto_hint)),
+                Preference::CheckUpdates,
+                self.setting_switch(t, "check-updates-auto", settings.check_updates, Self::toggle_check_updates, cx),
                 cx,
-            )))
+            ))
     }
 
     fn folders_section(&self, t: Theme, query: Finder, cx: &mut Context<Self>) -> Div {
@@ -474,17 +699,17 @@ impl Shelf {
             )
     }
 
-    pub(super) fn settings_page(&self, t: Theme, cx: &mut Context<Self>) -> AnyElement {
+    pub(super) fn settings_page(&self, t: Theme, window: &Window, cx: &mut Context<Self>) -> AnyElement {
         let query = self.page_query(cx);
-        let content = searched(query.as_ref(), self.regions(), |finder| self.settings_content(t, finder, cx));
+        let content = searched(query.as_ref(), self.regions(), |finder| self.settings_content(t, finder, window, cx));
         self.scroll_area(t, Page::Settings, "settings-page", content)
     }
 
-    fn settings_content(&self, t: Theme, query: Finder, cx: &mut Context<Self>) -> Stateful<Div> {
+    fn settings_content(&self, t: Theme, query: Finder, window: &Window, cx: &mut Context<Self>) -> Stateful<Div> {
         page("settings")
             .gap(rem(space::SECTION))
-            .child(self.appearance_section(t, query, cx))
-            .child(self.behavior_section(t, query, cx))
+            .child(self.appearance_section(t, query, window, cx))
+            .child(self.behavior_section(t, query, window, cx))
             .child(self.folders_section(t, query, cx))
             .child(
                 section(t, tr().section_keys).children(

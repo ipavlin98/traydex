@@ -51,6 +51,7 @@ pub mod glyph {
 
 pub mod size {
     pub const HAIRLINE: f32 = 1.;
+    pub const MARKER: f32 = 2.;
     pub const KEY: f32 = 20.;
     pub const BUTTON: f32 = 24.;
     pub const CONTROL: f32 = 28.;

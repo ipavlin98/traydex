@@ -54,7 +54,11 @@ fn typing_at_offers_matching_cards_and_enter_saves_a_mention(cx: &mut TestAppCon
     let offered = hits(&mut h).expect("the list is open");
     let titles: Vec<String> =
         offered.iter().map(|id| h.read(|shelf| shelf.store.item(id).expect("card").title.clone())).collect();
-    assert_eq!(titles, ["список.txt", REPORT], "every file is offered, newest first, without notes and texts");
+    assert_eq!(
+        titles,
+        ["список.txt", REPORT, "купить хлеб"],
+        "every card but notes is offered, newest first, texts included"
+    );
     h.cx.simulate_input("отч");
     h.settle();
     assert_eq!(hits(&mut h).and_then(|hits| hits.first().cloned()), Some(report.clone()));

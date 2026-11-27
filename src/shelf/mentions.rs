@@ -3,7 +3,7 @@ use super::preview::Back;
 use super::{Filter, Hovered, Page, Screen, Shelf, plugins};
 use crate::i18n::{fill, tr};
 use crate::search::{Grade, Query};
-use crate::store::{self, Item, ItemId, Kind, Payload};
+use crate::store::{self, Item, ItemId, Payload};
 use crate::textarea::{AreaEvent, Chip, Peek};
 use gpui::*;
 use std::collections::HashMap;
@@ -50,9 +50,8 @@ impl Shelf {
         area.update(cx, |area, cx| area.set_looks(looks, cx));
     }
 
-    fn mention_hits(&self, note: &ItemId, query: &str) -> Vec<ItemId> {
-        let candidates =
-            self.store.items().iter().filter(|item| item.id != *note && !matches!(item.kind, Kind::Note | Kind::Text));
+    fn mention_hits(&self, query: &str) -> Vec<ItemId> {
+        let candidates = self.store.items().iter().filter(|item| !item.note());
         let Some(query) = Query::parse(query) else {
             return candidates.map(|item| item.id.clone()).collect();
         };
@@ -68,11 +67,8 @@ impl Shelf {
     }
 
     fn suggest(&mut self, query: Option<&str>, cx: &mut Context<Self>) {
-        let Some(key) = self.previewed() else {
-            return;
-        };
         let picker =
-            query.map(|query| Picker { hits: self.mention_hits(&key, query), chosen: 0, scroll: ScrollHandle::new() });
+            query.map(|query| Picker { hits: self.mention_hits(query), chosen: 0, scroll: ScrollHandle::new() });
         let Some(note) = self.note_mut() else {
             return;
         };

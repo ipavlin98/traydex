@@ -9,7 +9,7 @@ mod watched;
 
 pub use files::{is_archive, is_image, restore_note, save_virtual, set_aside, vacant};
 pub use images::{decode, dib_bytes, open_image, open_oriented, png_bytes, save_image, title, write_png};
-pub use settings::{Corner, DEFAULT_SIZE, MIN_SIZE, SCALES, Settings, ShakeLevel, TileInput};
+pub use settings::{Brand, Corner, DEFAULT_SIZE, MIN_SIZE, Preference, SCALES, Settings, ShakeLevel, TileInput};
 pub use snapshot::Snapshot;
 pub use storage::{Scratch, Storage, id};
 pub use watched::{Watched, list_folder};

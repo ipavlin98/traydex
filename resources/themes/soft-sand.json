@@ -1,0 +1,13 @@
+{
+  "name": "Soft Sand",
+  "base": "light",
+  "palette": {
+    "background": "#f6f3ec",
+    "text": "#161615",
+    "accent": "#8b5cf6"
+  },
+  "colors": {
+    "muted": "#62615e",
+    "faint": "#8b8985"
+  }
+}

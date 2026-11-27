@@ -83,12 +83,12 @@ fn language_switched_by_a_parallel_test_does_not_leak() {
 }
 
 #[test]
-fn language_names_and_fonts_are_distinct() {
+fn language_names_are_distinct_and_scripts_have_fonts() {
     let names: std::collections::HashSet<_> = Language::ALL.iter().map(|l| l.native_name()).collect();
     assert_eq!(names.len(), Language::ALL.len());
-    assert_eq!(Language::Chinese.font(), "Microsoft YaHei UI");
-    assert_eq!(Language::Hindi.font(), "Nirmala UI");
-    assert_eq!(Language::Russian.font(), "Segoe UI");
+    assert_eq!(Language::Chinese.script_font(), Some("Microsoft YaHei UI"));
+    assert_eq!(Language::Hindi.script_font(), Some("Nirmala UI"));
+    assert_eq!(Language::Russian.script_font(), None);
 }
 
 #[test]

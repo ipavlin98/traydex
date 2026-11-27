@@ -1,7 +1,7 @@
 use crate::actions::Action;
 use crate::design::{glyph, line, radius, rem, scale, scaled, size, snap, space, text, timing, units};
 use crate::diagnostics;
-use crate::i18n;
+use crate::i18n::{self, Language};
 use crate::search::{Grade, Located, Query};
 use crate::shelf::Regions;
 use crate::theme::Theme;
@@ -27,11 +27,17 @@ const SETTING_HEIGHT: f32 = 42.;
 const ICON_VIEWBOX: f32 = 24.;
 const SKELETON_IN: Duration = Duration::from_millis(400);
 const SKELETON_HOLD: f32 = 0.5;
+const UI_FONT: &str = "Segoe UI";
+
+pub(super) fn ui_font(language: Language) -> Font {
+    let fallbacks = language.script_font().map(|script| FontFallbacks::from_fonts(vec![script.into()]));
+    Font { fallbacks, ..font(UI_FONT) }
+}
 
 fn run(len: usize, weight: FontWeight) -> TextRun {
     TextRun {
         len,
-        font: Font { weight, ..font(i18n::current().font()) },
+        font: Font { weight, ..ui_font(i18n::current()) },
         color: Hsla::default(),
         background_color: None,
         underline: None,
@@ -78,12 +84,13 @@ pub(super) fn measure(window: &Window, text: &str, size: f32) -> f32 {
 }
 
 pub(super) fn measure_weighted(window: &Window, text: &str, size: f32, weight: FontWeight) -> f32 {
-    let shaped = window.text_system().shape_line(
-        SharedString::from(text.to_string()),
-        scaled(size, window),
-        &[run(text.len(), weight)],
-        None,
-    );
+    measure_in(window, text, size, run(text.len(), weight).font)
+}
+
+pub(super) fn measure_in(window: &Window, text: &str, size: f32, font: Font) -> f32 {
+    let run = TextRun { font, ..run(text.len(), FontWeight::NORMAL) };
+    let shaped =
+        window.text_system().shape_line(SharedString::from(text.to_string()), scaled(size, window), &[run], None);
     units(shaped.width, window)
 }
 
@@ -162,7 +169,7 @@ pub(super) fn badge_icon(t: Theme, name: impl Into<SharedString>, size: f32, act
 
 pub(super) fn subtitle_lift(cx: &App) -> f32 {
     let text = cx.text_system();
-    let font = text.resolve_font(&font(i18n::current().font()));
+    let font = text.resolve_font(&ui_font(i18n::current()));
     let baseline = |(size, line): (f32, f32)| f32::from(text.baseline_offset(font, px(size), px(line)));
     let cap_top = baseline(TITLE_TYPE) - f32::from(text.cap_height(font, px(TITLE_TYPE.0)));
     let last_baseline = TITLE_TYPE.1 + space::SUBTITLE + baseline(SUBTITLE_TYPE);
@@ -306,7 +313,7 @@ pub(super) fn hint_card(t: Theme, tip: &Tip, window: &Window) -> Div {
     let muted = HighlightStyle { color: Some(t.muted.into()), ..Default::default() };
     div()
         .marked("hint")
-        .font_family(i18n::current().font())
+        .font(ui_font(i18n::current()))
         .text_size(rem(HINT_TEXT))
         .w(rem(snap(widest + 2. * HINT_PADDING + 2., scale(window)).min(HINT_WIDTH)))
         .px(rem(HINT_PADDING))
@@ -482,10 +489,12 @@ impl Finder<'_> {
         let Pass::Show(_, regions) = self.pass else {
             return None;
         };
+        if !found || self.query.is_none() {
+            return None;
+        }
+        let index = regions.count_hit();
         let regions = regions.clone();
-        (found && self.query.is_some()).then(|| {
-            canvas(move |bounds, _, _| regions.add_hit(bounds), |_, _, _, _| {}).absolute().top_0().left_0().size_full()
-        })
+        Some(canvas(move |bounds, _, _| regions.add_hit(index, bounds), |_, _, _, _| {}).absolute().inset_0())
     }
 }
 

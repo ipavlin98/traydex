@@ -7,6 +7,7 @@ use gpui::{prelude::*, *};
 const BUTTON_PADDING: f32 = space::L;
 const BUTTON_TEXT: f32 = text::SMALL;
 const SAFE_ZONE: &str = "safe-zone";
+const SEGMENT: &str = "segment";
 const HEADING_WEIGHT: FontWeight = FontWeight::SEMIBOLD;
 
 #[derive(Clone, Copy)]
@@ -219,25 +220,24 @@ pub(in crate::view) fn choice(
 pub(in crate::view) fn segments(t: Theme) -> Div {
     div()
         .flex()
-        .p(rem(space::X2S))
-        .gap(rem(space::X2S))
+        .py(rem(space::X2S))
+        .pr(rem(space::X2S))
         .rounded(rem(radius::CONTROL))
         .border_1()
         .border_color(t.border_strong)
 }
 
-pub(in crate::view) fn segment_base(t: Theme, id: impl Into<ElementId>, active: bool) -> Stateful<Div> {
-    div()
-        .id(id)
+pub(in crate::view) fn segment_base(t: Theme, id: impl Into<ElementId>, active: bool, face: Div) -> Stateful<Div> {
+    let face = face
         .h(rem(size::BUTTON))
         .flex()
         .items_center()
         .rounded(rem(radius::CONTROL - space::X2S))
-        .cursor_pointer()
         .text_size(rem(text::SMALL))
         .text_color(if active { t.text } else { t.muted })
         .when(active, |d| d.bg(t.active))
-        .when(!active, |d| d.hover(move |s| s.bg(t.hover)))
+        .when(!active, |d| d.group_hover(SEGMENT, move |s| s.bg(t.hover)));
+    div().id(id).group(SEGMENT).flex().pl(rem(space::X2S)).cursor_pointer().child(face)
 }
 
 pub(in crate::view) fn dimmed<E: Styled>(element: E) -> E {

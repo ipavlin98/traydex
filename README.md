@@ -119,7 +119,7 @@ panel; the arrow keys switch between them. The mouse wheel zooms into a photo, d
 
 <img src="docs/media/notes.webp" alt="Creating a note and finding it with search" width="100%">
 
-`Ctrl+N` creates a note that saves as you type. Type `\` (or `@`) to link a file, picture or link from the shelf: hover the
+`Ctrl+N` creates a note that saves as you type. Type `\` (or `@`) to link a file, picture, link or text from the shelf: hover the
 link to peek, click to open it; removing a linked card asks first. `/` searches the shelf, tolerating typos and text typed in the wrong keyboard
 layout.<br><br>
 
@@ -152,9 +152,10 @@ Wi-Fi.<br><br>
 
 <img src="docs/media/customize.webp" alt="Switching layout, theme and language" width="100%">
 
-List or grid view, light or dark theme, transparency and blur, interface scale from 90% to 150%, smooth scrolling.
-Animations follow the Windows *Animation effects* setting. Available in English, Russian, Chinese, Hindi, Spanish and
-French.<br><br>
+List or grid view, color themes (light, dark, Catppuccin, Dracula, Soft Sand or your own JSON files) with your
+own accent, background and text colors, transparency and blur, interface scale from 90% to 150%, logo and name in
+the title bar or a cleaner title, smooth scrolling. Animations follow the Windows *Animation effects* setting.
+Available in English, Russian, Chinese, Hindi, Spanish and French.<br><br>
 
 </td>
 </tr>
@@ -199,7 +200,7 @@ ones included. A card goes away when its file is deleted or moved; a card you re
 | Select all, select a range | `Ctrl+A`, `Shift`+click |
 | Pin to the top | `P` |
 | List / grid | `Ctrl+G` |
-| Cancel a drag and hide the shelf | Right-click while dragging |
+| Hide the shelf and keep dragging | Right-click while dragging |
 | Hide | `Esc` |
 
 Explorer's context menu also gets a *Send to Traydex shelf* item (on Windows 11, under *Show more options*).

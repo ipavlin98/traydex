@@ -648,15 +648,17 @@ impl Style {
             _ => {
                 let mut min = bounds.origin;
                 let mut max = bounds.bottom_right();
+                let mut inset = Edges::default();
 
                 if self
                     .border_color
                     .is_some_and(|color| !color.is_transparent())
                 {
-                    min.x += self.border_widths.left.to_pixels(rem_size);
-                    max.x -= self.border_widths.right.to_pixels(rem_size);
-                    min.y += self.border_widths.top.to_pixels(rem_size);
-                    max.y -= self.border_widths.bottom.to_pixels(rem_size);
+                    inset = self.border_widths.to_pixels(rem_size);
+                    min.x += inset.left;
+                    max.x -= inset.right;
+                    min.y += inset.top;
+                    max.y -= inset.bottom;
                 }
 
                 let bounds = match (
@@ -675,11 +677,27 @@ impl Style {
                         point(bounds.origin.x, min.y),
                         point(bounds.bottom_right().x, max.y),
                     ),
-                    // both hidden
-                    (false, false) => Bounds::from_corners(min, max),
+                    // both hidden: also cut to the inner edge of the rounded corners
+                    (false, false) => {
+                        let outer = self
+                            .corner_radii
+                            .to_pixels(rem_size)
+                            .clamp_radii_for_quad_size(bounds.size);
+                        let inner = |radius: Pixels, a: Pixels, b: Pixels| (radius - a.max(b)).max(px(0.));
+                        let corner_radii = Corners {
+                            top_left: inner(outer.top_left, inset.top, inset.left),
+                            top_right: inner(outer.top_right, inset.top, inset.right),
+                            bottom_right: inner(outer.bottom_right, inset.bottom, inset.right),
+                            bottom_left: inner(outer.bottom_left, inset.bottom, inset.left),
+                        };
+                        return Some(ContentMask::rounded(
+                            Bounds::from_corners(min, max),
+                            corner_radii,
+                        ));
+                    }
                 };
 
-                Some(ContentMask { bounds })
+                Some(ContentMask::new(bounds))
             }
         }
     }

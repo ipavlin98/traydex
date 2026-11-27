@@ -1,7 +1,7 @@
 use super::widgets::{
     Finder, Look, Marked, Tip, action_badge, action_icon, badge_icon, choice, disabled_button, edge_reach, grid,
     heading, highlighted, hint, icon, inset, leading_icon, measure, notice, page, picked, row_button, searched,
-    section, segment_base, segments, spinner, subtitle_lift, subtitled, switch, text_button, unmatched,
+    section, segment_base, segments, spinner, subtitle_lift, subtitled, switch, text_button, ui_font, unmatched,
     zoned_row_button,
 };
 use super::{FADE, fade_cover};
@@ -174,7 +174,7 @@ impl Render for DraggedTile {
             .border_color(t.accent)
             .bg(t.surface)
             .shadow_md()
-            .font_family(i18n::current().font())
+            .font(ui_font(i18n::current()))
             .text_size(rem(text::BODY))
             .text_color(t.text)
             .child(badge_icon(t, self.icon.clone(), ROW_BADGE, false))
@@ -268,8 +268,19 @@ fn link(t: Theme, id: &'static str, text: &'static str, url: &'static str, cx: &
         .on_click(cx.safe_listener(move |shelf, _, _, _| shelf.open_link(url)))
 }
 
+fn drop_marker(t: Theme, below: bool) -> Div {
+    let line = div()
+        .absolute()
+        .left_0()
+        .right_0()
+        .h(rem(size::MARKER))
+        .map(|d| if below { d.bottom_0() } else { d.top_0() })
+        .bg(t.accent);
+    div().absolute().inset_0().opacity(0.).drag_over::<DraggedTile>(|style, _, _, _| style.opacity(1.)).child(line)
+}
+
 pub(super) fn segment(t: Theme, id: &'static str, text: &'static str, active: bool) -> Stateful<Div> {
-    segment_base(t, id, active).flex_1().px(rem(space::L)).justify_center().child(text)
+    segment_base(t, id, active, div().flex_1().px(rem(space::L)).justify_center().child(text)).flex_1()
 }
 
 impl Shelf {
@@ -300,7 +311,9 @@ impl Shelf {
     fn action_row(&self, t: Theme, index: usize, tile: &Tile, row: &Row, cx: &mut Context<Self>) -> Stateful<Div> {
         let (action, id) = (&tile.action, tile.id);
         let (text, missed) = self.action_text(t, index, action, row);
-        let lifted = cx.active_drag_value::<DraggedTile>().is_some_and(|dragged| dragged.tile == id);
+        let from = cx.active_drag_value::<DraggedTile>().and_then(|dragged| self.tiles().position(dragged.tile));
+        let lifted = from == Some(index);
+        let marker = from.filter(|&from| from != index).map(|from| drop_marker(t, from < index));
         let dragged = DraggedTile {
             tile: id,
             icon: action_icon(action),
@@ -317,8 +330,6 @@ impl Shelf {
             .items_center()
             .gap(rem(space::L))
             .cursor_pointer()
-            .when(row.previous.is_none(), |d| d.rounded_t(rem(ROW_RADIUS)))
-            .when(row.next.is_none(), |d| d.rounded_b(rem(ROW_RADIUS)))
             .when(row.next.is_some(), |d| d.border_b_1().border_color(t.border))
             .when(lifted, |d| d.opacity(opacity::DISABLED))
             .when(missed && !lifted, unmatched)
@@ -328,11 +339,7 @@ impl Shelf {
             .on_hover(cx.safe_listener(move |shelf, hovered: &bool, _, _| shelf.hover(Hovered::Tile(id), *hovered)))
             .on_click(cx.safe_listener(move |shelf, _, window, cx| shelf.open_editor(id, None, window, cx)))
             .on_drag(dragged, |dragged, _, _, cx| cx.new(|_| dragged.clone()))
-            .drag_over::<DraggedTile>(
-                move |style, dragged, _, _| {
-                    if dragged.tile == id { style } else { style.bg(t.accent_tint) }
-                },
-            )
+            .children(marker)
             .on_drop(cx.safe_listener(move |shelf, dragged: &DraggedTile, _, cx| shelf.move_tile(dragged.tile, id, cx)))
             .child(icon("grip", t.faint, glyph::S))
             .child(action_badge(t, action, ROW_BADGE))

@@ -1,0 +1,22 @@
+{
+  "name": "Dracula",
+  "base": "dark",
+  "palette": {
+    "current_line": "#44475a",
+    "foreground": "#f8f8f2",
+    "pink": "#ff79c6",
+    "green": "#50fa7b",
+    "background": "#282a36",
+    "text": "foreground",
+    "accent": "pink"
+  },
+  "colors": {
+    "surface": "#21222c",
+    "hover": "#353746",
+    "active": "#3e4153",
+    "border": "#393b4c",
+    "border_strong": "current_line",
+    "muted": "#a9aecb",
+    "success": "green"
+  }
+}

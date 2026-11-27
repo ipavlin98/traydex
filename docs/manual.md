@@ -70,9 +70,12 @@ check failed; automatic checks only write failures to the log. The version itsel
 - By default the window sits in the top-left corner. Drag it by the title bar and resize it by any edge or corner.
   It snaps to screen edges and remembers its position and size between launches. Both can be reset in Settings; the
   default size is a 540 × 540 square.
-- Themes: light, dark (pure black) and following the system.
+- Color themes: light, dark (pure black), Catppuccin Mocha, Dracula, Soft Sand, your own from JSON files, or the
+  light or dark one following the system (see *Color themes* below).
 - Languages: English, 简体中文, हिन्दी, Español, Français, Русский. The system language is used by default, English if
-  the system language isn't in the list. Switch it in Settings.
+  the system language isn't in the list. Switch it in Settings. The interface font is Segoe UI in every language, so
+  Latin text and digits look the same everywhere; Chinese and Hindi characters fall back to Microsoft YaHei UI and
+  Nirmala UI.
 - Start with Windows (on by default, off in Settings): Traydex starts hidden in the tray. The entry lives in
   `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`.
 - Accepts files and folders, text, links, PNG and DIB images, and virtual files through the standard OLE stream.
@@ -108,7 +111,7 @@ check failed; automatic checks only write failures to the log. The version itsel
   read-only.
 - Mentions in notes: `\` (the key above `Enter`, unshifted in both English and Russian layouts) or `@` at the start of
   a word (not inside an address like `ivan@mail.ru` or a path like `C:\Users`) opens a list under it of every file,
-  picture, folder and link on the shelf (notes and texts aren't offered), newest first, then filtered by what you type
+  picture, folder, link and text on the shelf (notes aren't offered), newest first, then filtered by what you type
   with the same matching as search (typos, keyboard layout). It shows seven rows and scrolls with the wheel; `↑`/`↓`
   or `Alt+K`/`Alt+J` move and keep the chosen row in view, the mouse picks the row it moves over, `Enter`, `Tab` or a
   click inserts, `Esc` closes the list and keeps the text; the same trigger doesn't ask again. A mention is a chip
@@ -159,18 +162,19 @@ check failed; automatic checks only write failures to the log. The version itsel
 | Select all | `Ctrl+A` |
 | Remove the selected cards | `Delete` or the button on the *Selected* bar |
 | Find a card | `/` or a click on the search box at the bottom; `Esc` clears the query, a second `Esc` leaves the search box. The search box is hidden while the shelf is empty and while something is dragged over the window |
+| Find a setting or a tile | The same search box on Settings and the tiles page highlights matches and shows the current one and their count (`2/7`); `Enter` goes to the next match and `Shift+Enter` to the previous, scrolling the current one to the middle of the page when there is room |
 | Edit text in a field | In the search box, note titles and other one-line fields `Ctrl+Z` undoes and `Ctrl+Y` or `Ctrl+Shift+Z` redoes, as in notes. `Ctrl+←`/`Ctrl+→` and `Ctrl+Backspace`/`Ctrl+Delete` work by words, which end at spaces and punctuation such as `\` and `.`; a double click selects a word, a triple click everything. Emoji and letters with accents move and erase whole |
 | Open a card | `Enter`, the arrow button, or a double-click when *Preview on double-click* is off |
 | Preview a card | Double-click (*Preview on double-click*, on by default), or hover and press `Space` or the eye button; without hover, the first selected card |
 | Flip through previews | `←`/`→` or `↑`/`↓`, the buttons in the preview header |
 | Close the preview | `Space`, `Esc` or the cross; `Esc` also works from a system preview if its handler passes keys to the window. `Enter`, `Ctrl+C` and `Delete` in the preview act on the card shown |
 | Drag a card out | Hold the left button and move the mouse |
-| Cancel a drag and hide the panel | Right-click during a drag (left button still held, panel open): the drag is cancelled, files stay where they are, the panel hides even when pinned. The click itself never reaches Windows, so no context menu appears. Ordinary right clicks without a drag aren't affected |
+| Hide the panel during a drag | Right-click during a drag (left button still held, panel open): the panel hides even when pinned and the drag goes on, so you can drop onto whatever the panel covered. The next drag shows the panel again. The click itself never reaches Windows, so no context menu appears. Ordinary right clicks without a drag aren't affected |
 | Create a note | The plus button, `Ctrl+N`, or the *Ctrl N new note* button on an empty shelf and an empty *Notes* tab |
 | Rename a note or a link | Click the title in the preview or press `F2` and edit; `Enter`, `Esc` or `Tab` go back to the text. An empty title brings back the automatic one |
 | Show the shelf as a list or a grid | The grid (or list) button next to the storage button, `Ctrl+G` |
 | Keep the panel from hiding | The pin button |
-| Theme, transparency, scale and blur, auto-show, hot corner, autostart, context menu, preview on double-click, keep notes separate, delete to the Recycle Bin, watched folders, reset position and size, reset all settings | The settings button |
+| Theme, accent, background and text colors, themes folder, transparency, scale and blur, title bar, auto-show, hot corner, autostart, context menu, preview on double-click, keep notes separate, delete to the Recycle Bin, watched folders, reset position and size, reset all settings | The settings button |
 | Add or remove quick action tiles | The lightning button |
 | Run an action | Drop files, an image or text on a tile |
 | Add files from Explorer | Right click → *Send to Traydex shelf* |
@@ -224,10 +228,64 @@ strength. With 0% transparency blur is off.
 effects* setting (*Settings → Accessibility → Visual effects*) is off, Traydex doesn't animate at all, whatever its own
 settings say, and it follows a change of that setting without a restart.
 
+### Color themes
+
+*Theme* in *Appearance* is a drop-down list: *System* (light or dark after Windows), *Light*, *Dark*, the built-in
+Catppuccin Mocha, Dracula and Soft Sand, and every theme file from the themes folder. A theme changes colors only;
+sizes, corners and fonts stay the same. The choice is stored as `theme` in `shelf.json`: `System`, `Light`, `Dark`
+(as before) or the theme's id.
+
+Under it, three rows recolor the current theme:
+
+- *Accent color*: the theme's own accent (first circle), seven ready-made colors, or your own color from the palette
+  (the last circle: a saturation and brightness field, a hue strip and the color's hex code). The accent paints
+  buttons, marks, the selection and the logo; its text shade is darkened or lightened until it reads at 4.5:1.
+- *Background color*: the theme's own background, seven ready-made ones, or your own. Surfaces, hover and selected
+  rows, borders, secondary text and the danger and success colors are derived from the background and the text.
+  Picking a background also picks a readable text color for it; an accent that becomes unreadable on it (below 3:1)
+  gives way to the text color until you pick one.
+- *Text color*: picked automatically for the background; the circle opens the palette to choose your own, and the
+  reset button next to it returns to the automatic one.
+
+Picks are kept per theme in `theme_colors` in `shelf.json` (`{"dracula": {"accent": "#22c55e"}}`); choosing the
+theme's own color removes the entry. *Reset all settings* clears them.
+Every setting that differs from its default shows a reset button beside it. The one next to *Theme* returns
+to *System* and drops the colors picked for the theme that was on; the ones next to the accent and background
+return them to the theme's own.
+
+*Themes folder* opens `%LOCALAPPDATA%\Traydex\themes` (`data\themes` in the portable copy), creating it if needed.
+Every `*.json` file there is a theme whose id is the file name; the folder is read at start and each time Settings
+opens. A file with an error, or one whose name is taken by a built-in theme (`System`, `Light`, `Dark`,
+`catppuccin-mocha`, `dracula`, `soft-sand`, in any case), is skipped and shown by the warning sign next to the button
+with the reason. A theme file looks like this:
+
+```json
+{
+  "name": "Night",
+  "base": "dark",
+  "palette": { "ink": "#e0e0e0", "background": "#101820", "text": "ink", "accent": "#ff8800" },
+  "colors": { "danger": "#ff5555", "faint": "ink" }
+}
+```
+
+- `name`: shown in the list; the file name if missing.
+- `base`: `light` or `dark`, the built-in theme the rest starts from; without it, the background decides.
+- `palette`: named colors (`#rrggbb` or `#rrggbbaa`), which may refer to each other by name. `background`, `text`
+  and `accent` are special: from them the other colors are derived the same way as for the rows above.
+- `colors`: exact values for single colors, as a color or a palette name: `bg`, `surface`, `hover`, `active`,
+  `border`, `border_strong`, `text`, `muted`, `faint`, `accent`, `accent_text`, `accent_tint`, `selection`, `danger`,
+  `danger_tint`, `success`, `knob`, `on_accent`, `brand`, `code_ink`, `code_paper`. Colors picked in Settings for the
+  background or text replace these values with derived ones.
+
 *Scale* in *Appearance* (90%, 100%, 110%, 125%, 150%, a drop-down list) enlarges or shrinks the whole interface:
 text, icons, spacing and the minimum window size. It's stored as `scale` (percent) in `shelf.json`. Versions before
 it stored a font size (`font_size`, 12–16 at 13 = 100%); on the first start such a value becomes the nearest scale
 (12 → 90%, 14 and 15 → 110%, 16 → 125%).
+
+*Title bar* in *Appearance* (a drop-down list) picks what the left side of the title bar shows: the logo and the name
+(the default), only the logo, only the name, or nothing. Clicking the logo or the name returns to the shelf. On other
+pages the page name follows, after a dot; with nothing chosen the page name starts the title bar on its own. It's
+stored as `brand` (`LogoAndName`, `Logo`, `Name`, `Hidden`) in `shelf.json`.
 
 The log of work and errors, including caught crashes and a detailed drag trace (debug level; change it with the
 `RUST_LOG` variable), goes to `%LOCALAPPDATA%\Traydex\logs`: the current file is `traydex_rCURRENT.log`, it rolls
@@ -247,7 +305,8 @@ Clicking a tile in the list opens its settings: the name, keys and addresses are
 immediately, and secret keys are masked. Here you also choose whether a folder tile moves or copies, and which
 engine a search tile uses: Google (default for the first search tile), Yandex, Bing, DuckDuckGo, YouTube or your own
 address where `%s` is replaced by the query. An engine already used by another tile can't be picked. A tile missing
-required settings is marked *Needs setup*.
+required settings is marked *Needs setup*. The arrows in a row move the tile up or down; dragging a row moves it
+anywhere, and while you drag, a line shows where the tile will land.
 
 While an action runs, a purple progress ring fills next to the pin in the title bar (an arc spins when the percentage
 is unknown); its tooltip lists all running jobs with their stage and percentage. Errors show up as a red icon in the
@@ -443,6 +502,20 @@ focus) and keeps grayscale text antialiasing instead of upstream's ClearType in 
 14. **Measurement support.** With `ZED_MEASUREMENTS=1`, `log_timing` in `vendor/gpui/src/window.rs` writes when each
     frame and each opacity change happens to stderr, which the E2E `--measure` option and the `motion` suite read. In
     debug builds, `layout_line` checks that the style runs cover the whole text.
+15. **Rounded clipping.** A box with rounded corners that hides its overflow on both axes cuts its content to the
+    inner edge of its corners, the way CSS does; upstream clipped only to the rectangle, so a child filling a row at
+    the edge of a rounded list (the drop line in the tile list) stuck out past the curve. `ContentMask` carries the
+    rounded rectangle and its radii besides the clip rectangle (`vendor/gpui/src/window.rs`; `overflow_mask` in
+    `vendor/gpui/src/style.rs` sets them, an inner rounded box wins over an outer one), and every fragment shader
+    multiplies its alpha by the mask's antialiased coverage (`content_mask_alpha` in
+    `vendor/gpui_windows/src/shaders.hlsl`, the path rasterization sprite in `directx_renderer.rs` carries the mask
+    too). The regression test is `rounded_overflow_cuts_content_to_the_inner_edge_of_its_corners`; the shader part is
+    checked by eye.
+16. **Frames over translucent fills.** The quad shader (`quad_fragment` in `vendor/gpui_windows/src/shaders.hlsl`)
+    blends a border into its background in premultiplied alpha. Upstream lerps straight colors, so the anti-aliased
+    inner edge of a frame over a transparent or translucent fill (every GPUI border, which is a quad of its own over
+    a transparent fill) took the fill's RGB at full weight and came out dark and jagged on rounded shapes. Shader
+    only: no headless test, check by eye.
 
 The vendored crates leave out upstream's examples and test fonts, so their `Cargo.toml` lists no examples;
 `vendor/gpui` adds the `unicode-linebreak` dependency.
