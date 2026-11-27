@@ -72,7 +72,9 @@ check failed; automatic checks only write failures to the log. The version itsel
   default size is a 540 × 540 square.
 - Themes: light, dark (pure black) and following the system.
 - Languages: English, 简体中文, हिन्दी, Español, Français, Русский. The system language is used by default, English if
-  the system language isn't in the list. Switch it in Settings.
+  the system language isn't in the list. Switch it in Settings. The interface font is Segoe UI in every language, so
+  Latin text and digits look the same everywhere; Chinese and Hindi characters fall back to Microsoft YaHei UI and
+  Nirmala UI.
 - Start with Windows (on by default, off in Settings): Traydex starts hidden in the tray. The entry lives in
   `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`.
 - Accepts files and folders, text, links, PNG and DIB images, and virtual files through the standard OLE stream.
