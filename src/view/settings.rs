@@ -1,7 +1,7 @@
 use super::motion::{Enter, Motion};
 use super::widgets::{
-    Finder, Look, Marked, bare_button, dimmed, hint, icon, icon_button, kbd, page, searched, section, segment_base,
-    measure, measure_in, segments, setting, spinner, switch, text_button, unmatched,
+    Finder, Look, Marked, bare_button, dimmed, hint, icon, icon_button, kbd, measure, measure_in, page, searched,
+    section, segment_base, segments, setting, spinner, switch, text_button, unmatched,
 };
 use crate::design::{glyph, line, radius, rem, size, space, text};
 use crate::i18n::{self, Language, tr};
@@ -12,8 +12,8 @@ use crate::theme::{Theme, ThemeMode};
 use gpui::{prelude::*, *};
 use std::path::Path;
 
-const DROPDOWN_MIN: f32 = 152.;
-const DROPDOWN_MAX: f32 = 208.;
+const DROPDOWN_MIN: f32 = 192.;
+const DROPDOWN_MAX: f32 = 240.;
 const DROPDOWN_GRID: f32 = space::XS;
 const MENU_PADDING: f32 = space::XS;
 const OPTION_PADDING: f32 = space::M;
@@ -33,7 +33,12 @@ struct Picker<T: 'static> {
 
 impl<T: Copy> Picker<T> {
     fn text(&self, value: T) -> Div {
-        div().flex_1().min_w_0().truncate().when_some(self.font, |d, font| d.font(font(value))).child((self.label)(value))
+        div()
+            .flex_1()
+            .min_w_0()
+            .truncate()
+            .when_some(self.font, |d, font| d.font(font(value)))
+            .child((self.label)(value))
     }
 
     fn widest(&self, window: &Window) -> f32 {
@@ -235,9 +240,12 @@ impl Shelf {
                 .when(active, |d| d.bg(t.active))
                 .hover(move |s| s.bg(t.hover).text_color(t.text))
                 .child(picker.text(value))
-                .child(div().size(rem(glyph::XS)).flex_shrink_0().when(active, |d| {
-                    d.child(icon("check", t.accent_text, glyph::XS))
-                }))
+                .child(
+                    div()
+                        .size(rem(glyph::XS))
+                        .flex_shrink_0()
+                        .when(active, |d| d.child(icon("check", t.accent_text, glyph::XS))),
+                )
                 .when(!fits, |d| d.tooltip(hint(t, (picker.label)(value))))
                 .on_click(cx.safe_listener(move |shelf, _, _, cx| pick(shelf, value, cx)))
         });
@@ -423,7 +431,10 @@ impl Shelf {
             .child(
                 setting(t, query, tr().near_cursor, Some(tr().near_cursor_hint)).child(self.near_cursor_switch(t, cx)),
             )
-            .child(setting(t, query, tr().tile_input, Some(tr().tile_input_hint)).child(self.tile_input_picker(t, window, cx)))
+            .child(
+                setting(t, query, tr().tile_input, Some(tr().tile_input_hint))
+                    .child(self.tile_input_picker(t, window, cx)),
+            )
             .child(setting(t, query, tr().autostart, Some(tr().autostart_hint)).child(self.setting_switch(
                 t,
                 "autostart",
