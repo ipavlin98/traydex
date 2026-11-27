@@ -476,7 +476,8 @@ impl Shelf {
 
     pub(super) fn settings_page(&self, t: Theme, cx: &mut Context<Self>) -> AnyElement {
         let query = self.page_query(cx);
-        let content = searched(query.as_ref(), self.regions(), |finder| self.settings_content(t, finder, cx));
+        let content =
+            searched(query.as_ref(), self.regions(), self.current_hit(), |finder| self.settings_content(t, finder, cx));
         self.scroll_area(t, Page::Settings, "settings-page", content)
     }
 

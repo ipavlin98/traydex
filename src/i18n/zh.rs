@@ -118,6 +118,7 @@ pub(super) static ZH: Strings = Strings {
     search_placeholder: "点击并输入以搜索",
     nothing_found: "未找到任何内容",
     clear_search: "清除搜索",
+    search_next: "下一个匹配，Shift+Enter 返回上一个",
     clear_hint: "清空 Traydex",
     autostart_setup_failed: "无法设置开机启动：{}",
     save_failed: "无法保存内容：{}",

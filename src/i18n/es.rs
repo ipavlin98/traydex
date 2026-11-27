@@ -118,6 +118,7 @@ pub(super) static ES: Strings = Strings {
     search_placeholder: "Haz clic y escribe para buscar",
     nothing_found: "No se encontró nada",
     clear_search: "Borrar búsqueda",
+    search_next: "Siguiente coincidencia, Shift+Enter para la anterior",
     clear_hint: "Vaciar Traydex",
     autostart_setup_failed: "No se pudo configurar el inicio automático: {}",
     save_failed: "No se pudo guardar el contenido: {}",

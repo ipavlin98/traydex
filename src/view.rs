@@ -403,7 +403,7 @@ impl Shelf {
         diagnostics::begin();
         self.sync_window(window, cx);
         self.regions().clear();
-        self.reveal_after_frame(scaled(FADE, window).into(), window, cx);
+        self.reveal_after_frame(window, cx);
         let width = units(window.viewport_size().width, window);
         let content = match self.page() {
             Page::Shelf => self.shelf_page(t, window, cx),

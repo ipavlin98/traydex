@@ -232,6 +232,7 @@ pub struct Strings {
     pub search_placeholder: &'static str,
     pub nothing_found: &'static str,
     pub clear_search: &'static str,
+    pub search_next: &'static str,
     pub clear_hint: &'static str,
     pub autostart_setup_failed: &'static str,
     pub save_failed: &'static str,

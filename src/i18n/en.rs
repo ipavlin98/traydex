@@ -118,6 +118,7 @@ pub(super) static EN: Strings = Strings {
     search_placeholder: "Click and type to search",
     nothing_found: "Nothing found",
     clear_search: "Clear search",
+    search_next: "Next match, Shift+Enter for the previous one",
     clear_hint: "Clear Traydex",
     autostart_setup_failed: "Couldn't set up autostart: {}",
     save_failed: "Couldn't save contents: {}",

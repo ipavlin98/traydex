@@ -118,6 +118,7 @@ pub(super) static HI: Strings = Strings {
     search_placeholder: "खोजने के लिए क्लिक करें और लिखें",
     nothing_found: "कुछ नहीं मिला",
     clear_search: "खोज साफ़ करें",
+    search_next: "अगला मिलान, पिछले के लिए Shift+Enter",
     clear_hint: "Traydex खाली करें",
     autostart_setup_failed: "ऑटोस्टार्ट सेट नहीं हो सका: {}",
     save_failed: "सामग्री सहेजी नहीं जा सकी: {}",

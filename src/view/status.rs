@@ -75,13 +75,37 @@ impl Shelf {
     pub(super) fn search_trailing(&self, t: Theme, window: &Window, cx: &mut Context<Self>) -> Option<AnyElement> {
         let input = self.search_input().read(cx);
         if !input.text().is_empty() {
+            let count = self.regions().hit_count();
+            let shown = if count == 0 { 0 } else { self.current_hit().min(count - 1) + 1 };
+            let counter = (self.page() != Page::Shelf).then(|| {
+                div()
+                    .id("search-count")
+                    .marked("search-count")
+                    .text_size(rem(text::SMALL))
+                    .text_color(t.muted)
+                    .child(format!("{shown}/{count}"))
+                    .tooltip(hint(t, Tip::keys(tr().search_next, &[tr().enter_key])))
+            });
             return Some(
-                icon_button(t, "clear-search", "close", Tip::keys(tr().clear_search, &[tr().escape_key]), false)
-                    .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
-                    .on_click(cx.safe_listener(|shelf, _, window, cx| {
-                        shelf.clear_current_search(cx);
-                        shelf.search_input().update(cx, |input, cx| input.focus(window, cx));
-                    }))
+                div()
+                    .flex()
+                    .items_center()
+                    .gap(rem(BUTTON_GAP))
+                    .children(counter)
+                    .child(
+                        icon_button(
+                            t,
+                            "clear-search",
+                            "close",
+                            Tip::keys(tr().clear_search, &[tr().escape_key]),
+                            false,
+                        )
+                        .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
+                        .on_click(cx.safe_listener(|shelf, _, window, cx| {
+                            shelf.clear_current_search(cx);
+                            shelf.search_input().update(cx, |input, cx| input.focus(window, cx));
+                        })),
+                    )
                     .into_any_element(),
             );
         }
