@@ -280,7 +280,7 @@ fn drop_marker(t: Theme, below: bool) -> Div {
 }
 
 pub(super) fn segment(t: Theme, id: &'static str, text: &'static str, active: bool) -> Stateful<Div> {
-    segment_base(t, id, active).flex_1().px(rem(space::L)).justify_center().child(text)
+    segment_base(t, id, active, div().flex_1().px(rem(space::L)).justify_center().child(text)).flex_1()
 }
 
 impl Shelf {
