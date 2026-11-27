@@ -288,3 +288,24 @@ fn language_change_updates_shell_menu_label(cx: &mut TestAppContext) {
     h.act(|shelf, _, cx| shelf.toggle_menu(Dropdown::Language, cx));
     assert!(h.read(|shelf| shelf.menu.open() == Some(Dropdown::Language)));
 }
+
+#[gpui::test]
+fn restoring_a_setting_brings_back_its_default_and_reaches_the_system(cx: &mut TestAppContext) {
+    let mut h = open(cx, true);
+    h.act(|shelf, _, cx| {
+        shelf.toggle_tray_icon(cx);
+        shelf.set_scale(125, cx);
+        shelf.set_transparency(30, cx);
+    });
+    assert!(!h.read(|shelf| shelf.store().settings().is_default(store::Preference::TrayIcon)));
+    h.fake.take_calls();
+    h.act(|shelf, _, cx| {
+        shelf.restore_setting(store::Preference::TrayIcon, cx);
+        shelf.restore_setting(store::Preference::Scale, cx);
+    });
+    let saved = h.saved();
+    assert!(saved.settings().tray_icon && saved.settings().scale == 100);
+    assert_eq!(saved.settings().transparency, 30, "other settings stay as they were");
+    assert!(h.fake.calls().contains(&Call::Tray(true)));
+    assert!(h.read(|shelf| shelf.store().settings().is_default(store::Preference::TrayIcon)));
+}

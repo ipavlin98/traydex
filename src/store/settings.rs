@@ -50,6 +50,58 @@ impl TileInput {
     pub const ALL: [TileInput; 3] = [TileInput::Clipboard, TileInput::Selection, TileInput::Picker];
 }
 
+macro_rules! preferences {
+    ($($preference:ident => $field:ident),* $(,)?) => {
+        #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+        pub enum Preference {
+            $($preference),*
+        }
+
+        impl Settings {
+            pub fn is_default(&self, preference: Preference) -> bool {
+                let defaults = defaults();
+                match preference {
+                    $(Preference::$preference => self.$field == defaults.$field),*
+                }
+            }
+
+            pub fn restore(&mut self, preference: Preference) {
+                let defaults = defaults();
+                match preference {
+                    $(Preference::$preference => self.$field = defaults.$field.clone()),*
+                }
+            }
+        }
+    };
+}
+
+fn defaults() -> &'static Settings {
+    static DEFAULTS: std::sync::OnceLock<Settings> = std::sync::OnceLock::new();
+    DEFAULTS.get_or_init(Settings::default)
+}
+
+preferences! {
+    Theme => theme,
+    Transparency => transparency,
+    Scale => scale,
+    Blur => blur,
+    WindowAnimations => window_animations,
+    Language => language,
+    Automatic => automatic,
+    Shake => shake,
+    HotCorner => corner,
+    CornerDrag => corner_drag,
+    NearCursor => near_cursor,
+    TileInput => tile_input,
+    Autostart => autostart,
+    TrayIcon => tray_icon,
+    ContextMenu => context_menu,
+    DoubleClickPreview => double_click_preview,
+    SeparateNotes => separate_notes,
+    Recycle => recycle,
+    CheckUpdates => check_updates,
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Settings {
