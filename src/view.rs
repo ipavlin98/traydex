@@ -21,7 +21,7 @@ use self::scroll::glide;
 pub(crate) use self::tiles::STRIP_COVER;
 use self::widgets::{
     KEYS_SEARCH, Look, Marked, Tip, badge, badge_icon, bare_button, copy_button, highlighted, hint, hint_card, icon,
-    icon_button, kbd, leading_icon, measure, row_button, subtitle_lift, subtitled, text_button,
+    icon_button, kbd, leading_icon, measure, row_button, subtitle_lift, subtitled, text_button, ui_font,
 };
 use crate::design::{self, glyph, line, radius, rem, scaled, size, space, text, timing, units};
 use crate::diagnostics;
@@ -385,7 +385,7 @@ fn broken(t: Theme) -> AnyElement {
         .justify_center()
         .bg(t.bg)
         .text_color(t.danger)
-        .font_family(i18n::current().font())
+        .font(ui_font(i18n::current()))
         .text_size(rem(text::BODY))
         .child(tr().internal_error)
         .into_any_element()
@@ -428,7 +428,7 @@ impl Shelf {
             .overflow_hidden()
             .bg(t.bg)
             .text_color(t.text)
-            .font_family(i18n::current().font())
+            .font(ui_font(i18n::current()))
             .text_size(rem(text::BODY))
             .on_key_down(cx.safe_listener(Shelf::key))
             .capture_any_mouse_down(cx.safe_listener(|shelf, _: &MouseDownEvent, _, cx| shelf.pointer_pressed(cx)))

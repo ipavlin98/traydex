@@ -1,7 +1,7 @@
 use super::widgets::{
     Finder, Look, Marked, Tip, action_badge, action_icon, badge_icon, choice, disabled_button, edge_reach, grid,
     heading, highlighted, hint, icon, inset, leading_icon, measure, notice, page, picked, row_button, searched,
-    section, segment_base, segments, spinner, subtitle_lift, subtitled, switch, text_button, unmatched,
+    section, segment_base, segments, spinner, subtitle_lift, subtitled, switch, text_button, ui_font, unmatched,
     zoned_row_button,
 };
 use super::{FADE, fade_cover};
@@ -174,7 +174,7 @@ impl Render for DraggedTile {
             .border_color(t.accent)
             .bg(t.surface)
             .shadow_md()
-            .font_family(i18n::current().font())
+            .font(ui_font(i18n::current()))
             .text_size(rem(text::BODY))
             .text_color(t.text)
             .child(badge_icon(t, self.icon.clone(), ROW_BADGE, false))

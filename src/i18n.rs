@@ -62,11 +62,11 @@ impl Language {
         }
     }
 
-    pub fn font(self) -> &'static str {
+    pub fn script_font(self) -> Option<&'static str> {
         match self {
-            Language::Chinese => "Microsoft YaHei UI",
-            Language::Hindi => "Nirmala UI",
-            _ => "Segoe UI",
+            Language::Chinese => Some("Microsoft YaHei UI"),
+            Language::Hindi => Some("Nirmala UI"),
+            Language::English | Language::Spanish | Language::French | Language::Russian => None,
         }
     }
 

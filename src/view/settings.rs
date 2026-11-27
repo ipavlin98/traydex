@@ -1,7 +1,7 @@
 use super::motion::{Enter, Motion};
 use super::widgets::{
     Finder, Look, Marked, bare_button, dimmed, hint, icon, icon_button, kbd, page, searched, section, segment_base,
-    segments, setting, spinner, switch, text_button, unmatched,
+    segments, setting, spinner, switch, text_button, ui_font, unmatched,
 };
 use crate::design::{glyph, line, radius, rem, size, space, text};
 use crate::i18n::{self, Language, tr};
@@ -255,7 +255,7 @@ impl Shelf {
             menu: Dropdown::Language,
             current: i18n::current(),
             options: &Language::ALL,
-            label: |language| div().font_family(language.font()).child(language.native_name()),
+            label: |language| div().font(ui_font(language)).child(language.native_name()),
             pick: Self::set_language,
         };
         self.dropdown(t, picker, cx)
