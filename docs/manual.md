@@ -247,7 +247,8 @@ Clicking a tile in the list opens its settings: the name, keys and addresses are
 immediately, and secret keys are masked. Here you also choose whether a folder tile moves or copies, and which
 engine a search tile uses: Google (default for the first search tile), Yandex, Bing, DuckDuckGo, YouTube or your own
 address where `%s` is replaced by the query. An engine already used by another tile can't be picked. A tile missing
-required settings is marked *Needs setup*.
+required settings is marked *Needs setup*. The arrows in a row move the tile up or down; dragging a row moves it
+anywhere, and while you drag, a line shows where the tile will land.
 
 While an action runs, a purple progress ring fills next to the pin in the title bar (an arc spins when the percentage
 is unknown); its tooltip lists all running jobs with their stage and percentage. Errors show up as a red icon in the
